@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import NavBar from './components/NavBar';
 import ProtectedRoute from './components/ProtectedRoute';
+import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import TripsPage from './pages/TripsPage';
@@ -11,29 +12,32 @@ export default function App() {
   return (
     <AuthProvider>
       <NavBar />
-      <main>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<main><LoginPage /></main>} />
+        <Route path="/register" element={<main><RegisterPage /></main>} />
+        <Route
+          path="/trips"
+          element={
+            <ProtectedRoute>
+              <main>
                 <TripsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/trips/:id"
-            element={
-              <ProtectedRoute>
+              </main>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trips/:id"
+          element={
+            <ProtectedRoute>
+              <main>
                 <TripDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
+              </main>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </AuthProvider>
   );
 }

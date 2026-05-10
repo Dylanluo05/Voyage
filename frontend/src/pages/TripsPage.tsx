@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import * as tripsApi from '../api/trips';
 import type { Trip } from '../types';
 import { ApiError } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 function formatDate(s: string): string {
   return new Date(s).toLocaleDateString();
 }
 
 export default function TripsPage() {
+  const { user } = useAuth();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +41,10 @@ export default function TripsPage() {
   async function onCreate(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (new Date(endDate) < new Date(startDate)) {
+      setError('End date must be on or after start date');
+      return;
+    }
     setCreating(true);
     try {
       await tripsApi.createTrip({
@@ -130,33 +136,41 @@ export default function TripsPage() {
           <p className="muted">No trips yet — create one above.</p>
         ) : (
           <ul className="trip-list">
-            {trips.map((trip) => (
-              <li key={trip._id} className="card">
-                <div className="row spread">
-                  <div>
-                    <h3>
-                      <Link to={`/trips/${trip._id}`}>{trip.title}</Link>
-                    </h3>
-                    <p className="muted">
-                      {trip.destination} · {formatDate(trip.startDate)} –{' '}
-                      {formatDate(trip.endDate)}
-                    </p>
-                    {trip.description && <p>{trip.description}</p>}
-                    <p className="muted small">
-                      {trip.items.length} itinerary item
-                      {trip.items.length === 1 ? '' : 's'}
-                    </p>
+            {trips.map((trip) => {
+              const isOwner = trip.owner === user?.id;
+              return (
+                <li key={trip._id} className="card">
+                  <div className="row spread">
+                    <div>
+                      <h3 style={{ margin: '0 0 4px' }}>
+                        <Link to={`/trips/${trip._id}`}>{trip.title}</Link>
+                        {!isOwner && (
+                          <span className="collab-badge">Shared</span>
+                        )}
+                      </h3>
+                      <p className="muted">
+                        {trip.destination} · {formatDate(trip.startDate)} –{' '}
+                        {formatDate(trip.endDate)}
+                      </p>
+                      {trip.description && <p>{trip.description}</p>}
+                      <p className="muted small">
+                        {trip.items.length} itinerary item
+                        {trip.items.length === 1 ? '' : 's'}
+                      </p>
+                    </div>
+                    {isOwner && (
+                      <button
+                        type="button"
+                        onClick={() => onDelete(trip._id)}
+                        className="danger"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => onDelete(trip._id)}
-                    className="danger"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

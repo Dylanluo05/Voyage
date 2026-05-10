@@ -8,7 +8,7 @@ export default function NavBar() {
   return (
     <nav className="navbar">
       <Link to="/" className="brand">
-        Trip Planner
+        Voyage
       </Link>
       <div className="nav-actions">
         {user ? (

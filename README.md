@@ -12,7 +12,7 @@ A full-stack trip planning app built with **MongoDB**, **Express + TypeScript**,
 ## Project layout
 
 ```
-trip-planner/
+voyage/
   backend/    # Express + TypeScript + Mongoose API
   frontend/   # Vite + React + TypeScript SPA
 ```
