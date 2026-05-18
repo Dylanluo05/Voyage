@@ -24,8 +24,31 @@ import {
   voteDebateOption,
   addDebateComment,
   deleteDebateComment,
+  updateBudget,
+  searchSpotify,
+  addTrack,
+  removeTrack,
+  recommendByVibe,
+  markCompleted,
+  addLogPhoto,
+  removeLogPhoto,
+  rateItem,
+  addHotel,
+  removeHotel,
+  addFlight,
+  removeFlight,
+  addExpense,
+  removeExpense,
+  settleSplit,
+  addSidequest,
+  removeSidequest,
+  assignSidequest,
+  completeSidequest,
+  addComment,
+  removeComment,
 } from '../controllers/tripsController';
 import { getRecommendations } from '../controllers/recommendationsController';
+import { parseHotelConfirmation, parseFlightConfirmation } from '../controllers/importController';
 
 const router = Router();
 
@@ -57,7 +80,37 @@ router.put('/:id/debates/:debateId/options/:optionId/vote', voteDebateOption);
 router.post('/:id/debates/:debateId/comments', addDebateComment);
 router.delete('/:id/debates/:debateId/comments/:commentId', deleteDebateComment);
 
+router.put('/:id/budget', updateBudget);
+
+router.get('/:id/playlist/search', searchSpotify);
+router.get('/:id/playlist/recommend', recommendByVibe);
+router.post('/:id/playlist', addTrack);
+router.delete('/:id/playlist/:trackId', removeTrack);
+
 router.post('/:id/collaborators', inviteCollaborator);
 router.delete('/:id/collaborators/:userId', removeCollaborator);
+
+router.put('/:id/complete', markCompleted);
+router.post('/:id/log/photos', addLogPhoto);
+router.delete('/:id/log/photos/:photoId', removeLogPhoto);
+router.put('/:id/log/items/:itemId/rating', rateItem);
+
+router.post('/:id/hotels', addHotel);
+router.delete('/:id/hotels/:hotelId', removeHotel);
+router.post('/:id/hotels/parse', parseHotelConfirmation);
+router.post('/:id/flights', addFlight);
+router.delete('/:id/flights/:flightId', removeFlight);
+router.post('/:id/flights/parse', parseFlightConfirmation);
+
+router.post('/:id/expenses', addExpense);
+router.delete('/:id/expenses/:expenseId', removeExpense);
+router.patch('/:id/expenses/:expenseId/splits/:userId', settleSplit);
+
+router.post('/:id/sidequests', addSidequest);
+router.delete('/:id/sidequests/:sidequestId', removeSidequest);
+router.patch('/:id/sidequests/:sidequestId/assign', assignSidequest);
+router.patch('/:id/sidequests/:sidequestId/complete', completeSidequest);
+router.post('/:id/sidequests/:sidequestId/comments', addComment);
+router.delete('/:id/sidequests/:sidequestId/comments/:commentId', removeComment);
 
 export default router;

@@ -4,6 +4,9 @@ import { Types } from 'mongoose';
 import { Trip, ItineraryItemData, DebateOptionData, DebateCommentData } from '../models/Trip';
 import { User } from '../models/User';
 import { HttpError } from '../middleware/error';
+import { searchTracks } from '../lib/spotify';
+import { interpretVibe } from '../lib/vibeInterpreter';
+import { performServerHandshake } from 'http2';
 
 const locationSchema = z
   .object({
@@ -69,7 +72,7 @@ function ensureValidObjectId(id: string, label = 'id'): void {
   if (!Types.ObjectId.isValid(id)) throw new HttpError(400, `Invalid ${label}`);
 }
 
-const COLLAB_POPULATE = { path: 'collaborators', select: 'name email' };
+const COLLAB_POPULATE = [{ path: 'collaborators', select: 'name email' }, { path: 'owner', select: 'name email' }];
 
 export async function listTrips(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -571,6 +574,532 @@ export async function deleteDebateComment(req: Request, res: Response, next: Nex
     if (!comment) throw new HttpError(404, 'Comment not found');
     if (!trip.owner.equals(uid) && !comment.userId.equals(uid)) throw new HttpError(403, 'Not allowed');
     debate.comments = debate.comments.filter((c: DebateCommentData) => c._id?.toString() !== req.params.commentId) as typeof debate.comments;
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function searchSpotify(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { q } = z.object({ q: z.string().min(1) }).parse(req.query);
+    const tracks = await searchTracks(q);
+    const results = tracks.map((t) => ({
+      spotifyId: t.id,
+      title: t.name,
+      artist: t.artists.map((a) => a.name).join(', '),
+      albumArt: t.album.images[0]?.url,
+    }));
+    res.json(results);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function addTrack(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const track = z.object({
+      spotifyId: z.string().min(1),
+      title: z.string().min(1),
+      artist: z.string().min(1),
+      albumArt: z.string().optional(),
+    }).parse(req.body);
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    const alreadyAdded = trip.playlist.some((t) => t.spotifyId === track.spotifyId);
+    if (alreadyAdded) throw new HttpError(409, 'Track already in playlist');
+    trip.playlist.push({ ...track, addedBy: ownerId(req) });
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.status(201).json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function removeTrack(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    const before = trip.playlist.length;
+    trip.playlist = trip.playlist.filter(
+      (t) => t._id?.toString() !== req.params.trackId
+    ) as typeof trip.playlist;
+    if (trip.playlist.length === before) throw new HttpError(404, 'Track not found');
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function recommendByVibe(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const { vibes } = z.object({ vibes: z.string().min(1).max(200) }).parse(req.query);
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    const suggestions = await interpretVibe(vibes, trip.destination);
+    const settled = await Promise.allSettled(
+      suggestions.map((s) => searchTracks(`${s.title} ${s.artist}`))
+    );
+    const results = settled
+      .flatMap((r) => (r.status === 'fulfilled' ? r.value.slice(0, 1) : []))
+      .map((t) => ({
+        spotifyId: t.id,
+        title: t.name,
+        artist: t.artists.map((a) => a.name).join(', '),
+        albumArt: t.album.images[0]?.url,
+      }));
+    res.json({ results });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── Share ──────────────────────────────────────────────────────────────────
+
+export async function getPublicTrip(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const trip = await Trip.findOne({ shareToken: req.params.token }).populate(COLLAB_POPULATE);
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── Trip log ───────────────────────────────────────────────────────────────
+
+function extractCountryCode(destination: string): string | undefined {
+  const last = destination.split(',').at(-1)?.trim().toLowerCase();
+  const map: Record<string, string> = {
+    'usa': 'US', 'united states': 'US', 'japan': 'JP', 'france': 'FR',
+    'italy': 'IT', 'spain': 'ES', 'uk': 'GB', 'united kingdom': 'GB',
+    'germany': 'DE', 'australia': 'AU', 'canada': 'CA', 'mexico': 'MX',
+    'brazil': 'BR', 'china': 'CN', 'india': 'IN', 'thailand': 'TH',
+    'indonesia': 'ID', 'portugal': 'PT', 'greece': 'GR', 'netherlands': 'NL',
+    'switzerland': 'CH', 'austria': 'AT', 'sweden': 'SE', 'norway': 'NO',
+    'denmark': 'DK', 'new zealand': 'NZ', 'south korea': 'KR', 'singapore': 'SG',
+    'vietnam': 'VN', 'turkey': 'TR', 'egypt': 'EG', 'morocco': 'MA',
+    'argentina': 'AR', 'peru': 'PE', 'colombia': 'CO', 'cuba': 'CU',
+  };
+  return last ? map[last] : undefined;
+}
+
+export async function markCompleted(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const { isCompleted } = z.object({ isCompleted: z.boolean() }).parse(req.body);
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    const memberIds = [trip.owner._id, ...trip.collaborators.map(c => c._id)];
+    if (isCompleted && !trip.isCompleted) {
+      await User.updateMany(
+        { _id: { $in: memberIds } },
+        { $push: { badges: { destination: trip.title, countryCode: extractCountryCode(trip.destination), source: 'auto', tripId: trip._id, awardedAt: new Date() } } }
+      );
+    }
+    trip.isCompleted = isCompleted;
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function addLogPhoto(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const { url, day, caption } = z.object({
+      url: z.string().min(1),
+      day: z.number().int().min(1).optional(),
+      caption: z.string().max(300).optional(),
+    }).parse(req.body);
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    trip.log.photos.push({ url, day, caption, uploadedBy: ownerId(req), uploadedAt: new Date() });
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.status(201).json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function removeLogPhoto(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    const before = trip.log.photos.length;
+    trip.log.photos = trip.log.photos.filter(
+      (p) => p._id?.toString() !== req.params.photoId
+    ) as typeof trip.log.photos;
+    if (trip.log.photos.length === before) throw new HttpError(404, 'Photo not found');
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function rateItem(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const { rating } = z.object({ rating: z.number().int().min(1).max(5) }).parse(req.body);
+    const uid = ownerId(req);
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    const itemId = new Types.ObjectId(req.params.itemId);
+    const existing = trip.log.ratings.find(
+      (r) => r.itemId.equals(itemId) && r.userId.equals(uid)
+    );
+    if (existing) {
+      existing.rating = rating;
+    } else {
+      trip.log.ratings.push({ itemId, rating, userId: uid });
+    }
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateBudget(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const { budget } = z.object({ budget: z.number().min(0) }).parse(req.body);
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    trip.budget = budget;
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── Hotels and Flights ──────────────────────────────────────────────────────────────────
+export async function addHotel(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const hotel = z.object({
+      name: z.string().min(1),
+      type: z.enum(["hotel", "airbnb", "hostel", "other"]),
+      location: z.string().min(1),
+      checkIn: z.string().min(1),
+      checkOut: z.string().min(1),
+      pricePerNight: z.number().min(0),
+      guests: z.number().min(1),
+      confirmationNumber: z.string().min(1).optional(),
+      notes: z.string().min(1).max(300).optional(),
+    }).parse(req.body);
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    trip.hotels.push(hotel);
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.status(201).json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function removeHotel(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    const before = trip.hotels.length;
+    trip.hotels = trip.hotels.filter(
+      (h) => h._id?.toString() !== req.params.hotelId
+    ) as typeof trip.hotels;
+    if (trip.hotels.length === before) throw new HttpError(404, 'Hotel not found');
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function addFlight(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const flight = z.object({
+      tripType: z.enum(["one-way", "round-trip"]),
+      airline: z.string().min(1),
+      flightNumber: z.string().min(1),
+      departureAirport: z.string().min(1),
+      arrivalAirport: z.string().min(1),
+      departureTime: z.string().min(1),
+      arrivalTime: z.string().min(1),
+      returnDepartureTime: z.string().min(1).optional(),
+      returnArrivalTime: z.string().min(1).optional(),
+      passengers: z.number().min(1),
+      cabinClass: z.enum(["economy", "premium-economy", "business", "first-class"]),
+      price: z.number().min(0),
+      confirmationNumber: z.string().min(1),
+      notes: z.string().min(1).max(300).optional(),
+    }).parse(req.body);
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    trip.flights.push(flight);
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.status(201).json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function removeFlight(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    const before = trip.flights.length;
+    trip.flights = trip.flights.filter(
+      (f) => f._id?.toString() !== req.params.flightId
+    ) as typeof trip.flights;
+    if (trip.flights.length === before) throw new HttpError(404, 'Flight not found');
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+
+// ── Expenses ──────────────────────────────────────────────────────────────────
+export async function addExpense(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const expense = z.object({
+      title: z.string().min(1),
+      amount: z.number().min(0),
+      paidBy: z.object({ userId: z.string(), userName: z.string().min(1) }),
+      splits: z.array(z.object({ userId: z.string(), userName: z.string().min(1), amount: z.number().min(0) })),
+    }).parse(req.body);
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    trip.expenses.push({
+      title: expense.title,
+      amount: expense.amount,
+      paidBy: {
+        userId: new Types.ObjectId(expense.paidBy.userId),
+        userName: expense.paidBy.userName,
+      },
+      splits: expense.splits.map(s => ({
+        userId: new Types.ObjectId(s.userId),
+        userName: s.userName,
+        amount: s.amount,
+        settled: false,
+      })),
+    });
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.status(201).json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function removeExpense(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    const before = trip.expenses.length;
+    trip.expenses = trip.expenses.filter(
+      (e) => e._id?.toString() !== req.params.expenseId
+    ) as typeof trip.expenses;
+    if (trip.expenses.length === before) throw new HttpError(404, 'Expense not found');
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function settleSplit(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    const expense = trip.expenses.find((e) => e._id?.toString() === req.params.expenseId);
+    if (!expense) throw new HttpError(404, 'Expense not found');
+    if (req.params.userId === ownerId(req).toString() || trip.owner.toString() === ownerId(req).toString()) {
+      const split = expense.splits.find((s) => s.userId.toString() === req.params.userId);
+      if (!split) throw new HttpError(404, 'Split not found');
+      split.settled = true;
+    } else {
+      throw new HttpError(403, 'Not authorized to settle this split');
+    }
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── Sidequests ──────────────────────────────────────────────────────────────────
+export async function addSidequest(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const sidequest = z.object({
+      title: z.string().min(1),
+      description: z.string().min(1).optional(),
+    }).parse(req.body);
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    trip.sidequests.push({
+      title: sidequest.title,
+      description: sidequest.description,
+      comments: [],
+      completed: false
+    });
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.status(201).json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function assignSidequest(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    ensureValidObjectId(req.params.sidequestId, 'sidequest id');
+    ensureValidObjectId(req.body.assigneeId, 'assignee id');
+    const [trip, assigneeUser, assignerUser] = await Promise.all([
+      Trip.findOne(accessFilter(req, req.params.id)),
+      User.findById(req.body.assigneeId).select('name'),
+      User.findById(ownerId(req)).select('name'),
+    ]);
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    if (!assigneeUser) throw new HttpError(404, 'Assignee user not found');
+    if (!assignerUser) throw new HttpError(404, 'Assigner user not found');
+    const sidequest = trip.sidequests.find(s => String(s._id) === req.params.sidequestId);
+    if (!sidequest) throw new HttpError(404, 'Sidequest not found');
+    const isMember = trip.owner.equals(assigneeUser._id) || trip.collaborators.some(c => c.equals(assigneeUser._id));
+    if (!isMember) throw new HttpError(400, 'Assignee is not a trip member');
+    if (assigneeUser._id.equals(assignerUser._id)) throw new HttpError(400, 'Cannot assign a sidequest to yourself');
+    sidequest.assignee = { userId: assigneeUser._id, userName: assigneeUser.name };
+    sidequest.assigner = { userId: assignerUser._id, userName: assignerUser.name };
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.status(200).json(trip);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export async function completeSidequest(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    ensureValidObjectId(req.params.sidequestId, 'sidequest id');
+    const uid = ownerId(req);
+    const [trip, user] = await Promise.all([
+      Trip.findOne(accessFilter(req, req.params.id)),
+      User.findById(uid).select('name'),
+    ]);
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    if (!user) throw new HttpError(404, 'User not found');
+    const sidequest = trip.sidequests.find(s => String(s._id) === req.params.sidequestId);
+    if (!sidequest) throw new HttpError(404, 'Sidequest not found');
+    if (!uid.equals(sidequest.assigner?.userId)) throw new HttpError(403, 'Only the sidequest assigner can mark the sidequest as complete');
+    if (sidequest.completed) throw new HttpError(400, 'Sidequest already completed');
+    sidequest.completed = true;
+    sidequest.completedBy = { userId: uid, userName: user.name };
+    sidequest.completedAt = new Date();
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.status(200).json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function removeSidequest(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    ensureValidObjectId(req.params.sidequestId, 'sidequest id');
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    const before = trip.sidequests.length;
+    trip.sidequests = trip.sidequests.filter(
+      (s) => s._id?.toString() !== req.params.sidequestId
+    ) as typeof trip.sidequests;
+    if (trip.sidequests.length === before) throw new HttpError(404, 'Sidequest not found');
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function addComment(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    ensureValidObjectId(req.params.sidequestId, 'sidequest id');
+    const comment = z.object({
+      text: z.string().min(1),
+      imageUrl: z.string().optional(),
+    }).parse(req.body);
+    const [trip, user] = await Promise.all([
+      Trip.findOne(accessFilter(req, req.params.id)),
+      User.findById(ownerId(req)).select('name'),
+    ]);
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    if (!user) throw new HttpError(404, 'User not found');
+    const sidequest = trip.sidequests.find(s => String(s._id) === req.params.sidequestId);
+    if (!sidequest) throw new HttpError(404, 'Sidequest not found');
+    sidequest.comments.push({
+      userId: user._id,
+      userName: user.name,
+      text: comment.text,
+      imageUrl: comment.imageUrl,
+      createdAt: new Date(),
+    });
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function removeComment(req: Request, res: Response, next: NextFunction) {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    ensureValidObjectId(req.params.sidequestId, 'sidequest id');
+    ensureValidObjectId(req.params.commentId, 'comment id');
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    const sidequest = trip.sidequests.find(s => String(s._id) === req.params.sidequestId);
+    if (!sidequest) throw new HttpError(404, 'Sidequest not found');
+    const comment = sidequest.comments.find(c => c._id?.toString() === req.params.commentId);
+    if (!comment) throw new HttpError(404, 'Comment not found');
+    if (!comment.userId.equals(ownerId(req))) throw new HttpError(403, 'Cannot delete another user\'s comment');
+    sidequest.comments = sidequest.comments.filter(
+      c => c._id?.toString() !== req.params.commentId
+    ) as typeof sidequest.comments;
     await trip.save();
     await trip.populate(COLLAB_POPULATE);
     res.json(trip);

@@ -77,9 +77,45 @@ export interface CollaboratorUser {
   email: string;
 }
 
+export interface PlaylistTrack {
+  _id: string;
+  spotifyId: string;
+  title: string;
+  artist: string;
+  albumArt?: string;
+  addedBy: string;
+}
+
+export interface SpotifySearchResult {
+  spotifyId: string;
+  title: string;
+  artist: string;
+  albumArt?: string;
+}
+
+export interface LogPhoto {
+  _id: string;
+  url: string;
+  day?: number;
+  caption?: string;
+  uploadedBy: string;
+  uploadedAt: string;
+}
+
+export interface ItemRating {
+  itemId: string;
+  rating: number;
+  userId: string;
+}
+
+export interface TripLog {
+  photos: LogPhoto[];
+  ratings: ItemRating[];
+}
+
 export interface Trip {
   _id: string;
-  owner: string;
+  owner: CollaboratorUser;
   collaborators: CollaboratorUser[];
   title: string;
   destination: string;
@@ -89,8 +125,17 @@ export interface Trip {
   items: ItineraryItem[];
   groups: Group[];
   debates: Debate[];
+  playlist: PlaylistTrack[];
+  budget?: number;
+  isCompleted: boolean;
+  log: TripLog;
+  shareToken: string;
   createdAt: string;
   updatedAt: string;
+  hotels: HotelBooking[];
+  flights: FlightBooking[];
+  expenses: Expense[];
+  sidequests: Sidequest[];
 }
 
 export type NewTripInput = {
@@ -129,4 +174,89 @@ export interface Recommendation {
   location?: { name: string; address?: string };
   category: 'food' | 'activity' | 'attraction';
   estimatedCost?: string;
+}
+
+export interface HotelBooking {
+  _id: string;
+  name: string;
+  type: 'hotel' | 'airbnb' | 'hostel' | 'other';
+  location: string;
+  checkIn: string;
+  checkOut: string;
+  pricePerNight: number;
+  guests: number;
+  confirmationNumber?: string;
+  notes?: string;
+}
+
+export interface FlightBooking {
+  _id: string;
+  tripType: 'one-way' | 'round-trip';
+  airline: string;
+  flightNumber: string;
+  departureAirport: string;
+  arrivalAirport: string;
+  departureTime: string;
+  arrivalTime: string;
+  returnDepartureTime?: string;
+  returnArrivalTime?: string;
+  passengers: number;
+  cabinClass: 'economy' | 'premium-economy' | 'business' | 'first-class';
+  price: number;
+  confirmationNumber: string;
+  notes?: string;
+}
+
+export interface ExpenseSplit {
+  userId: string;
+  userName: string;
+  amount: number;
+  settled: boolean;
+}
+
+export interface Expense {
+  _id: string;
+  title: string;
+  amount: number;
+  paidBy: { userId: string; userName: string };
+  splits: ExpenseSplit[];
+  createdAt: string;
+}
+
+export interface SidequestComment {
+  _id: string;
+  userId: string;
+  userName: string;
+  text: string;
+  imageUrl?: string;
+  createdAt: string;
+}
+
+export interface Sidequest {
+  _id: string;
+  title: string;
+  description?: string;
+  assignee?: { userId: string; userName: string };
+  assigner?: { userId: string; userName: string };
+  comments: SidequestComment[];
+  completed: boolean;
+  completedBy?: { userId: string; userName: string };
+  completedAt?: string;
+}
+
+export interface Badge {
+  _id: string;
+  destination: string;
+  countryCode?: string;
+  awardedAt: string;
+  source: 'auto' | 'manual';
+  tripId?: string;
+}
+
+export interface UserProfile {
+  _id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  badges: Badge[];
 }

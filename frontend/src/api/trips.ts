@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { Trip, NewTripInput, NewItemInput, ReorderInput, Recommendation } from '../types';
+import type { Trip, NewTripInput, NewItemInput, ReorderInput, Recommendation, SpotifySearchResult, LogPhoto, HotelBooking, FlightBooking, Expense } from '../types';
 
 export function listTrips(): Promise<Trip[]> {
   return apiFetch<Trip[]>('/api/trips');
@@ -54,8 +54,11 @@ export function reorderItems(tripId: string, input: ReorderInput): Promise<Trip>
   });
 }
 
-export function getRecommendations(tripId: string): Promise<Recommendation[]> {
-  return apiFetch<Recommendation[]>(`/api/trips/${tripId}/recommendations`);
+export function getRecommendations(tripId: string, excludeTitles?: string[]): Promise<Recommendation[]> {
+  const qs = excludeTitles?.length
+    ? `?exclude=${encodeURIComponent(JSON.stringify(excludeTitles))}`
+    : '';
+  return apiFetch<Recommendation[]>(`/api/trips/${tripId}/recommendations${qs}`);
 }
 
 export function reactToItem(tripId: string, itemId: string, emoji: string): Promise<Trip> {
@@ -155,5 +158,166 @@ export function addDebateComment(tripId: string, debateId: string, text: string)
 export function deleteDebateComment(tripId: string, debateId: string, commentId: string): Promise<Trip> {
   return apiFetch<Trip>(`/api/trips/${tripId}/debates/${debateId}/comments/${commentId}`, {
     method: 'DELETE',
+  });
+}
+
+export function updateBudget(tripId: string, budget: number): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/budget`, {
+    method: 'PUT',
+    body: JSON.stringify({ budget }),
+  });
+}
+
+export function searchSpotify(tripId: string, q: string): Promise<SpotifySearchResult[]> {
+  return apiFetch<SpotifySearchResult[]>(`/api/trips/${tripId}/playlist/search?q=${encodeURIComponent(q)}`);
+}
+
+export function recommendByVibe(tripId: string, vibes: string): Promise<{ params: Record<string, unknown>; results: SpotifySearchResult[] }> {
+  return apiFetch(`/api/trips/${tripId}/playlist/recommend?vibes=${encodeURIComponent(vibes)}`);
+}
+
+export function addTrack(tripId: string, track: SpotifySearchResult): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/playlist`, {
+    method: 'POST',
+    body: JSON.stringify(track),
+  });
+}
+
+export function removeTrack(tripId: string, trackId: string): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/playlist/${trackId}`, {
+    method: 'DELETE',
+  });
+}
+
+export function parseHotelText(tripId: string, text: string): Promise<Omit<HotelBooking, '_id'>> {
+  return apiFetch(`/api/trips/${tripId}/hotels/parse`, {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  });
+}
+
+export function parseFlightText(tripId: string, text: string): Promise<Omit<FlightBooking, '_id'>> {
+  return apiFetch(`/api/trips/${tripId}/flights/parse`, {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  });
+}
+
+export function addHotel(tripId: string, hotel: Omit<HotelBooking, '_id'>): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/hotels`, {
+    method: 'POST',
+    body: JSON.stringify(hotel),
+  });
+}
+
+export function removeHotel(tripId: string, hotelId: string): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/hotels/${hotelId}`, {
+    method: 'DELETE',
+  });
+}
+
+export function addFlight(tripId: string, flight: Omit<FlightBooking, '_id'>): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/flights`, {
+    method: 'POST',
+    body: JSON.stringify(flight),
+  });
+}
+
+export function removeFlight(tripId: string, flightId: string): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/flights/${flightId}`, {
+    method: 'DELETE',
+  });
+}
+
+export function addExpense(tripId: string, expense: Omit<Expense, '_id' | 'createdAt'>): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/expenses`, {
+    method: 'POST',
+    body: JSON.stringify(expense),
+  });
+}
+
+export function removeExpense(tripId: string, expenseId: string): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/expenses/${expenseId}`, {
+    method: 'DELETE',
+  });
+}
+
+export function settleSplit(tripId: string, expenseId: string, userId: string): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/expenses/${expenseId}/splits/${userId}`, {
+    method: 'PATCH',
+  });
+}
+
+export function addSidequest(tripId: string, sidequest: { title: string; description?: string }): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/sidequests`, {
+    method: 'POST',
+    body: JSON.stringify(sidequest),
+  });
+}
+
+export function removeSidequest(tripId: string, sidequestId: string): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/sidequests/${sidequestId}`, {
+    method: 'DELETE',
+  });
+}
+
+export function assignSidequest(tripId: string, sidequestId: string, assigneeId: string): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/sidequests/${sidequestId}/assign`, {
+    method: 'PATCH',
+    body: JSON.stringify({ assigneeId }),
+  });
+}
+
+export function completeSidequest(tripId: string, sidequestId: string): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/sidequests/${sidequestId}/complete`, {
+    method: 'PATCH',
+  });
+}
+
+export function addComment(tripId: string, sidequestId: string, comment: { text: string, imageUrl?: string }): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/sidequests/${sidequestId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify(comment),
+  });
+}
+
+export function removeComment(tripId: string, sidequestId: string, commentId: string): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/sidequests/${sidequestId}/comments/${commentId}`, {
+    method: 'DELETE',
+  });
+}
+
+// ── Share ─────────────────────────────────────────────────────────────────
+
+export function getPublicTrip(shareToken: string): Promise<Trip> {
+  return apiFetch<Trip>(`/api/public/trips/${shareToken}`);
+}
+
+// ── Trip log ──────────────────────────────────────────────────────────────
+
+export function markCompleted(tripId: string, isCompleted: boolean): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/complete`, {
+    method: 'PUT',
+    body: JSON.stringify({ isCompleted }),
+  });
+}
+
+export function addLogPhoto(tripId: string, photo: Pick<LogPhoto, 'url' | 'day' | 'caption'>): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/log/photos`, {
+    method: 'POST',
+    body: JSON.stringify(photo),
+  });
+}
+
+export function removeLogPhoto(tripId: string, photoId: string): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/log/photos/${photoId}`, {
+    method: 'DELETE',
+  });
+}
+
+export function rateItem(tripId: string, itemId: string, rating: number): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/log/items/${itemId}/rating`, {
+    method: 'PUT',
+    body: JSON.stringify({ rating }),
   });
 }

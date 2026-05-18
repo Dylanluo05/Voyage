@@ -1,4 +1,5 @@
 import { Schema, model, Document, Types } from 'mongoose';
+import { randomBytes } from 'crypto';
 
 export interface LocationData {
   name?: string;
@@ -44,6 +45,15 @@ export interface DebateData {
   comments: DebateCommentData[];
 }
 
+export interface PlaylistTrackData {
+  _id?: Types.ObjectId;
+  spotifyId: string;
+  title: string;
+  artist: string;
+  albumArt?: string;
+  addedBy: Types.ObjectId;
+}
+
 export interface ItineraryItemData {
   _id?: Types.ObjectId;
   day: number;
@@ -60,6 +70,26 @@ export interface ItineraryItemData {
   groupId?: string;
 }
 
+export interface LogPhotoData {
+  _id?: Types.ObjectId;
+  url: string;
+  day?: number;
+  caption?: string;
+  uploadedBy: Types.ObjectId;
+  uploadedAt: Date;
+}
+
+export interface ItemRatingData {
+  itemId: Types.ObjectId;
+  rating: number;
+  userId: Types.ObjectId;
+}
+
+export interface TripLogData {
+  photos: LogPhotoData[];
+  ratings: ItemRatingData[];
+}
+
 export interface TripDoc extends Document {
   _id: Types.ObjectId;
   owner: Types.ObjectId;
@@ -72,8 +102,76 @@ export interface TripDoc extends Document {
   items: ItineraryItemData[];
   groups: GroupData[];
   debates: DebateData[];
+  playlist: PlaylistTrackData[];
+  isCompleted: boolean;
+  log: TripLogData;
+  shareToken: string;
   createdAt: Date;
   updatedAt: Date;
+  budget?: number;
+  hotels: HotelBookingData[];
+  flights: FlightBookingData[];
+  expenses: ExpenseData[];
+  sidequests: SidequestData[];
+}
+
+export interface HotelBookingData {
+  _id?: Types.ObjectId;
+  name: string;
+  type: 'hotel' | 'airbnb' | 'hostel' | 'other';
+  location: string;
+  checkIn: string;
+  checkOut: string;
+  pricePerNight: number;
+  guests: number;
+  confirmationNumber?: string;
+  notes?: string;
+}
+
+export interface FlightBookingData {
+  _id?: Types.ObjectId;
+  tripType: 'one-way' | 'round-trip';
+  airline: string;
+  flightNumber: string;
+  departureAirport: string;
+  arrivalAirport: string;
+  departureTime: string;
+  arrivalTime: string;
+  returnDepartureTime?: string;
+  returnArrivalTime?: string;
+  passengers: number;
+  cabinClass: 'economy' | 'premium-economy' | 'business' | 'first-class';
+  price: number;
+  confirmationNumber: string;
+  notes?: string;
+}
+
+export interface ExpenseSplitData {
+  userId: Types.ObjectId;
+  userName: string;
+  amount: number;
+  settled: boolean;
+}
+
+export interface ExpenseData {
+  _id?: Types.ObjectId;
+  title: string;
+  amount: number;
+  paidBy: { userId: Types.ObjectId; userName: string };
+  splits: ExpenseSplitData[];
+  createdAt?: Date;
+}
+
+export interface SidequestData {
+  _id?: Types.ObjectId;
+  title: string;
+  description?: string;
+  assignee?: { userId: Types.ObjectId; userName: string };
+  assigner?: { userId: Types.ObjectId; userName: string };
+  comments: { _id?: Types.ObjectId; userId: Types.ObjectId; userName: string; text: string; imageUrl?: string; createdAt: Date }[];
+  completed: boolean;
+  completedBy?: { userId: Types.ObjectId; userName: string };
+  completedAt?: Date;
 }
 
 const locationSchema = new Schema<LocationData>(
@@ -152,6 +250,155 @@ const itineraryItemSchema = new Schema<ItineraryItemData>(
   { _id: true, timestamps: false }
 );
 
+const playlistTrackSchema = new Schema<PlaylistTrackData>(
+  {
+    spotifyId: { type: String, required: true },
+    title: { type: String, required: true, trim: true },
+    artist: { type: String, required: true, trim: true },
+    albumArt: { type: String },
+    addedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  },
+  { _id: true }
+);
+
+const logPhotoSchema = new Schema<LogPhotoData>(
+  {
+    url: { type: String, required: true },
+    day: { type: Number, min: 1 },
+    caption: { type: String, trim: true },
+    uploadedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    uploadedAt: { type: Date, default: Date.now },
+  },
+  { _id: true }
+);
+
+const itemRatingSchema = new Schema<ItemRatingData>(
+  {
+    itemId: { type: Schema.Types.ObjectId, required: true },
+    rating: { type: Number, required: true, min: 1, max: 5 },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  },
+  { _id: false }
+);
+
+const tripLogSchema = new Schema<TripLogData>(
+  {
+    photos: { type: [logPhotoSchema], default: [] },
+    ratings: { type: [itemRatingSchema], default: [] },
+  },
+  { _id: false }
+);
+
+const hotelSchema = new Schema<HotelBookingData>(
+  {
+    name: { type: String, required: true, trim: true },
+    type: { type: String, required: true, enum: ['hotel', 'airbnb', 'hostel', 'other'] },
+    location: { type: String, required: true, trim: true },
+    checkIn: { type: String, required: true, trim: true },
+    checkOut: { type: String, required: true, trim: true },
+    pricePerNight: { type: Number, required: true, min: 0 },
+    guests: { type: Number, required: true, min: 1 },
+    confirmationNumber: { type: String, trim: true },
+    notes: { type: String, trim: true },
+  },
+  { _id: true }
+);
+
+const flightSchema = new Schema<FlightBookingData>(
+  {
+    tripType: { type: String, required: true, enum: ['one-way', 'round-trip'] },
+    airline: { type: String, required: true, trim: true },
+    flightNumber: { type: String, required: true, trim: true },
+    departureAirport: { type: String, required: true, trim: true },
+    arrivalAirport: { type: String, required: true, trim: true },
+    departureTime: { type: String, required: true, trim: true },
+    arrivalTime: { type: String, required: true, trim: true },
+    returnDepartureTime: { type: String, trim: true },
+    returnArrivalTime: { type: String, trim: true },
+    passengers: { type: Number, required: true, min: 1 },
+    cabinClass: { type: String, required: true, enum: ['economy', 'premium-economy', 'business', 'first-class'] },
+    price: { type: Number, required: true, min: 0 },
+    confirmationNumber: { type: String, required: true, trim: true },
+    notes: { type: String, trim: true },
+  },
+  { _id: true }
+);
+
+const expenseSplitSchema = new Schema<ExpenseSplitData>(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    userName: { type: String, required: true, trim: true },
+    amount: { type: Number, required: true, min: 0 },
+    settled: { type: Boolean, required: true, default: false },
+  },
+  { _id: false }
+);
+
+const expenseSchema = new Schema<ExpenseData>(
+  {
+    title: { type: String, required: true, trim: true },
+    amount: { type: Number, required: true, min: 0 },
+    paidBy: { type: { userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true }, userName: { type: String, required: true, trim: true } } },
+    splits: { type: [expenseSplitSchema], default: [], required: true },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { _id: true }
+);
+
+const sidequestSchema = new Schema<SidequestData>(
+  {
+    title: { type: String, required: true, trim: true },
+    description: { type: String, trim: true },
+    assignee: {
+      type: new Schema(
+        {
+          userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+          userName: { type: String, required: true, trim: true },
+        },
+        { _id: false }
+      ),
+      default: undefined
+    },
+    assigner: {
+      type: new Schema(
+        {
+          userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+          userName: { type: String, required: true, trim: true },
+        },
+        { _id: false }
+      ),
+      default: undefined
+    },
+    comments: {
+      type: [new Schema(
+        {
+          userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+          userName: { type: String, required: true, trim: true },
+          text: { type: String, required: true, trim: true },
+          imageUrl: { type: String, trim: true },
+          createdAt: { type: Date, default: Date.now },
+        },
+        { _id: true }
+      )],
+      default: [],
+      required: true
+    },
+    completed: { type: Boolean, required: true, default: false },
+    completedBy: {
+      type: new Schema(
+        {
+          userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+          userName: { type: String, required: true, trim: true },
+        },
+        { _id: false }
+      ),
+      default: undefined
+    },
+    completedAt: { type: Date, default: undefined }
+  },
+  { _id: true }
+);
+
 const tripSchema = new Schema<TripDoc>(
   {
     owner: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -164,6 +411,20 @@ const tripSchema = new Schema<TripDoc>(
     items: { type: [itineraryItemSchema], default: [] },
     groups: { type: [groupSchema], default: [] },
     debates: { type: [debateSchema], default: [] },
+    playlist: { type: [playlistTrackSchema], default: [] },
+    budget: { type: Number, min: 0 },
+    isCompleted: { type: Boolean, default: false },
+    log: { type: tripLogSchema, default: () => ({ photos: [], ratings: [] }) },
+    shareToken: {
+      type: String,
+      unique: true,
+      default: () => randomBytes(20).toString('hex'),
+      index: true,
+    },
+    hotels: { type: [hotelSchema], default: [] },
+    flights: { type: [flightSchema], default: [] },
+    expenses: { type: [expenseSchema], default: [] },
+    sidequests: { type: [sidequestSchema], default: [] },
   },
   { timestamps: true }
 );

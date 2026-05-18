@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Trip, Recommendation, NewItemInput } from '../types';
 import * as tripsApi from '../api/trips';
 import { ApiError } from '../api/client';
 import Lightbox from './Lightbox';
+import { compressImageFromUrl } from '../utils/image';
 
 interface Props {
   trip: Trip;
@@ -68,23 +69,43 @@ export default function RecommendationsPanel({ trip, totalDays, onAdd }: Props) 
     document.body.appendChild(container);
     const service = new google.maps.places.PlacesService(container);
     recommendations.forEach((rec, idx) => {
-      const query = rec.location?.name
+      const primaryQuery = rec.location?.name
         ? `${rec.location.name} ${rec.location.address ?? ''}`.trim()
         : null;
-      if (!query) return;
-      service.findPlaceFromQuery(
-        { query, fields: ['photos', 'geometry'] },
-        (
-          results: google.maps.places.PlaceResult[] | null,
-          status: google.maps.places.PlacesServiceStatus
-        ) => {
-          if (!active || status !== google.maps.places.PlacesServiceStatus.OK || !results?.[0]) return;
-          const place = results[0];
-          if (place.photos?.[0]) {
-            const url = place.photos[0].getUrl({ maxWidth: 1600, maxHeight: 1000 });
+      const fallbackQuery = `${rec.title} ${trip.destination}`;
+
+      function tryFallback() {
+        if (!active) return;
+        service.findPlaceFromQuery(
+          { query: fallbackQuery, fields: ['photos'] },
+          (results: google.maps.places.PlaceResult[] | null, status: google.maps.places.PlacesServiceStatus) => {
+            if (!active || status !== google.maps.places.PlacesServiceStatus.OK || !results?.[0]?.photos?.[0]) return;
+            const url = results[0].photos![0].getUrl({ maxWidth: 1600, maxHeight: 1000 });
             setPhotos((prev) => ({ ...prev, [idx]: url }));
           }
-          if (place.geometry?.location) {
+        );
+      }
+
+      if (!primaryQuery) {
+        tryFallback();
+        return;
+      }
+
+      service.findPlaceFromQuery(
+        { query: primaryQuery, fields: ['photos', 'geometry'] },
+        (results: google.maps.places.PlaceResult[] | null, status: google.maps.places.PlacesServiceStatus) => {
+          if (!active) return;
+          const place = results?.[0];
+          const ok = status === google.maps.places.PlacesServiceStatus.OK && !!place;
+
+          if (ok && place.photos?.[0]) {
+            const url = place.photos[0].getUrl({ maxWidth: 1600, maxHeight: 1000 });
+            setPhotos((prev) => ({ ...prev, [idx]: url }));
+          } else {
+            tryFallback();
+          }
+
+          if (ok && place?.geometry?.location) {
             setCoords((prev) => ({
               ...prev,
               [idx]: { lat: place.geometry!.location!.lat(), lng: place.geometry!.location!.lng() },
@@ -99,11 +120,17 @@ export default function RecommendationsPanel({ trip, totalDays, onAdd }: Props) 
     };
   }, [recommendations]);
 
+  const existingTitles = useMemo(
+    () => new Set(trip.items.map(i => i.title.toLowerCase())),
+    [trip.items]
+  );
+
   async function fetchRecommendations() {
     setLoading(true);
     setError(null);
     try {
-      const recs = await tripsApi.getRecommendations(trip._id);
+      const excludeTitles = recommendations.map(r => r.title);
+      const recs = await tripsApi.getRecommendations(trip._id, excludeTitles);
       setRecommendations(recs);
       setAddedIndices(new Set());
       const days: Record<number, number> = {};
@@ -121,13 +148,21 @@ export default function RecommendationsPanel({ trip, totalDays, onAdd }: Props) 
   async function handleAdd(rec: Recommendation, idx: number) {
     setAddingIdx(idx);
     try {
+      let imageUrl: string | undefined = photos[idx] || undefined;
+      if (imageUrl) {
+        try {
+          imageUrl = await compressImageFromUrl(imageUrl);
+        } catch {
+          // CORS block — keep the raw URL as fallback; onError in ItineraryItemCard hides it if it expires
+        }
+      }
       await onAdd({
         day: selectedDays[idx] ?? Math.min(rec.suggestedDay ?? 1, totalDays),
         title: rec.title,
         startTime: rec.suggestedStartTime || undefined,
         endTime: rec.suggestedEndTime || undefined,
         notes: rec.description,
-        imageUrl: photos[idx] || undefined,
+        imageUrl,
         category: rec.category,
         location: rec.location
           ? {
@@ -190,7 +225,7 @@ export default function RecommendationsPanel({ trip, totalDays, onAdd }: Props) 
         <div className="rec-grid">
           {recommendations.map((rec, idx) => {
             if (!activeCategories.has(rec.category)) return null;
-            const added = addedIndices.has(idx);
+            const added = addedIndices.has(idx) || existingTitles.has(rec.title.toLowerCase());
             return (
               <div key={idx} className={`rec-card${added ? ' rec-card--added' : ''}`}>
                 {photos[idx] && (

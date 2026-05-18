@@ -461,6 +461,7 @@ export default function ItineraryItemCard({
             alt={item.title}
             className="item-thumb"
             onClick={() => setLightboxOpen(true)}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
         )}
         <div className="item-content">

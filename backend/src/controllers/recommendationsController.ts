@@ -38,6 +38,15 @@ export async function getRecommendations(
       Math.round((trip.endDate.getTime() - trip.startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
     );
 
+    const existingTitles = trip.items.map(i => i.title);
+    const excludeParam = req.query.exclude as string | undefined;
+    const excludeTitles: string[] = excludeParam ? JSON.parse(decodeURIComponent(excludeParam)) : [];
+    const allExclude = [...existingTitles, ...excludeTitles];
+
+    const excludeBlock = allExclude.length > 0
+      ? `\n\nDo NOT suggest any of the following (already in itinerary or recently shown):\n${allExclude.map(t => `- ${t}`).join('\n')}`
+      : '';
+
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 2048,
@@ -67,7 +76,9 @@ Return a JSON array with this exact shape:
   }
 ]
 
-Spread recommendations across all ${totalDays} days. Mix food spots, activities, and attractions. Include an estimated cost per person for each recommendation. Return only the JSON array.`,
+Spread recommendations across all ${totalDays} days. Mix food spots, activities, and attractions. Prioritize variety — different neighborhoods, lesser-known local gems, and diverse experiences rather than the most obvious tourist spots. Include an estimated cost per person for each recommendation.${excludeBlock}
+
+Return only the JSON array.`,
         },
       ],
     });

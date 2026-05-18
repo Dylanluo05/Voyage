@@ -28,8 +28,15 @@ import CollaboratorsPanel from '../components/CollaboratorsPanel';
 import { Autocomplete, useLoadScript } from '@react-google-maps/api';
 import TripMap from '../components/TripMap';
 import WeatherWidget from '../components/WeatherWidget';
+import PlaylistPanel from '../components/PlaylistPanel';
+import TripLogPanel from '../components/TripLogPanel';
+import HotelsPanel from '../components/HotelsPanel';
+import FlightsPanel from '../components/FlightsPanel';
 import { compressImage } from '../utils/image';
 import { useAuth } from '../context/AuthContext';
+import BudgetPanel from '../components/BudgetPanel';
+import ExpenseSplitPanel from '../components/ExpenseSplitPanel';
+import SidequestsPanel from '../components/SidequestsPanel';
 
 const GOOGLE_MAPS_LIBRARIES: ('places')[] = ['places'];
 
@@ -471,9 +478,10 @@ export default function TripDetailPage() {
     const activeId = String(active.id);
     const overId = String(over.id);
     const isGroupDrag = activeId.startsWith('group-');
+    const isDebateDrag = activeId.startsWith('debate-');
 
     // --- Within-group item reorder ---
-    if (!isGroupDrag) {
+    if (!isGroupDrag && !isDebateDrag) {
       const activeItem = trip.items.find((i) => i._id === activeId);
       if (!activeItem) return;
 
@@ -502,12 +510,11 @@ export default function TripDetailPage() {
     }
 
     // --- Top-level drag (standalone item or group) ---
-    const isDebateDrag = activeId.startsWith('debate-');
     const activeDay = isGroupDrag
       ? trip.groups.find((g) => g._id === activeId.slice(6))?.day
       : isDebateDrag
-      ? (trip.debates ?? []).find((d) => d._id === activeId.slice(8))?.day
-      : trip.items.find((i) => i._id === activeId)?.day;
+        ? (trip.debates ?? []).find((d) => d._id === activeId.slice(7))?.day
+        : trip.items.find((i) => i._id === activeId)?.day;
     if (activeDay === undefined) return;
 
     let targetDay = activeDay;
@@ -516,7 +523,7 @@ export default function TripDetailPage() {
     } else if (overId.startsWith('group-')) {
       targetDay = trip.groups.find((g) => g._id === overId.slice(6))?.day ?? activeDay;
     } else if (overId.startsWith('debate-')) {
-      targetDay = (trip.debates ?? []).find((d) => d._id === overId.slice(8))?.day ?? activeDay;
+      targetDay = (trip.debates ?? []).find((d) => d._id === overId.slice(7))?.day ?? activeDay;
     } else {
       const overItem = trip.items.find((i) => i._id === overId);
       if (overItem) targetDay = overItem.day;
@@ -532,8 +539,8 @@ export default function TripDetailPage() {
       isGroupDrag
         ? e.type === 'group' && e.group._id === activeId.slice(6)
         : isDebateDrag
-        ? e.type === 'debate' && e.debate._id === activeId.slice(8)
-        : e.type === 'item' && e.item._id === activeId
+          ? e.type === 'debate' && e.debate._id === activeId.slice(7)
+          : e.type === 'item' && e.item._id === activeId
     );
     if (fromIdx === -1) return;
 
@@ -545,7 +552,7 @@ export default function TripDetailPage() {
       toIdx = refList.findIndex((e) => e.type === 'group' && e.group._id === overId.slice(6));
     } else if (overId.startsWith('debate-')) {
       const refList = activeDay === targetDay ? sourceTopLevel : targetTopLevel;
-      toIdx = refList.findIndex((e) => e.type === 'debate' && e.debate._id === overId.slice(8));
+      toIdx = refList.findIndex((e) => e.type === 'debate' && e.debate._id === overId.slice(7));
     } else {
       const refList = activeDay === targetDay ? sourceTopLevel : targetTopLevel;
       toIdx = refList.findIndex((e) => e.type === 'item' && e.item._id === overId);
@@ -610,8 +617,8 @@ export default function TripDetailPage() {
       new Map(
         list.map((e, idx) => [
           e.type === 'group' ? `g:${e.group._id}`
-          : e.type === 'debate' ? `d:${e.debate._id}`
-          : `i:${e.item._id}`,
+            : e.type === 'debate' ? `d:${e.debate._id}`
+              : `i:${e.item._id}`,
           idx,
         ])
       );
@@ -656,7 +663,30 @@ export default function TripDetailPage() {
       <Link to="/trips" className="muted">
         &larr; All trips
       </Link>
-      <h1>{trip.title}</h1>
+      <div className="trip-title-row">
+        <h1 style={{ margin: 0 }}>{trip.title}</h1>
+        <div className="trip-title-actions">
+          <button
+            type="button"
+            className="ghost small-btn"
+            onClick={() => {
+              const url = `${window.location.origin}/share/${trip.shareToken}`;
+              navigator.clipboard.writeText(url).then(() => alert('Share link copied!'));
+            }}
+          >
+            Share
+          </button>
+          <button
+            type="button"
+            className={trip.isCompleted ? 'ghost small-btn' : 'small-btn'}
+            onClick={() =>
+              tripsApi.markCompleted(trip._id, !trip.isCompleted).then(setTrip)
+            }
+          >
+            {trip.isCompleted ? '✓ Completed' : 'Mark complete'}
+          </button>
+        </div>
+      </div>
       <p className="muted">
         {trip.destination} · {new Date(trip.startDate).toLocaleDateString()} –{' '}
         {new Date(trip.endDate).toLocaleDateString()} · {totalDays} day
@@ -666,6 +696,16 @@ export default function TripDetailPage() {
 
       <TripMap items={trip.items} />
 
+      <BudgetPanel trip={trip} onUpdate={setTrip} />
+
+      <HotelsPanel trip={trip} onUpdate={setTrip} />
+
+      <FlightsPanel trip={trip} onUpdate={setTrip} />
+
+      <SidequestsPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+
+      <ExpenseSplitPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+
       <WeatherWidget
         destination={trip.destination}
         startDate={trip.startDate.split('T')[0]}
@@ -674,11 +714,20 @@ export default function TripDetailPage() {
 
       <CollaboratorsPanel
         trip={trip}
-        isOwner={trip.owner === user?.id}
+        isOwner={trip.owner._id === user?.id}
         onUpdate={setTrip}
       />
 
       <RecommendationsPanel trip={trip} totalDays={totalDays} onAdd={addItemDirect} />
+
+      <PlaylistPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+
+      {trip.isCompleted && (
+        <section className="card">
+          <h2>Trip Log</h2>
+          <TripLogPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+        </section>
+      )}
 
       <section className="card">
         <h2>Add itinerary item</h2>
@@ -900,8 +949,8 @@ export default function TripDetailPage() {
               .map((e) => e.item);
             const sortableIds = topLevel.map((e) =>
               e.type === 'item' ? e.item._id
-              : e.type === 'group' ? `group-${e.group._id}`
-              : `debate-${e.debate._id}`
+                : e.type === 'group' ? `group-${e.group._id}`
+                  : `debate-${e.debate._id}`
             );
             const isCreatingDebateThisDay = creatingDebateDay === day;
 

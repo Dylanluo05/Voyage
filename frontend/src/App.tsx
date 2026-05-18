@@ -7,6 +7,8 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import TripsPage from './pages/TripsPage';
 import TripDetailPage from './pages/TripDetailPage';
+import SharePage from './pages/SharePage';
+import ProfilePage from './pages/ProfilePage';
 
 export default function App() {
   return (
@@ -32,6 +34,17 @@ export default function App() {
             <ProtectedRoute>
               <main>
                 <TripDetailPage />
+              </main>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/share/:token" element={<SharePage />} />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <main>
+                <ProfilePage />
               </main>
             </ProtectedRoute>
           }

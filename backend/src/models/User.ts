@@ -8,8 +8,29 @@ export interface UserDoc extends Document {
   name: string;
   createdAt: Date;
   updatedAt: Date;
+  badges: BadgeData[];
   comparePassword(plain: string): Promise<boolean>;
 }
+
+export interface BadgeData {
+  _id?: Types.ObjectId;
+  destination: string;
+  countryCode?: string;
+  awardedAt: Date;
+  source: 'auto' | 'manual';
+  tripId?: Types.ObjectId;
+}
+
+const badgeSchema = new Schema(
+  {
+    destination: { type: String, required: true },
+    countryCode: { type: String },
+    awardedAt: { type: Date, default: Date.now },
+    source: { type: String, enum: ['auto', 'manual'], required: true },
+    tripId: { type: Schema.Types.ObjectId, ref: 'Trip' },
+  },
+  { _id: true }
+);
 
 const userSchema = new Schema<UserDoc>(
   {
@@ -23,6 +44,7 @@ const userSchema = new Schema<UserDoc>(
     },
     passwordHash: { type: String, required: true },
     name: { type: String, required: true, trim: true },
+    badges: { type: [badgeSchema], default: [] }
   },
   { timestamps: true }
 );
