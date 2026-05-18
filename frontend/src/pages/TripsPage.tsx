@@ -137,7 +137,7 @@ export default function TripsPage() {
         ) : (
           <ul className="trip-list">
             {trips.map((trip) => {
-              const isOwner = trip.owner === user?.id;
+              const isOwner = trip.owner._id === user?.id;
               return (
                 <li key={trip._id} className="card">
                   <div className="row spread">
