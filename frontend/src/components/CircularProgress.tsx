@@ -16,9 +16,9 @@ export default function CircularProgress({ value, max, label, size, color }: Cir
 
     return (
         <svg width={size} height={size}>
-            <circle r={radius} cx={size / 2} cy={size / 2} stroke="gray" strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
+            <circle r={radius} cx={size / 2} cy={size / 2} stroke="rgba(255,255,255,0.12)" strokeWidth={strokeWidth} fill="none" strokeLinecap="round" />
             <circle r={radius} cx={size / 2} cy={size / 2} stroke={color} strokeWidth={strokeWidth} fill="none" transform={`rotate(-90, ${size / 2}, ${size / 2})`} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" />
-            <text x={size / 2} y={size / 2} textAnchor="middle" dominantBaseline="middle">
+            <text x={size / 2} y={size / 2} textAnchor="middle" dominantBaseline="middle" fill="currentColor">
                 {textSpans.map((text, idx) => (
                     <tspan key={text} x={size / 2} dy={idx === 0 ? `${-(textSpans.length - 1) * 0.7}em` : "1.4em"}>{text}</tspan>
                 ))}
