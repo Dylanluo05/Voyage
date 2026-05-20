@@ -686,6 +686,15 @@ export default function TripDetailPage() {
     } else {
       const refList = activeDay === targetDay ? sourceTopLevel : targetTopLevel;
       toIdx = refList.findIndex((e) => e.type === 'item' && e.item._id === overId);
+      // overId may be an item inside a group (both SortableContexts share the outer DndContext).
+      // Resolve it to the parent group's top-level position so the drag doesn't silently abort.
+      if (toIdx === -1 && isGroupDrag) {
+        const ownerGroupId = trip.items.find((i) => i._id === overId)?.groupId;
+        if (ownerGroupId) {
+          if (ownerGroupId === activeId.slice(6)) return; // hovering over own items — no-op
+          toIdx = refList.findIndex((e) => e.type === 'group' && e.group._id === ownerGroupId);
+        }
+      }
     }
 
     const persistTopLevel = (
