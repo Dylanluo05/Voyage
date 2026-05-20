@@ -1217,21 +1217,42 @@ export default function TripDetailPage() {
                   <ul className="item-list">
                     {topLevel.map((entry, idx) => {
                       if (entry.type === 'group') {
+                        const nextEntry = topLevel[idx + 1];
+                        const lastItem = entry.items[entry.items.length - 1];
+                        const nextItem =
+                          nextEntry?.type === 'item' ? nextEntry.item :
+                          nextEntry?.type === 'group' ? nextEntry.items[0] :
+                          undefined;
+                        const hasLoc = (loc: typeof lastItem.location) =>
+                          loc !== undefined &&
+                          ((loc.lat !== undefined && loc.lng !== undefined) || !!loc.address || !!loc.name);
+                        const showCommute =
+                          lastItem !== undefined &&
+                          nextItem !== undefined &&
+                          hasLoc(lastItem.location) &&
+                          hasLoc(nextItem.location);
                         return (
-                          <li key={`group-${entry.group._id}`}>
-                            <SortableGroupBlock
-                              group={entry.group}
-                              items={entry.items}
-                              totalDays={totalDays}
-                              savingItemId={savingItemId}
-                              onSaveItem={onSaveItem}
-                              onDeleteItem={onDeleteItem}
-                              onReactToItem={onReactToItem}
-                              onRename={(title) => onRenameGroup(entry.group._id, title)}
-                              onDissolve={() => onDissolveGroup(entry.group._id)}
-                              currentUserId={user?.id}
-                            />
-                          </li>
+                          <Fragment key={`group-${entry.group._id}`}>
+                            <li>
+                              <SortableGroupBlock
+                                group={entry.group}
+                                items={entry.items}
+                                totalDays={totalDays}
+                                savingItemId={savingItemId}
+                                onSaveItem={onSaveItem}
+                                onDeleteItem={onDeleteItem}
+                                onReactToItem={onReactToItem}
+                                onRename={(title) => onRenameGroup(entry.group._id, title)}
+                                onDissolve={() => onDissolveGroup(entry.group._id)}
+                                currentUserId={user?.id}
+                              />
+                            </li>
+                            {showCommute && (
+                              <li className="commute-row">
+                                <CommuteWidget origin={lastItem.location!} destination={nextItem.location!} />
+                              </li>
+                            )}
+                          </Fragment>
                         );
                       }
                       if (entry.type === 'debate') {
@@ -1253,7 +1274,10 @@ export default function TripDetailPage() {
                       }
                       const item = entry.item;
                       const nextEntry = topLevel[idx + 1];
-                      const nextItem = nextEntry?.type === 'item' ? nextEntry.item : undefined;
+                      const nextItem =
+                        nextEntry?.type === 'item' ? nextEntry.item :
+                        nextEntry?.type === 'group' ? nextEntry.items[0] :
+                        undefined;
                       const hasLoc = (loc: typeof item.location) =>
                         loc !== undefined &&
                         ((loc.lat !== undefined && loc.lng !== undefined) ||

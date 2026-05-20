@@ -1,7 +1,8 @@
-import { FormEvent, useState } from 'react';
+import { Fragment, FormEvent, useState } from 'react';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { Group, ItineraryItem, NewItemInput } from '../types';
 import SortableItineraryItem from './SortableItineraryItem';
+import CommuteWidget from './CommuteWidget';
 
 interface Props {
   group: Group;
@@ -87,19 +88,33 @@ export default function GroupBlock({
 
       <SortableContext items={items.map((i) => i._id)} strategy={verticalListSortingStrategy}>
         <ul className="item-list group-item-list">
-          {items.map((item) => (
-            <li key={item._id}>
-              <SortableItineraryItem
-                item={item}
-                totalDays={totalDays}
-                saving={savingItemId === item._id}
-                onSave={(patch) => onSaveItem(item._id, patch)}
-                onDelete={() => onDeleteItem(item._id)}
-                currentUserId={currentUserId}
-                onReact={(emoji) => onReactToItem(item._id, emoji)}
-              />
-            </li>
-          ))}
+          {items.map((item, idx) => {
+            const nextItem = items[idx + 1];
+            const hasLoc = (loc: typeof item.location) =>
+              loc !== undefined &&
+              ((loc.lat !== undefined && loc.lng !== undefined) || !!loc.address || !!loc.name);
+            const showCommute = nextItem !== undefined && hasLoc(item.location) && hasLoc(nextItem.location);
+            return (
+              <Fragment key={item._id}>
+                <li>
+                  <SortableItineraryItem
+                    item={item}
+                    totalDays={totalDays}
+                    saving={savingItemId === item._id}
+                    onSave={(patch) => onSaveItem(item._id, patch)}
+                    onDelete={() => onDeleteItem(item._id)}
+                    currentUserId={currentUserId}
+                    onReact={(emoji) => onReactToItem(item._id, emoji)}
+                  />
+                </li>
+                {showCommute && (
+                  <li className="commute-row">
+                    <CommuteWidget origin={item.location!} destination={nextItem.location!} />
+                  </li>
+                )}
+              </Fragment>
+            );
+          })}
         </ul>
       </SortableContext>
     </div>
