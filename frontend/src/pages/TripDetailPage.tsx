@@ -1061,7 +1061,7 @@ export default function TripDetailPage() {
                   : `debate-${e.debate._id}`
             );
             const isCreatingDebateThisDay = creatingDebateDay === day;
-            const anchor = trip.dayAnchors.find((a) => a.day === day);
+            const anchor = (trip.dayAnchors ?? []).find((a) => a.day === day);
 
             const firstEntry = topLevel[0];
             const firstItem =

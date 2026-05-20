@@ -136,7 +136,7 @@ export interface Trip {
   flights: FlightBooking[];
   expenses: Expense[];
   sidequests: Sidequest[];
-  dayAnchors: DayAnchor[];
+  dayAnchors: DayAnchor[] | undefined;
 }
 
 export interface DayAnchor {
