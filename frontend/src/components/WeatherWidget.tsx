@@ -92,8 +92,8 @@ export default function WeatherWidget({ destination, startDate, endDate }: Props
 
         const res = await fetch(
           `${baseUrl}?latitude=${latitude}&longitude=${longitude}` +
-            `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum` +
-            `&timezone=auto&start_date=${startDate}&end_date=${fetchEnd}`
+          `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum` +
+          `&timezone=auto&start_date=${startDate}&end_date=${fetchEnd}`
         );
         const data = await res.json();
         if (cancelled || !data.daily?.time?.length) return;
@@ -126,7 +126,7 @@ export default function WeatherWidget({ destination, startDate, endDate }: Props
   if (loading || days.length === 0) return null;
 
   return (
-    <section className="card">
+    <section id="weather-section" className="card">
       <h2 style={{ marginBottom: 12 }}>Weather</h2>
       <div className="weather-scroll">
         {days.map((day) => (

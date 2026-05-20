@@ -85,7 +85,7 @@ export default function BudgetPanel({ trip, onUpdate }: BudgetPanelProps) {
     ].filter(s => s.cost > 0);
 
     return (
-        <section className="card">
+        <section id="budget-section" className="card">
             <div className="budget-header-row">
                 <h2 style={{ margin: 0 }}>Budget</h2>
                 <div className="budget-set-row">

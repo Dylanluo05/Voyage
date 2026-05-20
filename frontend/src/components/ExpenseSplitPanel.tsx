@@ -108,7 +108,7 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
     );
 
     return (
-        <section className="card expense-panel">
+        <section id="expenses-section" className="card expense-panel">
             <div className="expense-header-row">
                 <div>
                     <h2 style={{ margin: 0 }}>Expense Split</h2>

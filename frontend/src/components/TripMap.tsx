@@ -111,7 +111,7 @@ export default function TripMap({ items }: TripMapProps) {
     }, [locations, mapLoaded]);
 
     return (
-        <div className="card">
+        <div id="map-section" className="card">
             <h2>Map</h2>
             <GoogleMap
                 mapContainerStyle={{ width: '100%', height: '400px' }}

@@ -117,7 +117,7 @@ export default function HotelsPanel({ trip, onUpdate }: HotelsPanelProps) {
     }
 
     return (
-        <section className="card">
+        <section id="hotels-section" className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <h2 style={{ margin: 0 }}>Hotels</h2>
                 <div style={{ display: 'flex', gap: 8 }}>

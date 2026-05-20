@@ -37,6 +37,7 @@ import { useAuth } from '../context/AuthContext';
 import BudgetPanel from '../components/BudgetPanel';
 import ExpenseSplitPanel from '../components/ExpenseSplitPanel';
 import SidequestsPanel from '../components/SidequestsPanel';
+import TripNavBar from '../components/TripNavBar';
 
 const GOOGLE_MAPS_LIBRARIES: ('places')[] = ['places'];
 
@@ -129,6 +130,90 @@ export default function TripDetailPage() {
   const [debateTitleDraft, setDebateTitleDraft] = useState('');
   const [debateOptionDrafts, setDebateOptionDrafts] = useState<string[]>(['', '']);
   const [submittingDebate, setSubmittingDebate] = useState(false);
+  const [section, setSection] = useState('');
+
+  useEffect(() => {
+    const mapSection = document.getElementById("map-section");
+    const budgetSection = document.getElementById("budget-section");
+    const hotelsSection = document.getElementById("hotels-section");
+    const flightsSection = document.getElementById("flights-section");
+    const sidequestsSection = document.getElementById("sidequests-section");
+    const expensesSection = document.getElementById("expenses-section");
+    const weatherSection = document.getElementById("weather-section");
+    const collaboratorsSection = document.getElementById("collaborators-section");
+    const aiRecommendationsSection = document.getElementById("ai-recommendations-section");
+    const tripPlaylistSection = document.getElementById("trip-playlist-section");
+    const itinerarySection = document.getElementById("itinerary-section");
+
+    switch (section) {
+      case "map":
+        mapSection?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        break;
+      case "budget":
+        budgetSection?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        break;
+      case "hotels":
+        hotelsSection?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        break;
+      case "flights":
+        flightsSection?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        break;
+      case "sidequests":
+        sidequestsSection?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        break;
+      case "expenses":
+        expensesSection?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        break;
+      case "weather":
+        weatherSection?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        break;
+      case "collaborators":
+        collaboratorsSection?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        break;
+      case "ai-recommendations":
+        aiRecommendationsSection?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        break;
+      case "trip-playlist":
+        tripPlaylistSection?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        break;
+      case "itinerary":
+        itinerarySection?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        break;
+    }
+  }, [section]);
 
   const titleRefCallback = useCallback((el: HTMLInputElement | null) => {
     if (titleAutoRef.current) {
@@ -694,33 +779,55 @@ export default function TripDetailPage() {
       </p>
       {trip.description && <p>{trip.description}</p>}
 
-      <TripMap items={trip.items} />
+      <TripNavBar setSection={setSection} />
 
-      <BudgetPanel trip={trip} onUpdate={setTrip} />
+      <div id="map-section">
+        <TripMap items={trip.items} />
+      </div>
 
-      <HotelsPanel trip={trip} onUpdate={setTrip} />
+      <div id="budget-section">
+        <BudgetPanel trip={trip} onUpdate={setTrip} />
+      </div>
 
-      <FlightsPanel trip={trip} onUpdate={setTrip} />
+      <div id="hotels-section">
+        <HotelsPanel trip={trip} onUpdate={setTrip} />
+      </div>
 
-      <SidequestsPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+      <div id="flights-section">
+        <FlightsPanel trip={trip} onUpdate={setTrip} />
+      </div>
 
-      <ExpenseSplitPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+      <div id="sidequests-section">
+        <SidequestsPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+      </div>
 
-      <WeatherWidget
-        destination={trip.destination}
-        startDate={trip.startDate.split('T')[0]}
-        endDate={trip.endDate.split('T')[0]}
-      />
+      <div id="expenses-section">
+        <ExpenseSplitPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+      </div>
 
-      <CollaboratorsPanel
-        trip={trip}
-        isOwner={trip.owner._id === user?.id}
-        onUpdate={setTrip}
-      />
+      <div id="weather-section">
+        <WeatherWidget
+          destination={trip.destination}
+          startDate={trip.startDate.split('T')[0]}
+          endDate={trip.endDate.split('T')[0]}
+        />
+      </div>
 
-      <RecommendationsPanel trip={trip} totalDays={totalDays} onAdd={addItemDirect} />
+      <div id="collaborators-section">
+        <CollaboratorsPanel
+          trip={trip}
+          isOwner={trip.owner._id === user?.id}
+          onUpdate={setTrip}
+        />
+      </div>
 
-      <PlaylistPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+      <div id="ai-recommendations-section">
+        <RecommendationsPanel trip={trip} totalDays={totalDays} onAdd={addItemDirect} />
+      </div>
+
+      <div id="trip-playlist-section">
+        <PlaylistPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+      </div>
 
       {trip.isCompleted && (
         <section className="card">
@@ -729,7 +836,7 @@ export default function TripDetailPage() {
         </section>
       )}
 
-      <section className="card">
+      <section id="itinerary-section" className="card">
         <h2>Add itinerary item</h2>
         <form onSubmit={onAddItem} className="form grid-2">
           <label>

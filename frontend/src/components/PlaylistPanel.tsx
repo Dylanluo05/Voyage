@@ -102,7 +102,7 @@ export default function PlaylistPanel({ trip, currentUserId, onUpdate }: Props) 
   }
 
   return (
-    <div className="playlist-panel">
+    <div id="trip-playlist-section" className="playlist-panel">
       <h3 className="playlist-heading">🎵 Trip Playlist</h3>
 
       {/* Manual search */}

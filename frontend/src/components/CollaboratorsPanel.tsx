@@ -44,7 +44,7 @@ export default function CollaboratorsPanel({ trip, isOwner, onUpdate }: Props) {
   }
 
   return (
-    <section className="card">
+    <section id="collaborators-section" className="card">
       <h2 style={{ marginBottom: 12 }}>Collaborators</h2>
 
       {trip.collaborators.length === 0 ? (

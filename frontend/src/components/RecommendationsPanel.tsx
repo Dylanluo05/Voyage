@@ -30,7 +30,7 @@ function loadSavedCategories(): Set<Category> {
       const parsed: Category[] = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) return new Set(parsed);
     }
-  } catch {}
+  } catch { }
   return new Set(ALL_CATEGORIES);
 }
 
@@ -166,11 +166,11 @@ export default function RecommendationsPanel({ trip, totalDays, onAdd }: Props) 
         category: rec.category,
         location: rec.location
           ? {
-              name: rec.location.name,
-              address: rec.location.address,
-              lat: coords[idx]?.lat,
-              lng: coords[idx]?.lng,
-            }
+            name: rec.location.name,
+            address: rec.location.address,
+            lat: coords[idx]?.lat,
+            lng: coords[idx]?.lng,
+          }
           : undefined,
       });
       setAddedIndices((prev) => new Set(prev).add(idx));
@@ -184,7 +184,7 @@ export default function RecommendationsPanel({ trip, totalDays, onAdd }: Props) 
   const visibleRecs = recommendations.filter((rec) => activeCategories.has(rec.category));
 
   return (
-    <section className="card">
+    <section id="ai-recommendations-section" className="card">
       <div className="row spread" style={{ alignItems: 'center', marginBottom: recommendations.length ? 12 : 0 }}>
         <div>
           <h2 style={{ margin: 0 }}>AI Recommendations</h2>

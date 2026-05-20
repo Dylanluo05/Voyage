@@ -134,7 +134,7 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
     };
 
     return (
-        <section className="card">
+        <section id="sidequests-section" className="card">
             <div className="sidequest-header-row">
                 <h2>Sidequests</h2>
                 <button onClick={() => setShowForm(showForm => !showForm)}>{showForm ? 'Cancel' : '+ Add'}</button>

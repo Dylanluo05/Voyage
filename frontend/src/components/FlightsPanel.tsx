@@ -131,7 +131,7 @@ export default function FlightsPanel({ trip, onUpdate }: FlightsPanelProps) {
     }
 
     return (
-        <section className="card">
+        <section id="flights-section" className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <h2 style={{ margin: 0 }}>Flights</h2>
                 <div style={{ display: 'flex', gap: 8 }}>
