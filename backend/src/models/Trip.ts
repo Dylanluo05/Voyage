@@ -1,5 +1,6 @@
 import { Schema, model, Document, Types } from 'mongoose';
 import { randomBytes } from 'crypto';
+import { notifyTripUpdate } from '../lib/tripEvents';
 
 export interface LocationData {
   name?: string;
@@ -448,5 +449,9 @@ const tripSchema = new Schema<TripDoc>(
 );
 
 tripSchema.index({ owner: 1, startDate: 1 });
+
+tripSchema.post('save', function (doc) {
+  notifyTripUpdate(doc._id.toString());
+});
 
 export const Trip = model<TripDoc>('Trip', tripSchema);

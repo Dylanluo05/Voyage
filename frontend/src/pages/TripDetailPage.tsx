@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import * as tripsApi from '../api/trips';
 import type { Trip, ItineraryItem, ItemCategory, NewItemInput, Group, Debate } from '../types';
-import { ApiError } from '../api/client';
+import { ApiError, API_URL, getToken } from '../api/client';
 import SortableItineraryItem from '../components/SortableItineraryItem';
 import SortableGroupBlock from '../components/SortableGroupBlock';
 import SortableDebateCard from '../components/SortableDebateCard';
@@ -41,6 +41,13 @@ import TripNavBar from '../components/TripNavBar';
 import DayAnchorEditor from '../components/DayAnchorEditor';
 
 const GOOGLE_MAPS_LIBRARIES: ('places')[] = ['places'];
+
+function formatCloseTime(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const suffix = h < 12 ? 'AM' : 'PM';
+  const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${hour}:${String(m).padStart(2, '0')} ${suffix}`;
+}
 
 function geocodeLocation(
   location: { name?: string; address?: string }
@@ -132,6 +139,7 @@ export default function TripDetailPage() {
   const [debateOptionDrafts, setDebateOptionDrafts] = useState<string[]>(['', '']);
   const [submittingDebate, setSubmittingDebate] = useState(false);
   const [section, setSection] = useState('');
+  const [addOpeningHours, setAddOpeningHours] = useState<google.maps.places.PlaceOpeningHours | null>(null);
 
   useEffect(() => {
     const mapSection = document.getElementById("map-section");
@@ -223,7 +231,7 @@ export default function TripDetailPage() {
     }
     if (!el) return;
     titleAutoRef.current = new google.maps.places.Autocomplete(el, {
-      fields: ['name', 'formatted_address', 'geometry', 'photos'],
+      fields: ['name', 'formatted_address', 'geometry', 'photos', 'opening_hours'],
     });
     titleAutoRef.current.addListener('place_changed', () => {
       const place = titleAutoRef.current!.getPlace();
@@ -238,6 +246,7 @@ export default function TripDetailPage() {
           lng: place.geometry?.location?.lng(),
         },
       }));
+      setAddOpeningHours(place.opening_hours ?? null);
       if (place.photos?.length) {
         setAddSuggestedPhotos(
           place.photos.slice(0, 4).map((p) => p.getUrl({ maxWidth: 600, maxHeight: 400 }))
@@ -269,6 +278,18 @@ export default function TripDetailPage() {
 
   useEffect(() => {
     refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const token = getToken();
+    if (!token) return;
+    const es = new EventSource(`${API_URL}/api/trips/${id}/events?token=${encodeURIComponent(token)}`);
+    es.addEventListener('updated', () => {
+      tripsApi.getTrip(id).then(setTrip).catch(() => {});
+    });
+    return () => es.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -358,6 +379,17 @@ export default function TripDetailPage() {
     return result;
   }, [topLevelByDay, totalDays]);
 
+  const suggestedEndTime = useMemo(() => {
+    if (!addOpeningHours || !trip) return null;
+    const base = new Date(trip.startDate);
+    const tripDate = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate() + (draft.day - 1)));
+    const dayOfWeek = tripDate.getUTCDay();
+    const period = addOpeningHours.periods?.find((p) => p.open.day === dayOfWeek);
+    if (!period?.close) return null;
+    const t = period.close.time; // "HHMM"
+    return `${t.slice(0, 2)}:${t.slice(2)}`;
+  }, [addOpeningHours, draft.day, trip]);
+
   if (!isLoaded) return <div>Loading...</div>;
 
   async function handleAddImageFile(file: File) {
@@ -412,6 +444,7 @@ export default function TripDetailPage() {
       const updated = await tripsApi.addItem(id, payload);
       setTrip(updated);
       setDraft({ ...emptyItem, day: payload.day });
+      setAddOpeningHours(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to add item');
     } finally {
@@ -889,6 +922,15 @@ export default function TripDetailPage() {
               value={draft.endTime ?? ''}
               onChange={(e) => setDraft({ ...draft, endTime: e.target.value })}
             />
+            {suggestedEndTime && (
+              <button
+                type="button"
+                className="close-time-suggestion"
+                onClick={() => setDraft((prev) => ({ ...prev, endTime: suggestedEndTime }))}
+              >
+                Closes {formatCloseTime(suggestedEndTime)}
+              </button>
+            )}
           </label>
           <label>
             Cost ($)

@@ -47,11 +47,14 @@ import {
   addComment,
   removeComment,
   updateDayAnchor,
+  getTripEvents,
 } from '../controllers/tripsController';
 import { getRecommendations } from '../controllers/recommendationsController';
 import { parseHotelConfirmation, parseFlightConfirmation } from '../controllers/importController';
 
 const router = Router();
+
+router.get('/:id/events', getTripEvents);
 
 router.use(requireAuth);
 

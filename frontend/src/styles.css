@@ -2878,6 +2878,25 @@ fieldset legend {
   transform: none;
 }
 
+/* ── Closing Time Suggestion Chip ───────────────────────────── */
+.close-time-suggestion {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--teal);
+  background: rgba(0, 212, 200, 0.08);
+  border: 1px solid rgba(0, 212, 200, 0.3);
+  border-radius: 20px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  letter-spacing: 0.02em;
+}
+.close-time-suggestion:hover {
+  background: rgba(0, 212, 200, 0.18);
+}
+
 /* ── Map Segment Duration Badge ─────────────────────────────── */
 .map-segment-duration {
   background: rgba(8, 9, 14, 0.82);

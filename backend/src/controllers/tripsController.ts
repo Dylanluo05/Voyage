@@ -1,12 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { Types } from 'mongoose';
+import jwt from 'jsonwebtoken';
 import { Trip, ItineraryItemData, DebateOptionData, DebateCommentData } from '../models/Trip';
 import { User } from '../models/User';
 import { HttpError } from '../middleware/error';
 import { searchTracks } from '../lib/spotify';
 import { interpretVibe } from '../lib/vibeInterpreter';
-import { performServerHandshake } from 'http2';
+import { addTripClient, removeTripClient } from '../lib/tripEvents';
+import { env } from '../config/env';
 
 const locationSchema = z
   .object({
@@ -1131,4 +1133,39 @@ export async function removeComment(req: Request, res: Response, next: NextFunct
   } catch (err) {
     next(err);
   }
+}
+
+export async function getTripEvents(req: Request, res: Response): Promise<void> {
+  const { token } = req.query as { token?: string };
+  if (!token) { res.status(401).json({ error: 'Unauthorized' }); return; }
+
+  let userId: string;
+  try {
+    const payload = jwt.verify(token, env.jwtSecret) as { userId: string };
+    userId = payload.userId;
+  } catch {
+    res.status(401).json({ error: 'Invalid token' }); return;
+  }
+
+  ensureValidObjectId(req.params.id, 'trip id');
+  const trip = await Trip.findOne({
+    _id: req.params.id,
+    $or: [{ owner: userId }, { collaborators: userId }],
+  });
+  if (!trip) { res.status(404).json({ error: 'Trip not found' }); return; }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const tripId = trip._id.toString();
+  addTripClient(tripId, res);
+
+  const heartbeat = setInterval(() => res.write(': heartbeat\n\n'), 30_000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    removeTripClient(tripId, res);
+  });
 }
