@@ -136,6 +136,14 @@ export interface Trip {
   flights: FlightBooking[];
   expenses: Expense[];
   sidequests: Sidequest[];
+  dayAnchors: DayAnchor[];
+}
+
+export interface DayAnchor {
+  _id: string;
+  day: number;
+  startAddress?: string;
+  endAddress?: string;
 }
 
 export type NewTripInput = {

@@ -38,6 +38,7 @@ import BudgetPanel from '../components/BudgetPanel';
 import ExpenseSplitPanel from '../components/ExpenseSplitPanel';
 import SidequestsPanel from '../components/SidequestsPanel';
 import TripNavBar from '../components/TripNavBar';
+import DayAnchorEditor from '../components/DayAnchorEditor';
 
 const GOOGLE_MAPS_LIBRARIES: ('places')[] = ['places'];
 
@@ -1060,6 +1061,26 @@ export default function TripDetailPage() {
                   : `debate-${e.debate._id}`
             );
             const isCreatingDebateThisDay = creatingDebateDay === day;
+            const anchor = trip.dayAnchors.find((a) => a.day === day);
+
+            const firstEntry = topLevel[0];
+            const firstItem =
+              firstEntry?.type === 'item' ? firstEntry.item :
+              firstEntry?.type === 'group' ? firstEntry.items[0] :
+              undefined;
+
+            const lastEntry = topLevel[topLevel.length - 1];
+            const lastItem =
+              lastEntry?.type === 'item' ? lastEntry.item :
+              lastEntry?.type === 'group' ? lastEntry.items[lastEntry.items.length - 1] :
+              undefined;
+
+            const hasAnchorLoc = (loc: ItineraryItem['location']) =>
+              loc !== undefined &&
+              ((loc.lat !== undefined && loc.lng !== undefined) || !!loc.address || !!loc.name);
+
+            const showStartCommute = !!anchor?.startAddress && firstItem && hasAnchorLoc(firstItem.location);
+            const showEndCommute = !!anchor?.endAddress && lastItem && hasAnchorLoc(lastItem.location);
 
             return (
               <DayColumn key={day} day={day} date={getDayDate(trip.startDate, day)} isEmpty={topLevel.length === 0}>
@@ -1213,6 +1234,24 @@ export default function TripDetailPage() {
                   </div>
                 )}
 
+                <DayAnchorEditor
+                  trip={trip}
+                  day={day}
+                  anchor={anchor}
+                  onUpdate={setTrip}
+                />
+
+                {showStartCommute && (
+                  <ul className="item-list">
+                    <li className="commute-row">
+                      <CommuteWidget
+                        origin={{ address: anchor!.startAddress }}
+                        destination={firstItem!.location!}
+                      />
+                    </li>
+                  </ul>
+                )}
+
                 <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
                   <ul className="item-list">
                     {topLevel.map((entry, idx) => {
@@ -1313,6 +1352,17 @@ export default function TripDetailPage() {
                     })}
                   </ul>
                 </SortableContext>
+
+                {showEndCommute && (
+                  <ul className="item-list">
+                    <li className="commute-row">
+                      <CommuteWidget
+                        origin={lastItem!.location!}
+                        destination={{ address: anchor!.endAddress }}
+                      />
+                    </li>
+                  </ul>
+                )}
               </DayColumn>
             );
           })}

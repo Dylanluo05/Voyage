@@ -1,6 +1,18 @@
 import { apiFetch } from './client';
 import type { Trip, NewTripInput, NewItemInput, ReorderInput, Recommendation, SpotifySearchResult, LogPhoto, HotelBooking, FlightBooking, Expense } from '../types';
 
+export function updateDayAnchor(
+  tripId: string,
+  day: number,
+  startAddress?: string,
+  endAddress?: string,
+): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/day-anchor`, {
+    method: 'PATCH',
+    body: JSON.stringify({ day, startAddress, endAddress }),
+  });
+}
+
 export function listTrips(): Promise<Trip[]> {
   return apiFetch<Trip[]>('/api/trips');
 }

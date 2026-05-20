@@ -113,6 +113,14 @@ export interface TripDoc extends Document {
   flights: FlightBookingData[];
   expenses: ExpenseData[];
   sidequests: SidequestData[];
+  dayAnchors: DayAnchorData[];
+}
+
+export interface DayAnchorData {
+  _id?: Types.ObjectId;
+  day: number;
+  startAddress?: string;
+  endAddress?: string;
 }
 
 export interface HotelBookingData {
@@ -399,6 +407,15 @@ const sidequestSchema = new Schema<SidequestData>(
   { _id: true }
 );
 
+const dayAnchorSchema = new Schema<DayAnchorData>(
+  {
+    day: { type: Number, required: true },
+    startAddress: { type: String, trim: true },
+    endAddress: { type: String, trim: true },
+  },
+  { _id: true }
+);
+
 const tripSchema = new Schema<TripDoc>(
   {
     owner: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -425,6 +442,7 @@ const tripSchema = new Schema<TripDoc>(
     flights: { type: [flightSchema], default: [] },
     expenses: { type: [expenseSchema], default: [] },
     sidequests: { type: [sidequestSchema], default: [] },
+    dayAnchors: { type: [dayAnchorSchema], default: [] },
   },
   { timestamps: true }
 );

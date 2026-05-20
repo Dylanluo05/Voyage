@@ -46,6 +46,7 @@ import {
   completeSidequest,
   addComment,
   removeComment,
+  updateDayAnchor,
 } from '../controllers/tripsController';
 import { getRecommendations } from '../controllers/recommendationsController';
 import { parseHotelConfirmation, parseFlightConfirmation } from '../controllers/importController';
@@ -105,6 +106,8 @@ router.post('/:id/flights/parse', parseFlightConfirmation);
 router.post('/:id/expenses', addExpense);
 router.delete('/:id/expenses/:expenseId', removeExpense);
 router.patch('/:id/expenses/:expenseId/splits/:userId', settleSplit);
+
+router.patch('/:id/day-anchor', updateDayAnchor);
 
 router.post('/:id/sidequests', addSidequest);
 router.delete('/:id/sidequests/:sidequestId', removeSidequest);

@@ -834,6 +834,31 @@ export async function removeHotel(req: Request, res: Response, next: NextFunctio
   }
 }
 
+export async function updateDayAnchor(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const { day, startAddress, endAddress } = z.object({
+      day: z.number().int().min(1),
+      startAddress: z.string().max(300).optional(),
+      endAddress: z.string().max(300).optional(),
+    }).parse(req.body);
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    const idx = trip.dayAnchors.findIndex((a) => a.day === day);
+    if (idx !== -1) {
+      trip.dayAnchors[idx].startAddress = startAddress;
+      trip.dayAnchors[idx].endAddress = endAddress;
+    } else {
+      trip.dayAnchors.push({ day, startAddress, endAddress });
+    }
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function addFlight(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     ensureValidObjectId(req.params.id, 'trip id');

@@ -2833,6 +2833,78 @@ fieldset legend {
 }
 
 /* ── Trip Nav Bar ─────────────────────────────────────── */
+/* ── Day Anchor Editor ───────────────────────────────────────── */
+.day-anchor-wrap {
+  margin-bottom: 8px;
+}
+
+.day-anchor-toggle {
+  background: transparent;
+  color: var(--muted);
+  border: 1px dashed var(--border-mid);
+  box-shadow: none;
+  font-size: 11px;
+  padding: 5px 12px;
+  width: 100%;
+  text-align: left;
+  border-radius: var(--radius-btn);
+  transition: color 0.15s var(--ease), border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.day-anchor-toggle:hover {
+  color: var(--fg);
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  transform: none;
+  box-shadow: none;
+}
+
+.day-anchor-editor {
+  margin-top: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-card);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.day-anchor-hotel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.day-anchor-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.day-anchor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.day-anchor-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Trip navbar ─────────────────────────────────────────────── */
 .trip-navbar {
   position: sticky;
   top: 54px;
