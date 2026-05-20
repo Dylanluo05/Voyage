@@ -25,6 +25,44 @@ function getDayLabel(trip: Trip, day: number) {
 
 const CATEGORY_LABELS = { food: 'Food', activity: 'Activity', attraction: 'Attraction' };
 
+function getOrderedDayItems(trip: Trip, day: number): ItineraryItem[] {
+  const groupItemsMap = new Map<string, ItineraryItem[]>();
+  for (const item of trip.items) {
+    if (item.groupId) {
+      const arr = groupItemsMap.get(item.groupId) ?? [];
+      arr.push(item);
+      groupItemsMap.set(item.groupId, arr);
+    }
+  }
+
+  type Entry =
+    | { position: number; kind: 'item'; item: ItineraryItem }
+    | { position: number; kind: 'group'; items: ItineraryItem[] };
+
+  const entries: Entry[] = [];
+
+  for (const item of trip.items) {
+    if (item.day === day && !item.groupId) {
+      entries.push({ kind: 'item', position: item.position, item });
+    }
+  }
+  for (const group of trip.groups ?? []) {
+    if (group.day === day) {
+      const items = (groupItemsMap.get(group._id) ?? []).sort((a, b) => a.position - b.position);
+      entries.push({ kind: 'group', position: group.position, items });
+    }
+  }
+
+  entries.sort((a, b) => a.position - b.position);
+
+  const result: ItineraryItem[] = [];
+  for (const entry of entries) {
+    if (entry.kind === 'item') result.push(entry.item);
+    else result.push(...entry.items);
+  }
+  return result;
+}
+
 export default function SharePage() {
   const { token } = useParams<{ token: string }>();
   const [trip, setTrip] = useState<Trip | null>(null);
@@ -70,9 +108,7 @@ export default function SharePage() {
 
       <main className="share-main">
         {Array.from({ length: totalDays }, (_, i) => i + 1).map((day) => {
-          const dayItems = trip.items
-            .filter((item) => item.day === day)
-            .sort((a, b) => a.position - b.position);
+          const dayItems = getOrderedDayItems(trip, day);
           if (dayItems.length === 0) return null;
           return (
             <section key={day} className="share-day">
