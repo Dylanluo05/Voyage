@@ -347,6 +347,17 @@ export default function TripDetailPage() {
     return map;
   }, [trip, totalDays]);
 
+  const orderedMapItems = useMemo(() => {
+    const result: ItineraryItem[] = [];
+    for (let d = 1; d <= totalDays; d++) {
+      for (const entry of topLevelByDay.get(d) ?? []) {
+        if (entry.type === 'item') result.push(entry.item);
+        else if (entry.type === 'group') result.push(...entry.items);
+      }
+    }
+    return result;
+  }, [topLevelByDay, totalDays]);
+
   if (!isLoaded) return <div>Loading...</div>;
 
   async function handleAddImageFile(file: File) {
@@ -783,7 +794,7 @@ export default function TripDetailPage() {
       <TripNavBar setSection={setSection} />
 
       <div id="map-section">
-        <TripMap items={trip.items} />
+        <TripMap items={orderedMapItems} />
       </div>
 
       <div id="budget-section">

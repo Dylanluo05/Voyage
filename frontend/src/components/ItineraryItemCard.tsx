@@ -78,7 +78,9 @@ function formatTime(time: string | undefined) {
   let formattedString: string = "";
   if (time !== undefined) {
     let hour: number = parseInt(time.substring(0, 2));
-    if (hour < 12) {
+    if (hour == 0) {
+      formattedString += "12" + time.substring(2) + " AM";
+    } else if (hour < 12) {
       formattedString += time + " AM";
     } else if (hour == 12) {
       formattedString += time + " PM";
@@ -161,7 +163,7 @@ export default function ItineraryItemCard({
       );
     }, 350);
     return () => { if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing, draft.title]);
 
   const REACTION_EMOJIS = ['👍', '👎', '❤️', '🔥', '😂'] as const;

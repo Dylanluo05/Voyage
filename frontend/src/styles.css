@@ -2878,6 +2878,21 @@ fieldset legend {
   transform: none;
 }
 
+/* ── Map Segment Duration Badge ─────────────────────────────── */
+.map-segment-duration {
+  background: rgba(8, 9, 14, 0.82);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 212, 200, 0.45);
+  color: var(--teal);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  white-space: nowrap;
+  pointer-events: none;
+  letter-spacing: 0.02em;
+}
+
 /* ── Day Anchor Editor ───────────────────────────────────────── */
 .day-anchor-wrap {
   margin-bottom: 8px;

@@ -33,6 +33,7 @@ export default function TripMap({ items }: TripMapProps) {
   const [geocodedLocations, setGeocodedLocations] = useState<Record<string, { lat: number; lng: number }>>({});
   const [mapLoaded, setMapLoaded] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [segmentDurations, setSegmentDurations] = useState<(string | null)[]>([]);
   const geocodedIdsRef = useRef<Set<string>>(new Set());
   const mapRef = useRef<google.maps.Map | null>(null);
 
@@ -105,9 +106,7 @@ export default function TripMap({ items }: TripMapProps) {
 
   const filteredLocations = useMemo(() => {
     if (selectedDay === null) return locations;
-    return [...locations]
-      .filter((l) => l.day === selectedDay)
-      .sort((a, b) => a.position - b.position);
+    return locations.filter((l) => l.day === selectedDay);
   }, [locations, selectedDay]);
 
   const center = useMemo(() => {
@@ -138,6 +137,38 @@ export default function TripMap({ items }: TripMapProps) {
         : [],
     [filteredLocations, selectedDay]
   );
+
+  useEffect(() => {
+    if (selectedDay === null || filteredLocations.length < 2) {
+      setSegmentDurations([]);
+      return;
+    }
+    const origins = filteredLocations.slice(0, -1).map((l) => ({ lat: l.lat, lng: l.lng }));
+    const destinations = filteredLocations.slice(1).map((l) => ({ lat: l.lat, lng: l.lng }));
+    const service = new google.maps.DistanceMatrixService();
+    service.getDistanceMatrix(
+      { origins, destinations, travelMode: google.maps.TravelMode.DRIVING },
+      (result, status) => {
+        if (status !== google.maps.DistanceMatrixStatus.OK || !result) {
+          setSegmentDurations(origins.map(() => null));
+          return;
+        }
+        const durations = result.rows.map((row, i) => {
+          const el = row.elements[i];
+          return el?.status === 'OK' ? el.duration.text : null;
+        });
+        setSegmentDurations(durations);
+      }
+    );
+  }, [filteredLocations, selectedDay]);
+
+  const segmentMidpoints = useMemo(() => {
+    if (selectedDay === null || filteredLocations.length < 2) return [];
+    return filteredLocations.slice(0, -1).map((loc, i) => {
+      const next = filteredLocations[i + 1];
+      return { lat: (loc.lat + next.lat) / 2, lng: (loc.lng + next.lng) / 2 };
+    });
+  }, [filteredLocations, selectedDay]);
 
   return (
     <div id="map-section" className="card">
@@ -188,6 +219,19 @@ export default function TripMap({ items }: TripMapProps) {
 
         {mapLoaded && routePath.length >= 2 && (
           <PolylineF path={routePath} options={ROUTE_LINE_OPTIONS} />
+        )}
+
+        {mapLoaded && segmentMidpoints.map((mid, i) =>
+          segmentDurations[i] ? (
+            <OverlayView
+              key={`seg-${i}`}
+              position={mid}
+              mapPaneName="floatPane"
+              getPixelPositionOffset={() => ({ x: -28, y: -12 })}
+            >
+              <div className="map-segment-duration">{segmentDurations[i]}</div>
+            </OverlayView>
+          ) : null
         )}
 
         {mapLoaded && selected && (
