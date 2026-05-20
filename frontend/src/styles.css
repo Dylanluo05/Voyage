@@ -2833,6 +2833,51 @@ fieldset legend {
 }
 
 /* ── Trip Nav Bar ─────────────────────────────────────── */
+/* ── Map day filter ─────────────────────────────────────────── */
+.map-day-filter {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.map-day-btn {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 5px 14px;
+  border-radius: 20px;
+  background: transparent;
+  color: var(--muted);
+  border: 1.5px solid var(--border-mid);
+  box-shadow: none;
+  transition: all 0.15s var(--ease);
+}
+
+.map-day-btn:hover {
+  color: var(--fg);
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.06);
+  transform: none;
+  box-shadow: none;
+}
+
+.map-day-btn.active {
+  background: var(--teal);
+  color: #08090e;
+  border-color: var(--teal);
+  box-shadow: 0 4px 16px rgba(0, 212, 200, 0.25);
+}
+
+.map-day-btn.active:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  box-shadow: 0 4px 16px rgba(0, 212, 200, 0.3);
+  transform: none;
+}
+
 /* ── Day Anchor Editor ───────────────────────────────────────── */
 .day-anchor-wrap {
   margin-bottom: 8px;
