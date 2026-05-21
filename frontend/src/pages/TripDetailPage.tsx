@@ -32,7 +32,7 @@ import PlaylistPanel from '../components/PlaylistPanel';
 import TripLogPanel from '../components/TripLogPanel';
 import HotelsPanel from '../components/HotelsPanel';
 import FlightsPanel from '../components/FlightsPanel';
-import { compressImage } from '../utils/image';
+import { compressImage, compressImageFromUrl } from '../utils/image';
 import { useAuth } from '../context/AuthContext';
 import BudgetPanel from '../components/BudgetPanel';
 import ExpenseSplitPanel from '../components/ExpenseSplitPanel';
@@ -1077,7 +1077,14 @@ export default function TripDetailPage() {
                           src={url}
                           alt="suggestion"
                           className="photo-suggestion-thumb"
-                          onClick={() => setDraft((prev) => ({ ...prev, imageUrl: url }))}
+                          onClick={async () => {
+                            try {
+                              const base64 = await compressImageFromUrl(url);
+                              setDraft((prev) => ({ ...prev, imageUrl: base64 }));
+                            } catch {
+                              setDraft((prev) => ({ ...prev, imageUrl: url }));
+                            }
+                          }}
                         />
                       ))}
                     </div>
