@@ -777,6 +777,24 @@ export async function rateItem(req: Request, res: Response, next: NextFunction):
   }
 }
 
+export async function addGuestPhoto(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { url, day, caption } = z.object({
+      url: z.string().min(1),
+      day: z.number().int().min(1).optional(),
+      caption: z.string().max(300).optional()
+    }).parse(req.body);
+    const trip = await Trip.findOne({ shareToken: req.params.shareToken });
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    trip.log.photos.push({ url, day, caption, uploadedAt: new Date() });
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.status(201).json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function updateBudget(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     ensureValidObjectId(req.params.id, 'trip id');

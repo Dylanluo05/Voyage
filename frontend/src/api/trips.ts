@@ -305,6 +305,13 @@ export function getPublicTrip(shareToken: string): Promise<Trip> {
   return apiFetch<Trip>(`/api/public/trips/${shareToken}`);
 }
 
+export function addGuestPhoto(shareToken: string, payload: { url: string; day?: number; caption?: string }): Promise<Trip> {
+  return apiFetch<Trip>(`/api/public/${shareToken}/photos`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 // ── Trip log ──────────────────────────────────────────────────────────────
 
 export function markCompleted(tripId: string, isCompleted: boolean): Promise<Trip> {

@@ -8,6 +8,7 @@ import RegisterPage from './pages/RegisterPage';
 import TripsPage from './pages/TripsPage';
 import TripDetailPage from './pages/TripDetailPage';
 import SharePage from './pages/SharePage';
+import GuestUploadPage from './pages/GuestUploadPage';
 import ProfilePage from './pages/ProfilePage';
 
 export default function App() {
@@ -39,6 +40,7 @@ export default function App() {
           }
         />
         <Route path="/share/:token" element={<SharePage />} />
+        <Route path="/upload/:token" element={<GuestUploadPage />} />
         <Route
           path="/profile"
           element={

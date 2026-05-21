@@ -76,7 +76,7 @@ export interface LogPhotoData {
   url: string;
   day?: number;
   caption?: string;
-  uploadedBy: Types.ObjectId;
+  uploadedBy?: Types.ObjectId;
   uploadedAt: Date;
 }
 
@@ -275,7 +275,7 @@ const logPhotoSchema = new Schema<LogPhotoData>(
     url: { type: String, required: true },
     day: { type: Number, min: 1 },
     caption: { type: String, trim: true },
-    uploadedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    uploadedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     uploadedAt: { type: Date, default: Date.now },
   },
   { _id: true }
