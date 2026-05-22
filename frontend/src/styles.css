@@ -3065,6 +3065,132 @@ fieldset legend {
   letter-spacing: 0.06em;
 }
 
+/* ── Mobile responsive ───────────────────────────────────────── */
+@media (max-width: 640px) {
+  h1 {
+    font-size: 2rem;
+  }
+
+  main {
+    padding: 20px 14px 80px;
+  }
+
+  /* Two-column form grids → single column */
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Auth page fits narrow viewports */
+  .auth-page {
+    margin: 32px 14px;
+    padding: 24px 18px;
+  }
+
+  /* Navbar tighter on mobile */
+  .navbar {
+    padding: 0 16px;
+  }
+
+  .trip-navbar-scroll {
+    padding: 8px 16px;
+  }
+
+  /* Trip title row: stack actions below title */
+  .trip-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .trip-title-actions {
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+
+  /* Collab invite row wraps */
+  .collab-invite-form {
+    flex-wrap: wrap;
+  }
+
+  /* Budget source row: remove fixed left width */
+  .budget-source-left {
+    width: auto;
+  }
+
+  /* Budget set row stacks */
+  .budget-set-row {
+    flex-wrap: wrap;
+  }
+
+  .budget-input {
+    width: 100%;
+  }
+
+  /* Budget stats: allow wrapping on very small screens */
+  .budget-stats-row {
+    flex-wrap: wrap;
+  }
+
+  .budget-stat {
+    min-width: 80px;
+  }
+
+  /* Vibe input row wraps */
+  .vibe-input-row {
+    flex-wrap: wrap;
+  }
+
+  /* Photo URL row stacks */
+  .photo-url-row {
+    flex-wrap: wrap;
+  }
+
+  /* Item card: tighter on mobile */
+  .item-thumb {
+    width: 72px;
+  }
+
+  /* Share page padding */
+  .share-page {
+    padding: 20px 14px 48px;
+  }
+
+  .share-item {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .share-item-img {
+    width: 72px;
+    height: 56px;
+  }
+
+  /* Debate options full width */
+  .debate-options-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Log upload row: caption fills full width */
+  .log-upload-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .log-caption-input {
+    min-width: unset;
+  }
+
+  /* Rec grid: single column */
+  .rec-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Day anchor hotel row wraps */
+  .day-anchor-hotel-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 /* ── Print styles ────────────────────────────────────────────── */
 @media print {
 

@@ -89,6 +89,16 @@ Return only the JSON array.`,
 
     res.json(recommendations);
   } catch (err) {
+    if (err instanceof Anthropic.APIError) {
+      if (err.status === 529 || err.status === 503) {
+        next(new HttpError(503, 'AI recommendations are temporarily unavailable — please try again in a moment.'));
+      } else if (err.status === 429) {
+        next(new HttpError(429, 'Too many requests — please wait a moment and try again.'));
+      } else {
+        next(new HttpError(502, 'Failed to get AI recommendations — please try again.'));
+      }
+      return;
+    }
     next(err);
   }
 }
