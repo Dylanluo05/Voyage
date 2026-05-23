@@ -40,26 +40,49 @@ export default function CommuteWidget({ origin, destination }: Props) {
     setDuration(null);
     setDistance(null);
 
-    const service = new google.maps.DistanceMatrixService();
-    service.getDistanceMatrix(
-      {
-        origins: [originRef],
-        destinations: [destRef],
-        travelMode: google.maps.TravelMode[mode],
-        ...(mode === 'TRANSIT' && { transitOptions: { departureTime: new Date() } }),
-      },
-      (response, status) => {
-        if (cancelled) return;
-        setLoading(false);
-        if (status === 'OK' && response?.rows[0]?.elements[0]?.status === 'OK') {
-          const el = response.rows[0].elements[0];
-          setDuration(el.duration.text);
-          setDistance(el.distance.text);
-        } else {
-          setError(true);
+    if (mode === 'TRANSIT') {
+      // DirectionsService has much better transit coverage than DistanceMatrixService
+      const service = new google.maps.DirectionsService();
+      service.route(
+        {
+          origin: originRef,
+          destination: destRef,
+          travelMode: google.maps.TravelMode.TRANSIT,
+          transitOptions: { departureTime: new Date() },
+        },
+        (result, status) => {
+          if (cancelled) return;
+          setLoading(false);
+          const leg = result?.routes?.[0]?.legs?.[0];
+          if (status === 'OK' && leg) {
+            setDuration(leg.duration?.text ?? null);
+            setDistance(leg.distance?.text ?? null);
+          } else {
+            setError(true);
+          }
         }
-      }
-    );
+      );
+    } else {
+      const service = new google.maps.DistanceMatrixService();
+      service.getDistanceMatrix(
+        {
+          origins: [originRef],
+          destinations: [destRef],
+          travelMode: google.maps.TravelMode[mode],
+        },
+        (response, status) => {
+          if (cancelled) return;
+          setLoading(false);
+          if (status === 'OK' && response?.rows[0]?.elements[0]?.status === 'OK') {
+            const el = response.rows[0].elements[0];
+            setDuration(el.duration.text);
+            setDistance(el.distance.text);
+          } else {
+            setError(true);
+          }
+        }
+      );
+    }
 
     return () => { cancelled = true; };
   }, [origin.lat, origin.lng, origin.address, origin.name, destination.lat, destination.lng, destination.address, destination.name, mode]);
