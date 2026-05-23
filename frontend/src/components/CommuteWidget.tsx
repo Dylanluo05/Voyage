@@ -46,6 +46,7 @@ export default function CommuteWidget({ origin, destination }: Props) {
         origins: [originRef],
         destinations: [destRef],
         travelMode: google.maps.TravelMode[mode],
+        ...(mode === 'TRANSIT' && { transitOptions: { departureTime: new Date() } }),
       },
       (response, status) => {
         if (cancelled) return;
