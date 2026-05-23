@@ -731,21 +731,28 @@ fieldset legend {
   padding: 24px;
   cursor: zoom-out;
   animation: fadeIn 0.2s var(--ease) both;
+  overflow: hidden;
+  touch-action: none;
 }
 
 .lightbox-img {
-  max-width: 90vw;
-  max-height: 90vh;
+  /* subtract overlay padding (24px × 2) and leave room for close button */
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 96px);
   object-fit: contain;
   border-radius: 12px;
   box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
   cursor: default;
+  display: block;
 }
 
 .lightbox-close {
-  position: fixed;
+  /* absolute keeps it inside the overlay's stacking context,
+     avoiding the backdrop-filter containing-block quirk */
+  position: absolute;
   top: 18px;
   right: 22px;
+  z-index: 10;
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.18);
