@@ -7,6 +7,7 @@ import authRouter from './routes/auth';
 import tripsRouter from './routes/trips';
 import publicRouter from './routes/public';
 import usersRouter from './routes/users';
+import billingRouter from './routes/billing';
 import { errorHandler } from './middleware/error';
 
 async function main(): Promise<void> {
@@ -25,6 +26,7 @@ async function main(): Promise<void> {
   app.use('/api/trips', tripsRouter);
   app.use('/api/public', publicRouter);
   app.use('/api/users', usersRouter);
+  app.use('/api/billing', billingRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'Not found' });

@@ -51,6 +51,7 @@ import {
 } from '../controllers/tripsController';
 import { getRecommendations } from '../controllers/recommendationsController';
 import { parseHotelConfirmation, parseFlightConfirmation } from '../controllers/importController';
+import { tripChat } from '../controllers/chatController';
 
 const router = Router();
 
@@ -70,6 +71,7 @@ router.delete('/:id/items/:itemId', deleteItem);
 router.post('/:id/reorder', reorderItems);
 router.put('/:id/items/:itemId/react', toggleReaction);
 router.get('/:id/recommendations', getRecommendations);
+router.post('/:id/chat', tripChat);
 
 router.post('/:id/groups', createGroup);
 router.put('/:id/groups/:groupId', renameGroup);

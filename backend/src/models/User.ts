@@ -1,6 +1,14 @@
 import { Schema, model, Document, Types } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+export interface AiUsage {
+  count: number;
+  resetAt: Date;
+  plan: 'free' | 'pro';
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+}
+
 export interface UserDoc extends Document {
   _id: Types.ObjectId;
   email: string;
@@ -9,6 +17,7 @@ export interface UserDoc extends Document {
   createdAt: Date;
   updatedAt: Date;
   badges: BadgeData[];
+  aiUsage: AiUsage;
   comparePassword(plain: string): Promise<boolean>;
 }
 
@@ -44,7 +53,17 @@ const userSchema = new Schema<UserDoc>(
     },
     passwordHash: { type: String, required: true },
     name: { type: String, required: true, trim: true },
-    badges: { type: [badgeSchema], default: [] }
+    badges: { type: [badgeSchema], default: [] },
+    aiUsage: {
+      count: { type: Number, default: 0 },
+      resetAt: {
+        type: Date,
+        default: () => { const d = new Date(); d.setUTCHours(24, 0, 0, 0); return d; },
+      },
+      plan: { type: String, enum: ['free', 'pro'], default: 'free' },
+      stripeCustomerId: { type: String },
+      stripeSubscriptionId: { type: String },
+    },
   },
   { timestamps: true }
 );

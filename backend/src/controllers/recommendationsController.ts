@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { Types } from 'mongoose';
 import { Trip } from '../models/Trip';
 import { HttpError } from '../middleware/error';
+import { checkAndIncrementQuota } from '../lib/aiQuota';
 
 const anthropic = new Anthropic();
 
@@ -32,6 +33,8 @@ export async function getRecommendations(
     const uid = ownerId(req);
     const trip = await Trip.findOne({ _id: req.params.id, $or: [{ owner: uid }, { collaborators: uid }] });
     if (!trip) throw new HttpError(404, 'Trip not found');
+
+    await checkAndIncrementQuota(req.user!.sub);
 
     const totalDays = Math.max(
       1,

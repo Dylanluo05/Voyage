@@ -39,6 +39,7 @@ import ExpenseSplitPanel from '../components/ExpenseSplitPanel';
 import SidequestsPanel from '../components/SidequestsPanel';
 import TripNavBar from '../components/TripNavBar';
 import DayAnchorEditor from '../components/DayAnchorEditor';
+import TripChatPanel from '../components/TripChatPanel';
 
 const GOOGLE_MAPS_LIBRARIES: ('places')[] = ['places'];
 
@@ -220,6 +221,9 @@ export default function TripDetailPage() {
           behavior: "smooth",
           block: "start",
         });
+        break;
+      case "chat":
+        document.getElementById("chat-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
         break;
     }
   }, [section]);
@@ -881,6 +885,15 @@ export default function TripDetailPage() {
 
       <div id="trip-playlist-section">
         <PlaylistPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+      </div>
+
+      <div id="chat-section">
+        <section className="card">
+          <TripChatPanel
+            trip={trip}
+            onTripRefresh={() => id && tripsApi.getTrip(id).then(setTrip).catch(() => {})}
+          />
+        </section>
       </div>
 
       {trip.isCompleted && (
