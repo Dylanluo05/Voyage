@@ -1,10 +1,12 @@
 import { Schema, model, Document, Types } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+export type Plan = 'free' | 'explorer' | 'pro' | 'globetrotter';
+
 export interface AiUsage {
   count: number;
   resetAt: Date;
-  plan: 'free' | 'pro';
+  plan: Plan;
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
 }
@@ -60,7 +62,7 @@ const userSchema = new Schema<UserDoc>(
         type: Date,
         default: () => { const d = new Date(); d.setUTCHours(24, 0, 0, 0); return d; },
       },
-      plan: { type: String, enum: ['free', 'pro'], default: 'free' },
+      plan: { type: String, enum: ['free', 'explorer', 'pro', 'globetrotter'], default: 'free' },
       stripeCustomerId: { type: String },
       stripeSubscriptionId: { type: String },
     },

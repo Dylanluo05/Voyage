@@ -19,5 +19,7 @@ export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? '',
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',
-  stripePriceId: process.env.STRIPE_PRICE_ID ?? '',
+  stripePriceExplorer: process.env.STRIPE_PRICE_EXPLORER ?? '',
+  stripePricePro: process.env.STRIPE_PRICE_PRO ?? '',
+  stripePriceGlobetrotter: process.env.STRIPE_PRICE_GLOBETROTTER ?? '',
 };

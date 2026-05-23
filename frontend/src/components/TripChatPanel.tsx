@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Trip } from '../types';
 import { API_URL, getToken } from '../api/client';
-import { getBillingStatus, startCheckout, BillingStatus } from '../api/billing';
+import { getBillingStatus, BillingStatus } from '../api/billing';
+import { useNavigate } from 'react-router-dom';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -22,6 +23,7 @@ export default function TripChatPanel({ trip, onTripRefresh }: Props) {
   const [quota, setQuota] = useState<BillingStatus | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     getBillingStatus().then(setQuota).catch(() => {});
@@ -134,7 +136,7 @@ export default function TripChatPanel({ trip, onTripRefresh }: Props) {
     }
   };
 
-  const isPro = quota?.plan === 'pro';
+  const isPro = quota !== null && quota?.aiRequestsPerDay === -1;
   const outOfQuota = !isPro && quota !== null && quota.remaining === 0;
 
   function toolResultLabel(tr: ChatMessage['toolResult']): string {
@@ -153,11 +155,11 @@ export default function TripChatPanel({ trip, onTripRefresh }: Props) {
             <span className="chat-quota-pro">Pro — unlimited</span>
           ) : quota ? (
             <span className={`chat-quota-count${outOfQuota ? ' chat-quota-empty' : ''}`}>
-              {quota.remaining}/{quota.freeLimit} requests today
+              {quota.remaining}/{quota.aiRequestsPerDay} requests today
             </span>
           ) : null}
           {!isPro && (
-            <button className="chat-upgrade-btn" onClick={startCheckout}>Upgrade</button>
+            <button className="chat-upgrade-btn" onClick={() => navigate('/subscription')}>Upgrade</button>
           )}
         </div>
       </div>
@@ -186,8 +188,8 @@ export default function TripChatPanel({ trip, onTripRefresh }: Props) {
 
       {outOfQuota && (
         <div className="chat-quota-banner">
-          You've used all {quota?.freeLimit} free requests for today.{' '}
-          <button className="chat-upgrade-inline" onClick={startCheckout}>Upgrade to Pro</button>{' '}
+          You've used all {quota?.aiRequestsPerDay} AI requests for today.{' '}
+          <button className="chat-upgrade-inline" onClick={() => navigate('/subscription')}>Upgrade your plan</button>{' '}
           for unlimited access.
         </div>
       )}

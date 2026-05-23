@@ -7,6 +7,7 @@ import { User } from '../models/User';
 import { HttpError } from '../middleware/error';
 import { searchTracks } from '../lib/spotify';
 import { interpretVibe } from '../lib/vibeInterpreter';
+import { checkTripQuota } from '../lib/aiQuota';
 import { addTripClient, removeTripClient } from '../lib/tripEvents';
 import { env } from '../config/env';
 
@@ -90,6 +91,7 @@ export async function listTrips(req: Request, res: Response, next: NextFunction)
 
 export async function createTrip(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    await checkTripQuota(req.user!.sub);
     const data = tripCreateSchema.parse(req.body);
     const trip = await Trip.create({
       owner: ownerId(req),

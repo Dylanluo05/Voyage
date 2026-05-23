@@ -1,6 +1,6 @@
 import { Router, raw } from 'express';
 import { requireAuth } from '../middleware/auth';
-import { createCheckoutSession, stripeWebhook, getBillingStatus } from '../controllers/billingController';
+import { createCheckoutSession, createPortalSession, stripeWebhook, getBillingStatus } from '../controllers/billingController';
 
 const router = Router();
 
@@ -10,5 +10,6 @@ router.post('/webhook', raw({ type: 'application/json' }), stripeWebhook);
 router.use(requireAuth);
 router.get('/status', getBillingStatus);
 router.post('/checkout', createCheckoutSession);
+router.post('/portal', createPortalSession);
 
 export default router;

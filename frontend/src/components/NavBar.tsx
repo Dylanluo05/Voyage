@@ -14,9 +14,8 @@ export default function NavBar() {
         {user ? (
           <>
             <span className="muted">Hi, {user.name}</span>
-            <Link to="/profile">
-              Profile
-            </Link>
+            <Link to="/profile">Profile</Link>
+            <Link to="/subscription">Upgrade</Link>
             <button
               type="button"
               onClick={() => {

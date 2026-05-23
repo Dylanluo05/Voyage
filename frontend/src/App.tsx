@@ -10,6 +10,7 @@ import TripDetailPage from './pages/TripDetailPage';
 import SharePage from './pages/SharePage';
 import GuestUploadPage from './pages/GuestUploadPage';
 import ProfilePage from './pages/ProfilePage';
+import SubscriptionPage from './pages/SubscriptionPage';
 
 export default function App() {
   return (
@@ -47,6 +48,16 @@ export default function App() {
             <ProtectedRoute>
               <main>
                 <ProfilePage />
+              </main>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/subscription"
+          element={
+            <ProtectedRoute>
+              <main>
+                <SubscriptionPage />
               </main>
             </ProtectedRoute>
           }
