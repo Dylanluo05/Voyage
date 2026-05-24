@@ -22,7 +22,6 @@ import SortableItineraryItem from '../components/SortableItineraryItem';
 import SortableGroupBlock from '../components/SortableGroupBlock';
 import SortableDebateCard from '../components/SortableDebateCard';
 import DayColumn from '../components/DayColumn';
-import RecommendationsPanel from '../components/RecommendationsPanel';
 import CommuteWidget from '../components/CommuteWidget';
 import CollaboratorsPanel from '../components/CollaboratorsPanel';
 import { Autocomplete, useLoadScript } from '@react-google-maps/api';
@@ -151,7 +150,6 @@ export default function TripDetailPage() {
     const expensesSection = document.getElementById("expenses-section");
     const weatherSection = document.getElementById("weather-section");
     const collaboratorsSection = document.getElementById("collaborators-section");
-    const aiRecommendationsSection = document.getElementById("ai-recommendations-section");
     const tripPlaylistSection = document.getElementById("trip-playlist-section");
     const itinerarySection = document.getElementById("itinerary-section");
 
@@ -200,12 +198,6 @@ export default function TripDetailPage() {
         break;
       case "collaborators":
         collaboratorsSection?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-        break;
-      case "ai-recommendations":
-        aiRecommendationsSection?.scrollIntoView({
           behavior: "smooth",
           block: "start",
         });
@@ -483,12 +475,6 @@ export default function TripDetailPage() {
     } catch (err) {
       throw err instanceof ApiError ? new Error(err.message) : err;
     }
-  }
-
-  async function addItemDirect(item: NewItemInput) {
-    if (!id) return;
-    const updated = await tripsApi.addItem(id, item);
-    setTrip(updated);
   }
 
 
@@ -879,9 +865,6 @@ export default function TripDetailPage() {
         />
       </div>
 
-      <div id="ai-recommendations-section">
-        <RecommendationsPanel trip={trip} totalDays={totalDays} onAdd={addItemDirect} />
-      </div>
 
       <div id="trip-playlist-section">
         <PlaylistPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />

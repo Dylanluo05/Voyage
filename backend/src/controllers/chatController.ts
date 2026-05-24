@@ -20,7 +20,7 @@ function accessFilter(req: Request, id: string) {
 const tools: Anthropic.Tool[] = [
   {
     name: 'add_itinerary_items',
-    description: 'Add one or more items to the trip itinerary. Use when the user asks to add a specific place, restaurant, or activity.',
+    description: 'Add up to 3 items to the trip itinerary. Use when the user asks for activity suggestions or to add a specific place, restaurant, or activity. Never add more than 3 items per request.',
     input_schema: {
       type: 'object' as const,
       properties: {

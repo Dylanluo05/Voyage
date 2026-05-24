@@ -18,7 +18,6 @@ export default function TripNavBar({ setSection }: TripNavBarProps) {
                 <button className="trip-nav-btn" onClick={() => handleNavigate("expenses")}>Expenses</button>
                 <button className="trip-nav-btn" onClick={() => handleNavigate("weather")}>Weather</button>
                 <button className="trip-nav-btn" onClick={() => handleNavigate("collaborators")}>Collaborators</button>
-                <button className="trip-nav-btn" onClick={() => handleNavigate("ai-recommendations")}>AI Recommendations</button>
                 <button className="trip-nav-btn" onClick={() => handleNavigate("trip-playlist")}>Trip Playlist</button>
                 <button className="trip-nav-btn" onClick={() => handleNavigate("itinerary")}>Itinerary</button>
                 <button className="trip-nav-btn" onClick={() => handleNavigate("chat")}>AI Chat</button>

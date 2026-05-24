@@ -173,17 +173,6 @@ export type ReorderInput = {
   debates?: Array<{ debateId: string; day: number; position: number }>;
 };
 
-export interface Recommendation {
-  title: string;
-  description: string;
-  suggestedDay: number;
-  suggestedStartTime?: string;
-  suggestedEndTime?: string;
-  location?: { name: string; address?: string };
-  category: 'food' | 'activity' | 'attraction';
-  estimatedCost?: string;
-}
-
 export interface HotelBooking {
   _id: string;
   name: string;

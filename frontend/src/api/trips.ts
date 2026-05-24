@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { Trip, NewTripInput, NewItemInput, ReorderInput, Recommendation, SpotifySearchResult, LogPhoto, HotelBooking, FlightBooking, Expense } from '../types';
+import type { Trip, NewTripInput, NewItemInput, ReorderInput, SpotifySearchResult, LogPhoto, HotelBooking, FlightBooking, Expense } from '../types';
 
 export function updateDayAnchor(
   tripId: string,
@@ -66,12 +66,6 @@ export function reorderItems(tripId: string, input: ReorderInput): Promise<Trip>
   });
 }
 
-export function getRecommendations(tripId: string, excludeTitles?: string[]): Promise<Recommendation[]> {
-  const qs = excludeTitles?.length
-    ? `?exclude=${encodeURIComponent(JSON.stringify(excludeTitles))}`
-    : '';
-  return apiFetch<Recommendation[]>(`/api/trips/${tripId}/recommendations${qs}`);
-}
 
 export function reactToItem(tripId: string, itemId: string, emoji: string): Promise<Trip> {
   return apiFetch<Trip>(`/api/trips/${tripId}/items/${itemId}/react`, {

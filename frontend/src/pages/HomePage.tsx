@@ -42,7 +42,7 @@ export default function HomePage() {
         <div className="hero-content">
           <h1 className="landing-headline">Plan trips.<br />Not spreadsheets.</h1>
           <p className="landing-sub">
-            Voyage is a collaborative itinerary builder with AI recommendations,
+            Voyage is a collaborative itinerary builder with an AI trip assistant,
             live weather, and drag-and-drop scheduling.
           </p>
           <div className="landing-cta-row">
@@ -61,8 +61,8 @@ export default function HomePage() {
         <div className="features-grid">
           <div className="feature-card" data-reveal data-delay="1">
             <span className="feature-icon">🤖</span>
-            <h3>AI Recommendations</h3>
-            <p>VoyageAI takes in your travel criteria and generates the best plan tailored to you.</p>
+            <h3>AI Trip Assistant</h3>
+            <p>Chat with VoyageAI to get activity suggestions, plan full days, and build your itinerary hands-free.</p>
           </div>
           <div className="feature-card" data-reveal data-delay="2">
             <span className="feature-icon">🌤️</span>
