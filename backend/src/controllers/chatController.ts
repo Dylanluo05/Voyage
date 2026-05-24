@@ -47,6 +47,7 @@ const tools: Anthropic.Tool[] = [
             properties: {
               title: { type: 'string' as const, description: 'Name of the place or activity' },
               day: { type: 'number' as const, description: 'Day number (1-indexed)' },
+              address: { type: 'string' as const, description: 'Full street address of the place' },
               startTime: { type: 'string' as const, description: 'Start time in HH:mm 24h format, e.g. "14:00"' },
               endTime: { type: 'string' as const, description: 'End time in HH:mm 24h format' },
               category: { type: 'string' as const, enum: ['food', 'activity', 'attraction'] },
@@ -72,6 +73,7 @@ const tools: Anthropic.Tool[] = [
             type: 'object' as const,
             properties: {
               title: { type: 'string' as const },
+              address: { type: 'string' as const, description: 'Full street address of the place' },
               startTime: { type: 'string' as const, description: 'HH:mm 24h format' },
               endTime: { type: 'string' as const, description: 'HH:mm 24h format' },
               category: { type: 'string' as const, enum: ['food', 'activity', 'attraction'] },
@@ -168,7 +170,7 @@ Answer travel questions and help the user plan their trip. When they ask to add 
       const input = block.input as Record<string, unknown>;
 
       if (block.name === 'add_itinerary_items') {
-        type ItemInput = { title: string; day: number; startTime?: string; endTime?: string; category?: string; notes?: string };
+        type ItemInput = { title: string; day: number; address?: string; startTime?: string; endTime?: string; category?: string; notes?: string };
         const items = input.items as ItemInput[];
         const addedTitles: string[] = [];
 
@@ -185,6 +187,7 @@ Answer travel questions and help the user plan their trip. When they ask to add 
             category: item.category as ItineraryItemData['category'],
             notes: item.notes,
             imageUrl,
+            location: item.address ? { name: item.title, address: item.address } : undefined,
           } as ItineraryItemData);
           addedTitles.push(item.title);
         }
@@ -215,6 +218,7 @@ Answer travel questions and help the user plan their trip. When they ask to add 
             category: item.category as ItineraryItemData['category'],
             notes: item.notes,
             imageUrl,
+            location: (item as { address?: string }).address ? { name: item.title, address: (item as { address?: string }).address } : undefined,
           } as ItineraryItemData);
         }
 
