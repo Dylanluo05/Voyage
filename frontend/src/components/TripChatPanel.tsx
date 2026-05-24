@@ -144,6 +144,7 @@ export default function TripChatPanel({ trip, onTripRefresh }: Props) {
     if (!tr) return '';
     if (tr.action === 'add_items') return `Added ${tr.items?.join(', ')} to Day ${tr.day}`;
     if (tr.action === 'replace_day') return `Replaced Day ${tr.day} with ${tr.count} new stops`;
+    if (tr.action === 'add_photos') return `Added photos to ${tr.count} item${tr.count === 1 ? '' : 's'}`;
     return '';
   }
 

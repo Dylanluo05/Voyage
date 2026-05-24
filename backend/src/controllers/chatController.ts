@@ -61,7 +61,7 @@ const tools: Anthropic.Tool[] = [
   },
   {
     name: 'replace_day',
-    description: 'Replace all items for a specific day with a fresh generated plan. Use when the user asks to plan, fill, or regenerate a full day.',
+    description: 'Replace all items for a specific day with a fresh generated plan. Photos are added automatically. Use when the user asks to plan, fill, or regenerate a full day.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -82,6 +82,21 @@ const tools: Anthropic.Tool[] = [
         },
       },
       required: ['day', 'items'],
+    },
+  },
+  {
+    name: 'add_photos',
+    description: 'Add photos to existing itinerary items that do not have one. Use when the user asks to add photos to activities.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        titles: {
+          type: 'array' as const,
+          items: { type: 'string' as const },
+          description: 'Exact titles of existing itinerary items to add photos to',
+        },
+      },
+      required: ['titles'],
     },
   },
 ];
@@ -128,7 +143,7 @@ Dates: ${trip.startDate.toDateString()} to ${trip.endDate.toDateString()} (${tot
 Current itinerary:
 ${itinerarySummary}
 
-Answer travel questions and help the user plan their trip. When they ask to add places or plan a day, use the tools. Be concise and practical.`;
+Answer travel questions and help the user plan their trip. When they ask to add places or plan a day, use the tools. When they ask for photos or pictures for activities, use the add_photos tool with the exact item titles. Photos are added automatically when new items are created. Be concise and practical.`;
 
     // Stream Claude's initial response
     const stream = anthropic.messages.stream({
@@ -189,7 +204,8 @@ Answer travel questions and help the user plan their trip. When they ask to add 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const id of toRemove) (trip.items as any).pull(id);
 
-        items.forEach((item, idx) => {
+        for (const [idx, item] of items.entries()) {
+          const imageUrl = await fetchPexelsPhoto(`${item.title} ${trip.destination}`);
           trip.items.push({
             title: item.title,
             day: clampedDay,
@@ -198,12 +214,27 @@ Answer travel questions and help the user plan their trip. When they ask to add 
             endTime: item.endTime,
             category: item.category as ItineraryItemData['category'],
             notes: item.notes,
+            imageUrl,
           } as ItineraryItemData);
-        });
+        }
 
         await trip.save();
         toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: `Replaced Day ${clampedDay} with ${items.length} items.` });
         res.write(`event: tool_result\ndata: ${JSON.stringify({ action: 'replace_day', day: clampedDay, count: items.length })}\n\n`);
+      }
+
+      if (block.name === 'add_photos') {
+        const titles = input.titles as string[];
+        let updated = 0;
+        for (const title of titles) {
+          const item = trip.items.find(i => i.title.toLowerCase() === title.toLowerCase());
+          if (!item) continue;
+          const imageUrl = await fetchPexelsPhoto(`${title} ${trip.destination}`);
+          if (imageUrl) { item.imageUrl = imageUrl; updated++; }
+        }
+        await trip.save();
+        toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: `Added photos to ${updated} item(s).` });
+        res.write(`event: tool_result\ndata: ${JSON.stringify({ action: 'add_photos', count: updated })}\n\n`);
       }
     }
 
