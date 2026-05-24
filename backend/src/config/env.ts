@@ -22,4 +22,5 @@ export const env = {
   stripePriceExplorer: process.env.STRIPE_PRICE_EXPLORER ?? '',
   stripePricePro: process.env.STRIPE_PRICE_PRO ?? '',
   stripePriceGlobetrotter: process.env.STRIPE_PRICE_GLOBETROTTER ?? '',
+  pexelsApiKey: process.env.PEXELS_API_KEY ?? '',
 };

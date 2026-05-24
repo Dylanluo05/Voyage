@@ -4,9 +4,25 @@ import { Types } from 'mongoose';
 import { Trip, ItineraryItemData } from '../models/Trip';
 import { HttpError } from '../middleware/error';
 import { checkAndIncrementQuota } from '../lib/aiQuota';
+import { env } from '../config/env';
 import { z } from 'zod';
 
 const anthropic = new Anthropic();
+
+async function fetchPexelsPhoto(query: string): Promise<string | undefined> {
+  if (!env.pexelsApiKey) return undefined;
+  try {
+    const res = await fetch(
+      `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`,
+      { headers: { Authorization: env.pexelsApiKey } }
+    );
+    if (!res.ok) return undefined;
+    const data = await res.json() as { photos: { src: { large: string } }[] };
+    return data.photos[0]?.src.large;
+  } catch {
+    return undefined;
+  }
+}
 
 function ensureValidObjectId(id: string, label = 'id'): void {
   if (!Types.ObjectId.isValid(id)) throw new HttpError(400, `Invalid ${label}`);
@@ -144,6 +160,7 @@ Answer travel questions and help the user plan their trip. When they ask to add 
         for (const item of items) {
           const clampedDay = Math.max(1, Math.min(totalDays, item.day));
           const maxPos = trip.items.filter(i => i.day === clampedDay).reduce((m, i) => Math.max(m, i.position), -1);
+          const imageUrl = await fetchPexelsPhoto(`${item.title} ${trip.destination}`);
           trip.items.push({
             title: item.title,
             day: clampedDay,
@@ -152,6 +169,7 @@ Answer travel questions and help the user plan their trip. When they ask to add 
             endTime: item.endTime,
             category: item.category as ItineraryItemData['category'],
             notes: item.notes,
+            imageUrl,
           } as ItineraryItemData);
           addedTitles.push(item.title);
         }

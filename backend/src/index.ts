@@ -8,6 +8,7 @@ import tripsRouter from './routes/trips';
 import publicRouter from './routes/public';
 import usersRouter from './routes/users';
 import billingRouter from './routes/billing';
+import photosRouter from './routes/photos';
 import { errorHandler } from './middleware/error';
 
 async function main(): Promise<void> {
@@ -27,6 +28,7 @@ async function main(): Promise<void> {
   app.use('/api/public', publicRouter);
   app.use('/api/users', usersRouter);
   app.use('/api/billing', billingRouter);
+  app.use('/api/photos', photosRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'Not found' });

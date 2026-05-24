@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useRef, useState } from 'react';
 import type { ItineraryItem, ItemCategory, NewItemInput } from '../types';
+import { API_URL, getToken } from '../api/client';
 
 const CATEGORY_LABELS: Record<ItemCategory, string> = {
   food: 'Food',
@@ -140,26 +141,24 @@ export default function ItineraryItemCard({
     });
   }, []);
 
-  const fetchSuggestedPhotos = useCallback(() => {
+  const fetchSuggestedPhotos = useCallback(async () => {
     if (!draft.title || suggestionsLoading) return;
     setSuggestionsLoading(true);
     setSuggestedPhotos([]);
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    const service = new google.maps.places.PlacesService(container);
-    service.findPlaceFromQuery(
-      { query: draft.title, fields: ['photos'] },
-      (results, status) => {
-        if (document.body.contains(container)) document.body.removeChild(container);
-        setSuggestionsLoading(false);
-        setSuggestionsLoaded(true);
-        if (status === google.maps.places.PlacesServiceStatus.OK && results?.[0]?.photos) {
-          setSuggestedPhotos(
-            results[0].photos.slice(0, 2).map((p) => p.getUrl({ maxWidth: 600, maxHeight: 400 }))
-          );
-        }
+    try {
+      const token = getToken();
+      const res = await fetch(
+        `${API_URL}/api/photos/search?q=${encodeURIComponent(draft.title)}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      );
+      if (res.ok) {
+        const data = await res.json() as { urls: string[] };
+        setSuggestedPhotos(data.urls);
       }
-    );
+    } finally {
+      setSuggestionsLoading(false);
+      setSuggestionsLoaded(true);
+    }
   }, [draft.title, suggestionsLoading]);
 
   const REACTION_EMOJIS = ['👍', '👎', '❤️', '🔥', '😂'] as const;
