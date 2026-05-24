@@ -21,9 +21,13 @@ function nextMidnightUTC(): Date {
   return d;
 }
 
+const ADMIN_EMAILS = new Set(['dylan.luo.777@gmail.com']);
+
 export async function checkAndIncrementQuota(userId: string): Promise<{ remaining: number; resetAt: Date }> {
-  const user = await User.findById(userId).select('aiUsage');
+  const user = await User.findById(userId).select('aiUsage email');
   if (!user) throw new HttpError(401, 'User not found');
+
+  if (ADMIN_EMAILS.has(user.email)) return { remaining: -1, resetAt: new Date(0) };
 
   const now = new Date();
   const usage = user.aiUsage ?? { count: 0, resetAt: now, plan: 'free' as Plan };
@@ -50,8 +54,10 @@ export async function checkAndIncrementQuota(userId: string): Promise<{ remainin
 }
 
 export async function checkTripQuota(userId: string): Promise<void> {
-  const user = await User.findById(userId).select('aiUsage');
+  const user = await User.findById(userId).select('aiUsage email');
   if (!user) throw new HttpError(401, 'User not found');
+
+  if (ADMIN_EMAILS.has(user.email)) return;
 
   const plan: Plan = (user.aiUsage?.plan as Plan) ?? 'free';
   const { maxTrips, label } = TIER_CONFIG[plan];
@@ -74,8 +80,12 @@ export async function getQuotaStatus(userId: string): Promise<{
   maxTrips: number;
   resetAt: Date;
 }> {
-  const user = await User.findById(userId).select('aiUsage');
+  const user = await User.findById(userId).select('aiUsage email');
   if (!user) throw new HttpError(401, 'User not found');
+
+  if (ADMIN_EMAILS.has(user.email)) {
+    return { plan: 'globetrotter', used: 0, aiRequestsPerDay: -1, remaining: -1, maxTrips: -1, resetAt: new Date(0) };
+  }
 
   const now = new Date();
   const usage = user.aiUsage ?? { count: 0, resetAt: now, plan: 'free' as Plan };
