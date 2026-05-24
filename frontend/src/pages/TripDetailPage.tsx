@@ -142,82 +142,14 @@ export default function TripDetailPage() {
   const [addOpeningHours, setAddOpeningHours] = useState<google.maps.places.PlaceOpeningHours | null>(null);
 
   useEffect(() => {
-    const mapSection = document.getElementById("map-section");
-    const budgetSection = document.getElementById("budget-section");
-    const hotelsSection = document.getElementById("hotels-section");
-    const flightsSection = document.getElementById("flights-section");
-    const sidequestsSection = document.getElementById("sidequests-section");
-    const expensesSection = document.getElementById("expenses-section");
-    const weatherSection = document.getElementById("weather-section");
-    const collaboratorsSection = document.getElementById("collaborators-section");
-    const tripPlaylistSection = document.getElementById("trip-playlist-section");
-    const itinerarySection = document.getElementById("itinerary-section");
-
-    switch (section) {
-      case "map":
-        mapSection?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-        break;
-      case "budget":
-        budgetSection?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-        break;
-      case "hotels":
-        hotelsSection?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-        break;
-      case "flights":
-        flightsSection?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-        break;
-      case "sidequests":
-        sidequestsSection?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-        break;
-      case "expenses":
-        expensesSection?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-        break;
-      case "weather":
-        weatherSection?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-        break;
-      case "collaborators":
-        collaboratorsSection?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-        break;
-      case "trip-playlist":
-        tripPlaylistSection?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-        break;
-      case "itinerary":
-        itinerarySection?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-        break;
-      case "chat":
-        document.getElementById("chat-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        break;
-    }
+    if (!section) return;
+    const el = document.getElementById(`${section}-section`);
+    if (!el) return;
+    const navbar = document.querySelector('.navbar') as HTMLElement | null;
+    const tripNavbar = document.querySelector('.trip-navbar') as HTMLElement | null;
+    const offset = (navbar?.offsetHeight ?? 0) + (tripNavbar?.offsetHeight ?? 0) + 16;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top, behavior: 'smooth' });
   }, [section]);
 
   const titleRefCallback = useCallback((el: HTMLInputElement | null) => {

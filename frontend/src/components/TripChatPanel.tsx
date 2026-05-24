@@ -21,7 +21,7 @@ export default function TripChatPanel({ trip, onTripRefresh }: Props) {
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [quota, setQuota] = useState<BillingStatus | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const navigate = useNavigate();
 
@@ -30,7 +30,8 @@ export default function TripChatPanel({ trip, onTripRefresh }: Props) {
   }, []);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = messagesRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   const sendMessage = useCallback(async () => {
@@ -164,7 +165,7 @@ export default function TripChatPanel({ trip, onTripRefresh }: Props) {
         </div>
       </div>
 
-      <div className="chat-messages">
+      <div className="chat-messages" ref={messagesRef}>
         {messages.length === 0 && (
           <p className="chat-empty">
             Ask me anything about {trip.destination} — or say "Plan Day 1" and I'll fill it in.
@@ -183,7 +184,6 @@ export default function TripChatPanel({ trip, onTripRefresh }: Props) {
             )}
           </div>
         ))}
-        <div ref={bottomRef} />
       </div>
 
       {outOfQuota && (
