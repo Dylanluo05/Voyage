@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { FormEvent, useCallback, useRef, useState } from 'react';
 import type { ItineraryItem, ItemCategory, NewItemInput } from '../types';
 
 const CATEGORY_LABELS: Record<ItemCategory, string> = {
@@ -107,9 +107,10 @@ export default function ItineraryItemCard({
   const [compressing, setCompressing] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [suggestedPhotos, setSuggestedPhotos] = useState<string[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionsLoaded, setSuggestionsLoaded] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
-  const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleAutoRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   const titleRefCallback = useCallback((el: HTMLInputElement | null) => {
@@ -119,7 +120,7 @@ export default function ItineraryItemCard({
     }
     if (!el) return;
     titleAutoRef.current = new google.maps.places.Autocomplete(el, {
-      fields: ['name', 'formatted_address', 'geometry', 'photos'],
+      fields: ['name', 'formatted_address', 'geometry'],
     });
     titleAutoRef.current.addListener('place_changed', () => {
       const place = titleAutoRef.current!.getPlace();
@@ -134,37 +135,32 @@ export default function ItineraryItemCard({
           lng: place.geometry?.location?.lng(),
         },
       }));
-      if (place.photos?.length) {
-        setSuggestedPhotos(
-          place.photos.slice(0, 4).map((p) => p.getUrl({ maxWidth: 600, maxHeight: 400 }))
-        );
-      }
+      setSuggestedPhotos([]);
+      setSuggestionsLoaded(false);
     });
   }, []);
 
-  useEffect(() => {
-    if (!editing || !draft.title) return;
-    if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
-    fetchTimeoutRef.current = setTimeout(() => {
-      setSuggestedPhotos([]);
-      const container = document.createElement('div');
-      document.body.appendChild(container);
-      const service = new google.maps.places.PlacesService(container);
-      service.findPlaceFromQuery(
-        { query: draft.title, fields: ['photos'] },
-        (results, status) => {
-          if (document.body.contains(container)) document.body.removeChild(container);
-          if (status === google.maps.places.PlacesServiceStatus.OK && results?.[0]?.photos) {
-            setSuggestedPhotos(
-              results[0].photos.slice(0, 4).map((p) => p.getUrl({ maxWidth: 600, maxHeight: 400 }))
-            );
-          }
+  const fetchSuggestedPhotos = useCallback(() => {
+    if (!draft.title || suggestionsLoading) return;
+    setSuggestionsLoading(true);
+    setSuggestedPhotos([]);
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const service = new google.maps.places.PlacesService(container);
+    service.findPlaceFromQuery(
+      { query: draft.title, fields: ['photos'] },
+      (results, status) => {
+        if (document.body.contains(container)) document.body.removeChild(container);
+        setSuggestionsLoading(false);
+        setSuggestionsLoaded(true);
+        if (status === google.maps.places.PlacesServiceStatus.OK && results?.[0]?.photos) {
+          setSuggestedPhotos(
+            results[0].photos.slice(0, 2).map((p) => p.getUrl({ maxWidth: 600, maxHeight: 400 }))
+          );
         }
-      );
-    }, 350);
-    return () => { if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing, draft.title]);
+      }
+    );
+  }, [draft.title, suggestionsLoading]);
 
   const REACTION_EMOJIS = ['👍', '👎', '❤️', '🔥', '😂'] as const;
   const [reactingEmoji, setReactingEmoji] = useState<string | null>(null);
@@ -182,12 +178,16 @@ export default function ItineraryItemCard({
   function startEdit() {
     setDraft(toDraft(item));
     setError(null);
+    setSuggestedPhotos([]);
+    setSuggestionsLoaded(false);
     setEditing(true);
   }
 
   function cancelEdit() {
     setEditing(false);
     setError(null);
+    setSuggestedPhotos([]);
+    setSuggestionsLoaded(false);
   }
 
   async function handleImageFile(file: File) {
@@ -397,7 +397,16 @@ export default function ItineraryItemCard({
                 >
                   {compressing ? 'Processing…' : '+ Upload from device'}
                 </button>
-                {suggestedPhotos.length > 0 && (
+                {!suggestionsLoaded ? (
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={!draft.title || suggestionsLoading}
+                    onClick={fetchSuggestedPhotos}
+                  >
+                    {suggestionsLoading ? 'Loading…' : 'Suggest photos'}
+                  </button>
+                ) : suggestedPhotos.length > 0 ? (
                   <div className="photo-suggestions-wrap">
                     <span className="small muted">Suggested</span>
                     <div className="photo-suggestions">
@@ -412,6 +421,8 @@ export default function ItineraryItemCard({
                       ))}
                     </div>
                   </div>
+                ) : (
+                  <span className="small muted">No photos found for this place.</span>
                 )}
               </div>
             )}
