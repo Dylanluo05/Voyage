@@ -2516,6 +2516,10 @@ fieldset legend {
   gap: 12px;
 }
 
+.expense-form-row input {
+  margin-left: 10px;
+}
+
 @media (max-width: 540px) {
   .expense-form-row {
     grid-template-columns: 1fr;
