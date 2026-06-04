@@ -2490,9 +2490,13 @@ fieldset legend {
 .expense-header-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.expense-header-row h2 {
+  margin: 0;
 }
 
 .expense-form {
@@ -2521,6 +2525,36 @@ fieldset legend {
 .expense-split-checks {
   border-top: 1px solid var(--border);
   padding-top: 12px;
+}
+
+.split-toggle {
+  display: flex;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-input);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.split-toggle-btn {
+  flex: 1;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.split-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--fg);
+}
+
+.split-toggle-btn.active {
+  background: var(--teal-dim);
+  color: var(--teal);
 }
 
 .expense-check-row {
@@ -2900,6 +2934,7 @@ fieldset legend {
   transition: background 0.15s;
   letter-spacing: 0.02em;
 }
+
 .close-time-suggestion:hover {
   background: rgba(0, 212, 200, 0.18);
 }
@@ -3421,8 +3456,15 @@ fieldset legend {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
+
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 .chat-tool-result {
