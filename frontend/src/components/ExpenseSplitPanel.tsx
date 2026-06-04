@@ -95,19 +95,41 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
         }
     }
 
-    const balances = useMemo(() => {
-        const acc: Record<string, number> = {};
+    const debts = useMemo(() => {
+        const acc: Record<string, Record<string, number>> = {};
+        const userMap = Object.fromEntries(members.map(m => [m.userId, m.userName]));
+
         for (const expense of trip.expenses) {
             const payerId = expense.paidBy.userId;
-            acc[payerId] = (acc[payerId] ?? 0) + expense.amount;
             for (const split of expense.splits) {
-                acc[split.userId] = (acc[split.userId] ?? 0) - split.amount;
+                if (split.userId === payerId) continue;
+                if (!acc[split.userId]) acc[split.userId] = {};
+                acc[split.userId][payerId] = (acc[split.userId][payerId] ?? 0) + split.amount;
             }
         }
-        const userMap = Object.fromEntries(members.map(m => [m.userId, m.userName]));
-        return Object.entries(acc)
-            .filter(([, net]) => Math.abs(net) > 0.01)
-            .map(([userId, net]) => ({ userId, userName: userMap[userId] ?? userId, net }));
+
+        const result: { fromId: string; fromName: string; toId: string; toName: string; amount: number }[] = [];
+        const visited = new Set<string>();
+
+        for (const fromId of Object.keys(acc)) {
+            for (const toId of Object.keys(acc[fromId])) {
+                const key = [fromId, toId].sort().join('-');
+                if (visited.has(key)) continue;
+                visited.add(key);
+
+                const forward = acc[fromId]?.[toId] ?? 0;
+                const backward = acc[toId]?.[fromId] ?? 0;
+                const net = forward - backward;
+
+                if (net > 0.01) {
+                    result.push({ fromId, fromName: userMap[fromId] ?? fromId, toId, toName: userMap[toId] ?? toId, amount: net });
+                } else if (net < -0.01) {
+                    result.push({ fromId: toId, fromName: userMap[toId] ?? toId, toId: fromId, toName: userMap[fromId] ?? fromId, amount: -net });
+                }
+            }
+        }
+
+        return result;
     }, [trip.expenses, members]);
 
     const totalSpent = useMemo(
@@ -277,17 +299,13 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
             }
 
             {
-                balances.length > 0 && (
+                debts.length > 0 && (
                     <div className="expense-balances">
                         <h3 className="expense-section-title">Balances</h3>
-                        {balances.map(b => (
-                            <div key={b.userId} className={`balance-row ${b.net > 0 ? 'balance-owed' : 'balance-owes'}`}>
-                                <span className="balance-name">{b.userName}</span>
-                                <span className="balance-amount">
-                                    {b.net > 0
-                                        ? `is owed $${b.net.toFixed(2)}`
-                                        : `owes $${Math.abs(b.net).toFixed(2)}`}
-                                </span>
+                        {debts.map(d => (
+                            <div key={`${d.fromId}-${d.toId}`} className="balance-row balance-owes">
+                                <span className="balance-name">{d.fromName}</span>
+                                <span className="balance-amount">owes {d.toName} ${d.amount.toFixed(2)}</span>
                             </div>
                         ))}
                     </div>
