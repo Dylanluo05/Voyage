@@ -215,7 +215,7 @@ export default function TripDetailPage() {
     if (!token) return;
     const es = new EventSource(`${API_URL}/api/trips/${id}/events?token=${encodeURIComponent(token)}`);
     es.addEventListener('updated', () => {
-      tripsApi.getTrip(id).then(setTrip).catch(() => {});
+      tripsApi.getTrip(id).then(setTrip).catch(() => { });
     });
     return () => es.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -396,6 +396,16 @@ export default function TripDetailPage() {
       throw err instanceof ApiError ? new Error(err.message) : err;
     } finally {
       setSavingItemId(null);
+    }
+  }
+
+  async function onPublish() {
+    if (!id) return;
+    try {
+      const updated = await tripsApi.publishTrip(id);
+      setTrip(updated);
+    } catch (err) {
+      throw err instanceof ApiError ? new Error(err.message) : err;
     }
   }
 
@@ -746,6 +756,13 @@ export default function TripDetailPage() {
           >
             {trip.isCompleted ? '✓ Completed' : 'Mark complete'}
           </button>
+          <button
+            type="button"
+            className={trip.isPublic ? 'ghost small-btn' : 'small-btn'}
+            onClick={() => onPublish()}
+          >
+            {trip.isPublic ? '✓ Published' : 'Publish'}
+          </button>
         </div>
       </div>
       <p className="muted">
@@ -806,7 +823,7 @@ export default function TripDetailPage() {
         <section className="card">
           <TripChatPanel
             trip={trip}
-            onTripRefresh={() => id && tripsApi.getTrip(id).then(setTrip).catch(() => {})}
+            onTripRefresh={() => id && tripsApi.getTrip(id).then(setTrip).catch(() => { })}
           />
         </section>
       </div>
@@ -1063,14 +1080,14 @@ export default function TripDetailPage() {
             const firstEntry = topLevel[0];
             const firstItem =
               firstEntry?.type === 'item' ? firstEntry.item :
-              firstEntry?.type === 'group' ? firstEntry.items[0] :
-              undefined;
+                firstEntry?.type === 'group' ? firstEntry.items[0] :
+                  undefined;
 
             const lastEntry = topLevel[topLevel.length - 1];
             const lastItem =
               lastEntry?.type === 'item' ? lastEntry.item :
-              lastEntry?.type === 'group' ? lastEntry.items[lastEntry.items.length - 1] :
-              undefined;
+                lastEntry?.type === 'group' ? lastEntry.items[lastEntry.items.length - 1] :
+                  undefined;
 
             const hasAnchorLoc = (loc: ItineraryItem['location']) =>
               loc !== undefined &&
@@ -1257,8 +1274,8 @@ export default function TripDetailPage() {
                         const lastItem = entry.items[entry.items.length - 1];
                         const nextItem =
                           nextEntry?.type === 'item' ? nextEntry.item :
-                          nextEntry?.type === 'group' ? nextEntry.items[0] :
-                          undefined;
+                            nextEntry?.type === 'group' ? nextEntry.items[0] :
+                              undefined;
                         const hasLoc = (loc: typeof lastItem.location) =>
                           loc !== undefined &&
                           ((loc.lat !== undefined && loc.lng !== undefined) || !!loc.address || !!loc.name);
@@ -1312,8 +1329,8 @@ export default function TripDetailPage() {
                       const nextEntry = topLevel[idx + 1];
                       const nextItem =
                         nextEntry?.type === 'item' ? nextEntry.item :
-                        nextEntry?.type === 'group' ? nextEntry.items[0] :
-                        undefined;
+                          nextEntry?.type === 'group' ? nextEntry.items[0] :
+                            undefined;
                       const hasLoc = (loc: typeof item.location) =>
                         loc !== undefined &&
                         ((loc.lat !== undefined && loc.lng !== undefined) ||

@@ -1189,3 +1189,33 @@ export async function getTripEvents(req: Request, res: Response): Promise<void> 
     removeTripClient(tripId, res);
   });
 }
+
+// ── Public trips feed ──────────────────────────────────────────────────────────────────
+export async function publishTrip(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const [trip, user] = await Promise.all([
+      Trip.findOne(accessFilter(req, req.params.id)),
+      User.findById(ownerId(req)).select('id')
+    ]);
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    if (!user) throw new HttpError(404, 'User not found');
+    if (trip.owner.toString() !== user.id) throw new HttpError(400, 'Only owner can publish trip');
+    trip.isPublic = !trip.isPublic;
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listPublicTrips(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { destination } = req.query;
+    const trips = await Trip.find({ isPublic: true, ...(destination && { destination: new RegExp(destination as string, 'i') }) }).select('title destination startDate endDate items owner shareToken');
+    res.json(trips);
+  } catch (err) {
+    next(err);
+  }
+}

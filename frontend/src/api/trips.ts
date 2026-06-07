@@ -334,3 +334,16 @@ export function rateItem(tripId: string, itemId: string, rating: number): Promis
     body: JSON.stringify({ rating }),
   });
 }
+
+// ── Public trips ──────────────────────────────────────────────────────────────
+export function publishTrip(tripId: string): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/public`, {
+    method: 'PATCH',
+  });
+}
+
+export function getPublicTrips(destination?: string): Promise<Trip[]> {
+  return apiFetch<Trip[]>(`/api/trips/public${destination ? `?destination=${destination}` : ''}`, {
+    method: 'GET',
+  });
+}

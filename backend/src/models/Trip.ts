@@ -115,6 +115,7 @@ export interface TripDoc extends Document {
   expenses: ExpenseData[];
   sidequests: SidequestData[];
   dayAnchors: DayAnchorData[];
+  isPublic: boolean;
 }
 
 export interface DayAnchorData {
@@ -444,6 +445,7 @@ const tripSchema = new Schema<TripDoc>(
     expenses: { type: [expenseSchema], default: [] },
     sidequests: { type: [sidequestSchema], default: [] },
     dayAnchors: { type: [dayAnchorSchema], default: [] },
+    isPublic: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

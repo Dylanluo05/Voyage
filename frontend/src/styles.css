@@ -2923,6 +2923,16 @@ fieldset legend {
   transform: none;
 }
 
+.directions-link {
+  font-size: 14px;
+  color: var(--teal);
+  text-decoration: none;
+}
+
+.directions-link:hover {
+  text-decoration: underline;
+}
+
 /* ── Closing Time Suggestion Chip ───────────────────────────── */
 .close-time-suggestion {
   display: inline-block;

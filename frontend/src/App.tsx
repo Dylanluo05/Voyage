@@ -11,6 +11,7 @@ import SharePage from './pages/SharePage';
 import GuestUploadPage from './pages/GuestUploadPage';
 import ProfilePage from './pages/ProfilePage';
 import SubscriptionPage from './pages/SubscriptionPage';
+import DiscoverPage from './pages/DiscoverPage';
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<main><LoginPage /></main>} />
         <Route path="/register" element={<main><RegisterPage /></main>} />
+        <Route path="/discover" element={<main><DiscoverPage /></main>} />
         <Route
           path="/trips"
           element={

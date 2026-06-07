@@ -499,6 +499,9 @@ export default function ItineraryItemCard({
               {item.location.address ? ` · ${item.location.address}` : ''}
             </div>
           )}
+          {item.location?.lat && item.location?.lng && (
+            <a target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${item.location?.lat},${item.location?.lng}`} className="directions-link">Get Directions →</a>
+          )}
           {item.cost !== undefined && (
             <div className="muted small">💰 ${item.cost.toFixed(2)}</div>
           )}

@@ -11,6 +11,7 @@ export default function NavBar() {
         Voyage
       </Link>
       <div className="nav-actions">
+        <Link to="/discover">Discover</Link>
         {user ? (
           <>
             <span className="muted">Hi, {user.name}</span>

@@ -48,6 +48,8 @@ import {
   removeComment,
   updateDayAnchor,
   getTripEvents,
+  publishTrip,
+  listPublicTrips,
 } from '../controllers/tripsController';
 import { parseHotelConfirmation, parseFlightConfirmation } from '../controllers/importController';
 import { tripChat } from '../controllers/chatController';
@@ -55,8 +57,11 @@ import { tripChat } from '../controllers/chatController';
 const router = Router();
 
 router.get('/:id/events', getTripEvents);
+router.get('/public', listPublicTrips);
 
 router.use(requireAuth);
+
+router.patch('/:id/public', publishTrip);
 
 router.get('/', listTrips);
 router.post('/', createTrip);

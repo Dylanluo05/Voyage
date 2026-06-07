@@ -137,6 +137,7 @@ export interface Trip {
   expenses: Expense[];
   sidequests: Sidequest[];
   dayAnchors: DayAnchor[] | undefined;
+  isPublic: boolean;
 }
 
 export interface DayAnchor {

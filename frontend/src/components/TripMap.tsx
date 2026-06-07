@@ -253,7 +253,12 @@ export default function TripMap({ items }: TripMapProps) {
               )}
               <strong className="map-popup-title">{selected.title}</strong>
               <p className="map-popup-meta">Day {selected.day}</p>
-              {selected.address && <p className="map-popup-meta">{selected.address}</p>}
+              {selected.address && (
+                <div>
+                  <p className="map-popup-meta">{selected.address}</p>
+                  <a target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`} className="directions-link">Get Directions →</a>
+                </div>
+              )}
             </div>
           </OverlayView>
         )}
