@@ -2516,8 +2516,13 @@ fieldset legend {
   gap: 12px;
 }
 
-.expense-form-row input {
+.expense-form-row input,
+.expense-form-row select {
   margin-left: 10px;
+}
+
+.expense-form-row select {
+  width: 50%;
 }
 
 @media (max-width: 540px) {

@@ -10,6 +10,7 @@ interface ExpenseSplitPanelProps {
 
 export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: ExpenseSplitPanelProps) {
     const [form, setForm] = useState({
+        payer: currentUserId,
         title: '',
         amount: 0,
         splits: [] as { userId: string; userName: string; amount: number; included: boolean }[],
@@ -29,7 +30,7 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
 
     const members = useMemo(() => {
         return [
-            { userId: trip.owner._id, userName: 'You' },
+            { userId: trip.owner._id, userName: trip.owner._id === currentUserId ? 'You' : trip.owner.name },
             ...trip.collaborators.map(c => ({ userId: c._id, userName: c.name })),
         ];
     }, [trip]);
@@ -50,15 +51,16 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
         setError('');
         try {
             const activeSplits = form.splits.filter(s => s.included);
-            const payer = members.find(m => m.userId === currentUserId) ?? members[0];
+            const payer = members.find(m => m.userId === form.payer) ?? members[0];
+            const payerRealName = payer.userId === trip.owner._id ? trip.owner.name : payer.userName;
             const updated = await addExpense(trip._id, {
                 title: form.title,
                 amount: total,
-                paidBy: { userId: payer.userId, userName: payer.userName },
-                splits: activeSplits.map(({ userId, userName, amount }) => ({ userId, userName, amount, settled: false })),
+                paidBy: { userId: payer.userId, userName: payerRealName },
+                splits: activeSplits.map(({ userId, userName, amount }) => ({ userId, userName: userId === trip.owner._id ? trip.owner.name : userName, amount, settled: false })),
             });
             onUpdate(updated);
-            setForm({ title: '', amount: 0, splits: members.map(m => ({ ...m, included: true, amount: 0 })), tax: 0, tip: 0 });
+            setForm({ payer: currentUserId, title: '', amount: 0, splits: members.map(m => ({ ...m, included: true, amount: 0 })), tax: 0, tip: 0 });
             setShowForm(false);
             setSplitMode('equal');
         } catch (err) {
@@ -158,6 +160,16 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
 
             {showForm && (
                 <form onSubmit={handleAdd} className="expense-form">
+                    <div className="expense-form-row">
+                        <label>
+                            Who's Paying?
+                            <select value={form.payer} onChange={e => setForm(prev => ({ ...prev, payer: e.target.value }))} required>
+                                {members.map(m => (
+                                    <option key={m.userId} value={m.userId}>{m.userName}</option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
                     <div className="expense-form-row">
                         <label>
                             Description
