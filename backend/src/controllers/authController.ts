@@ -3,11 +3,16 @@ import { z } from 'zod';
 import { User, hashPassword } from '../models/User';
 import { signToken } from '../middleware/auth';
 import { HttpError } from '../middleware/error';
+import { OAuth2Client } from 'google-auth-library';
 
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   name: z.string().min(1),
+});
+
+const googleAuthScheme = z.object({
+  credential: z.string().min(1)
 });
 
 const loginSchema = z.object({
@@ -26,6 +31,27 @@ export async function register(req: Request, res: Response, next: NextFunction):
     const token = signToken({ sub: user.id, email: user.email });
 
     res.status(201).json({
+      token,
+      user: { id: user.id, email: user.email, name: user.name },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function googleAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { credential } = googleAuthScheme.parse(req.body);
+    if (!credential) throw new HttpError(400, 'Credential token missing');
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    const ticket = client.verifyIdToken({ idToken: credential, audience: process.env.GOOGLE_CLIENT_ID });
+    const payload = (await ticket).getPayload();
+    if (!payload) throw new HttpError(401, 'User info missing');
+    const { sub, email, name } = payload;
+    let user = await User.findOne({ email });
+    if (!user) user = await User.create({ email, name, googleId: sub });
+    const token = signToken({ sub: user.id, email: user.email });
+    res.status(200).json({
       token,
       user: { id: user.id, email: user.email, name: user.name },
     });

@@ -2,9 +2,10 @@ import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../api/client';
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register, authWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -65,6 +66,7 @@ export default function RegisterPage() {
           {submitting ? 'Creating…' : 'Sign up'}
         </button>
       </form>
+      <GoogleLogin onSuccess={({ credential }) => authWithGoogle(credential!)} />
       <p className="muted">
         Already have an account? <Link to="/login">Log in</Link>
       </p>

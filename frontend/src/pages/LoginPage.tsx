@@ -2,9 +2,10 @@ import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../api/client';
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, authWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,6 +55,7 @@ export default function LoginPage() {
           {submitting ? 'Logging in…' : 'Log in'}
         </button>
       </form>
+      <GoogleLogin onSuccess={({ credential }) => authWithGoogle(credential!)} />
       <p className="muted">
         No account? <Link to="/register">Create one</Link>
       </p>

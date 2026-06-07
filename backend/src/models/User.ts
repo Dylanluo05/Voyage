@@ -14,7 +14,8 @@ export interface AiUsage {
 export interface UserDoc extends Document {
   _id: Types.ObjectId;
   email: string;
-  passwordHash: string;
+  passwordHash?: string;
+  googleId?: string;
   name: string;
   createdAt: Date;
   updatedAt: Date;
@@ -53,7 +54,8 @@ const userSchema = new Schema<UserDoc>(
       trim: true,
       index: true,
     },
-    passwordHash: { type: String, required: true },
+    passwordHash: { type: String },
+    googleId: { type: String },
     name: { type: String, required: true, trim: true },
     badges: { type: [badgeSchema], default: [] },
     aiUsage: {

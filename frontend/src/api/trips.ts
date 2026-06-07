@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { Trip, NewTripInput, NewItemInput, ReorderInput, SpotifySearchResult, LogPhoto, HotelBooking, FlightBooking, Expense } from '../types';
+import type { Trip, NewTripInput, NewItemInput, ReorderInput, SpotifySearchResult, LogPhoto, HotelBooking, FlightBooking, Expense, AuthResponse } from '../types';
 
 export function updateDayAnchor(
   tripId: string,
