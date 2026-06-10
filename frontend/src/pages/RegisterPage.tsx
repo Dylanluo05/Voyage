@@ -67,7 +67,7 @@ export default function RegisterPage() {
         </button>
       </form>
       <div className="auth-divider"><span>or</span></div>
-      <GoogleLogin onSuccess={({ credential }) => authWithGoogle(credential!)} theme="filled_black" size="large" />
+      <GoogleLogin onSuccess={async ({ credential }) => { await authWithGoogle(credential!); navigate('/'); }} theme="filled_black" size="large" />
       <p className="muted">
         Already have an account? <Link to="/login">Log in</Link>
       </p>
