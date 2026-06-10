@@ -347,3 +347,10 @@ export function getPublicTrips(destination?: string): Promise<Trip[]> {
     method: 'GET',
   });
 }
+
+
+export function getPlaylistExportUrl(tripId: string): Promise<{ url: string }> {
+  return apiFetch<{ url: string }>(`/api/trips/${tripId}/playlist/export`, {
+    method: 'GET',
+  });
+}

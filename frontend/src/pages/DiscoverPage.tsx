@@ -47,7 +47,7 @@ export default function DiscoverPage() {
                     <input type="text" value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Destination..." />
                     <button type="button" onClick={onSearch}>Search</button>
                 </div>
-            </section >
+            </section>
             <section style={{ marginTop: '20px' }}>
                 {loading && <p>Loading...</p>}
                 {error && <p className="error">{error}</p>}

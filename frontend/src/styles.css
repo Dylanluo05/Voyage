@@ -450,6 +450,23 @@ button.ghost:hover {
   animation: fadeInUp 0.5s var(--ease) both;
 }
 
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-mid);
+}
+
 /* ── Trip / item lists ───────────────────────────────────────── */
 .trip-list,
 .item-list {

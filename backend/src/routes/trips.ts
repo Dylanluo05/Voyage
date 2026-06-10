@@ -50,6 +50,9 @@ import {
   getTripEvents,
   publishTrip,
   listPublicTrips,
+  addPublicSidequestToTrip,
+  publishSidequest,
+  exportPlaylist,
 } from '../controllers/tripsController';
 import { parseHotelConfirmation, parseFlightConfirmation } from '../controllers/importController';
 import { tripChat } from '../controllers/chatController';
@@ -93,6 +96,7 @@ router.put('/:id/budget', updateBudget);
 
 router.get('/:id/playlist/search', searchSpotify);
 router.get('/:id/playlist/recommend', recommendByVibe);
+router.get('/:id/playlist/export', exportPlaylist);
 router.post('/:id/playlist', addTrack);
 router.delete('/:id/playlist/:trackId', removeTrack);
 
@@ -123,5 +127,7 @@ router.patch('/:id/sidequests/:sidequestId/assign', assignSidequest);
 router.patch('/:id/sidequests/:sidequestId/complete', completeSidequest);
 router.post('/:id/sidequests/:sidequestId/comments', addComment);
 router.delete('/:id/sidequests/:sidequestId/comments/:commentId', removeComment);
+router.post('/:id/sidequests/from-public/:publicSidequestId', addPublicSidequestToTrip);
+router.post('/:id/sidequests/:sidequestId/publish', publishSidequest);
 
 export default router;

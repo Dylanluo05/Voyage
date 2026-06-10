@@ -55,7 +55,8 @@ export default function LoginPage() {
           {submitting ? 'Logging in…' : 'Log in'}
         </button>
       </form>
-      <GoogleLogin onSuccess={({ credential }) => authWithGoogle(credential!)} />
+      <div className="auth-divider"><span>or</span></div>
+      <GoogleLogin onSuccess={({ credential }) => authWithGoogle(credential!)} theme="filled_black" size="large" />
       <p className="muted">
         No account? <Link to="/register">Create one</Link>
       </p>

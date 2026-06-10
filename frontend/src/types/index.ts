@@ -258,3 +258,23 @@ export interface UserProfile {
   createdAt: string;
   badges: Badge[];
 }
+
+export interface PublicSidequest {
+  _id: string;
+  title: string;
+  description?: string;
+  location?: string;
+  createdBy: {
+    userId: string;
+    userName: string;
+  };
+  completions: {
+    userId: string;
+    userName: string;
+    photoUrl: string;
+    completedAt: string;
+  }[];
+  tripId?: string;
+  createdAt: string;
+  updatedAt: string;
+}

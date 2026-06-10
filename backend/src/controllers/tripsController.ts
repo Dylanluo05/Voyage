@@ -5,11 +5,12 @@ import jwt from 'jsonwebtoken';
 import { Trip, ItineraryItemData, DebateOptionData, DebateCommentData } from '../models/Trip';
 import { User } from '../models/User';
 import { HttpError } from '../middleware/error';
-import { searchTracks } from '../lib/spotify';
+import { searchTracks, getSpotifyAuthUrl } from '../lib/spotify';
 import { interpretVibe } from '../lib/vibeInterpreter';
 import { checkTripQuota } from '../lib/aiQuota';
 import { addTripClient, removeTripClient } from '../lib/tripEvents';
 import { env } from '../config/env';
+import { PublicSidequest } from '../models/PublicSidequest';
 
 const locationSchema = z
   .object({
@@ -1155,6 +1156,60 @@ export async function removeComment(req: Request, res: Response, next: NextFunct
   }
 }
 
+export async function publishSidequest(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    ensureValidObjectId(req.params.sidequestId, 'sidequest id');
+    const uid = ownerId(req);
+    const [trip, user] = await Promise.all([
+      Trip.findOne(accessFilter(req, req.params.id)),
+      User.findById(uid).select('name')
+    ]);
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    if (!user) throw new HttpError(404, 'User not found');
+    const sidequest = trip.sidequests.find(s => String(s._id) === req.params.sidequestId);
+    if (!sidequest) throw new HttpError(404, 'Sidequest not found');
+    const publicSidequest = await PublicSidequest.create({
+      title: sidequest.title,
+      description: sidequest.description,
+      location: trip.destination,
+      createdBy: {
+        userId: uid,
+        userName: user.name,
+      },
+      completions: [],
+      tripId: trip.id,
+    });
+    res.status(201).json(publicSidequest);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function addPublicSidequestToTrip(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    ensureValidObjectId(req.params.publicSidequestId, 'public sidequest id');
+    const [trip, publicSidequest] = await Promise.all([
+      Trip.findOne(accessFilter(req, req.params.id)),
+      PublicSidequest.findById(req.params.publicSidequestId)
+    ]);
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    if (!publicSidequest) throw new HttpError(404, 'Public sidequest not found');
+    trip.sidequests.push({
+      title: publicSidequest.title,
+      description: publicSidequest.description,
+      comments: [],
+      completed: false
+    });
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.status(201).json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getTripEvents(req: Request, res: Response): Promise<void> {
   const { token } = req.query as { token?: string };
   if (!token) { res.status(401).json({ error: 'Unauthorized' }); return; }
@@ -1215,6 +1270,20 @@ export async function listPublicTrips(req: Request, res: Response, next: NextFun
     const { destination } = req.query;
     const trips = await Trip.find({ isPublic: true, ...(destination && { destination: new RegExp(destination as string, 'i') }) }).select('title destination startDate endDate items owner shareToken');
     res.json(trips);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function exportPlaylist(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const trip = await Trip.findById(req.params.id);
+    if (!trip) { res.status(404).json({ error: 'Trip not found' }); return; }
+
+    const redirectUri = `${req.protocol}://${req.get('host')}/api/spotify/callback`;
+    const state = JSON.stringify({ tripId: trip._id.toString() });
+    const url = getSpotifyAuthUrl(state, redirectUri);
+    res.json({ url });
   } catch (err) {
     next(err);
   }

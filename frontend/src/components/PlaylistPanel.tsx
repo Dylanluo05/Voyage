@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import * as tripsApi from '../api/trips';
 import type { Trip, PlaylistTrack, SpotifySearchResult } from '../types';
 
@@ -20,6 +20,28 @@ export default function PlaylistPanel({ trip, currentUserId, onUpdate }: Props) 
   const [vibeResults, setVibeResults] = useState<SpotifySearchResult[]>([]);
   const [vibeLoading, setVibeLoading] = useState(false);
   const [vibeError, setVibeError] = useState<string | null>(null);
+
+  const [exporting, setExporting] = useState(false);
+  const [exportedUrl, setExportedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const exported = params.get('playlist_exported');
+    if (exported) {
+      setExportedUrl(decodeURIComponent(exported));
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const { url } = await tripsApi.getPlaylistExportUrl(trip._id);
+      window.location.href = url;
+    } finally {
+      setExporting(false);
+    }
+  }
 
   function handleQueryChange(value: string) {
     setQuery(value);
@@ -149,6 +171,18 @@ export default function PlaylistPanel({ trip, currentUserId, onUpdate }: Props) 
           </ul>
         )}
       </div>
+
+      {/* Export to Spotify */}
+      {exportedUrl && (
+        <p className="muted small" style={{ marginBottom: 8 }}>
+          Exported! <a href={exportedUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)' }}>Open playlist on Spotify →</a>
+        </p>
+      )}
+      {trip.playlist.length > 0 && currentUserId && (
+        <button type="button" className="ghost small-btn" disabled={exporting} onClick={handleExport} style={{ marginBottom: 12 }}>
+          {exporting ? 'Redirecting…' : 'Export to Spotify'}
+        </button>
+      )}
 
       {/* Current playlist */}
       {trip.playlist.length === 0 ? (
