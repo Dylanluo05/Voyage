@@ -42,43 +42,17 @@ import TripChatPanel from '../components/TripChatPanel';
 
 const GOOGLE_MAPS_LIBRARIES: ('places')[] = ['places'];
 
-function formatCloseTime(hhmm: string): string {
-  const [h, m] = hhmm.split(':').map(Number);
-  const suffix = h < 12 ? 'AM' : 'PM';
-  const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${hour}:${String(m).padStart(2, '0')} ${suffix}`;
-}
-
-function geocodeLocation(
+async function geocodeLocation(
   location: { name?: string; address?: string }
 ): Promise<{ lat: number; lng: number } | null> {
-  return new Promise((resolve) => {
-    const query = [location.name, location.address].filter(Boolean).join(' ');
-    if (!query) { resolve(null); return; }
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    const service = new google.maps.places.PlacesService(container);
-    service.findPlaceFromQuery(
-      { query, fields: ['geometry'] },
-      (
-        results: google.maps.places.PlaceResult[] | null,
-        status: google.maps.places.PlacesServiceStatus
-      ) => {
-        document.body.removeChild(container);
-        if (
-          status === google.maps.places.PlacesServiceStatus.OK &&
-          results?.[0]?.geometry?.location
-        ) {
-          resolve({
-            lat: results[0].geometry!.location!.lat(),
-            lng: results[0].geometry!.location!.lng(),
-          });
-        } else {
-          resolve(null);
-        }
-      }
-    );
-  });
+  const query = [location.name, location.address].filter(Boolean).join(' ');
+  if (!query) return null;
+  const res = await fetch(
+    `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
+  );
+  const data = await res.json() as { results: { geometry: { location: { lat: number; lng: number } } }[] };
+  const loc = data.results?.[0]?.geometry?.location;
+  return loc ? { lat: loc.lat, lng: loc.lng } : null;
 }
 
 function getDayDate(startDate: string, day: number): string {
@@ -125,11 +99,11 @@ export default function TripDetailPage() {
   const [compressing, setCompressing] = useState(false);
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [addSuggestedPhotos, setAddSuggestedPhotos] = useState<string[]>([]);
+  const [suggestingPhotos, setSuggestingPhotos] = useState(false);
   const [addUrlInput, setAddUrlInput] = useState('');
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const titleAutoRef = useRef<google.maps.places.Autocomplete | null>(null);
   const addImageRef = useRef<HTMLInputElement>(null);
-  const addFetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [groupingDay, setGroupingDay] = useState<number | null>(null);
   const [selectedForGroup, setSelectedForGroup] = useState<string[]>([]);
   const [groupNameDraft, setGroupNameDraft] = useState('');
@@ -139,7 +113,6 @@ export default function TripDetailPage() {
   const [debateOptionDrafts, setDebateOptionDrafts] = useState<string[]>(['', '']);
   const [submittingDebate, setSubmittingDebate] = useState(false);
   const [section, setSection] = useState('');
-  const [addOpeningHours, setAddOpeningHours] = useState<google.maps.places.PlaceOpeningHours | null>(null);
 
   useEffect(() => {
     if (!section) return;
@@ -159,7 +132,7 @@ export default function TripDetailPage() {
     }
     if (!el) return;
     titleAutoRef.current = new google.maps.places.Autocomplete(el, {
-      fields: ['name', 'formatted_address', 'geometry', 'photos', 'opening_hours'],
+      fields: ['name', 'formatted_address', 'geometry'],
     });
     titleAutoRef.current.addListener('place_changed', () => {
       const place = titleAutoRef.current!.getPlace();
@@ -174,12 +147,6 @@ export default function TripDetailPage() {
           lng: place.geometry?.location?.lng(),
         },
       }));
-      setAddOpeningHours(place.opening_hours ?? null);
-      if (place.photos?.length) {
-        setAddSuggestedPhotos(
-          place.photos.slice(0, 4).map((p) => p.getUrl({ maxWidth: 600, maxHeight: 400 }))
-        );
-      }
     });
   }, []);
   const { isLoaded } = useLoadScript({
@@ -221,29 +188,6 @@ export default function TripDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  useEffect(() => {
-    if (!draft.title) { setAddSuggestedPhotos([]); return; }
-    if (addFetchTimeoutRef.current) clearTimeout(addFetchTimeoutRef.current);
-    addFetchTimeoutRef.current = setTimeout(() => {
-      setAddSuggestedPhotos([]);
-      const container = document.createElement('div');
-      document.body.appendChild(container);
-      const service = new google.maps.places.PlacesService(container);
-      service.findPlaceFromQuery(
-        { query: draft.title, fields: ['photos'] },
-        (results, status) => {
-          if (document.body.contains(container)) document.body.removeChild(container);
-          if (status === google.maps.places.PlacesServiceStatus.OK && results?.[0]?.photos) {
-            setAddSuggestedPhotos(
-              results[0].photos.slice(0, 4).map((p) => p.getUrl({ maxWidth: 600, maxHeight: 400 }))
-            );
-          }
-        }
-      );
-    }, 500);
-    return () => { if (addFetchTimeoutRef.current) clearTimeout(addFetchTimeoutRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft.title]);
 
   const totalDays = useMemo(
     () => (trip ? daysBetween(trip.startDate, trip.endDate) : 1),
@@ -307,16 +251,6 @@ export default function TripDetailPage() {
     return result;
   }, [topLevelByDay, totalDays]);
 
-  const suggestedEndTime = useMemo(() => {
-    if (!addOpeningHours || !trip) return null;
-    const base = new Date(trip.startDate);
-    const tripDate = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate() + (draft.day - 1)));
-    const dayOfWeek = tripDate.getUTCDay();
-    const period = addOpeningHours.periods?.find((p) => p.open.day === dayOfWeek);
-    if (!period?.close) return null;
-    const t = period.close.time; // "HHMM"
-    return `${t.slice(0, 2)}:${t.slice(2)}`;
-  }, [addOpeningHours, draft.day, trip]);
 
   if (!isLoaded) return <div>Loading...</div>;
 
@@ -372,7 +306,7 @@ export default function TripDetailPage() {
       const updated = await tripsApi.addItem(id, payload);
       setTrip(updated);
       setDraft({ ...emptyItem, day: payload.day });
-      setAddOpeningHours(null);
+      setAddSuggestedPhotos([]);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to add item');
     } finally {
@@ -876,15 +810,6 @@ export default function TripDetailPage() {
               value={draft.endTime ?? ''}
               onChange={(e) => setDraft({ ...draft, endTime: e.target.value })}
             />
-            {suggestedEndTime && (
-              <button
-                type="button"
-                className="close-time-suggestion"
-                onClick={() => setDraft((prev) => ({ ...prev, endTime: suggestedEndTime }))}
-              >
-                Closes {formatCloseTime(suggestedEndTime)}
-              </button>
-            )}
           </label>
           <label>
             Cost ($)
@@ -1012,9 +937,26 @@ export default function TripDetailPage() {
                 >
                   {compressing ? 'Processing…' : '+ Upload from device'}
                 </button>
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={suggestingPhotos || !draft.title}
+                  onClick={async () => {
+                    setSuggestingPhotos(true);
+                    setAddSuggestedPhotos([]);
+                    try {
+                      const res = await fetch(`${API_URL}/api/photos/search?q=${encodeURIComponent(draft.title)}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+                      const data = await res.json() as { urls: string[] };
+                      setAddSuggestedPhotos(data.urls ?? []);
+                    } finally {
+                      setSuggestingPhotos(false);
+                    }
+                  }}
+                >
+                  {suggestingPhotos ? 'Loading…' : '✨ Suggest Photos'}
+                </button>
                 {addSuggestedPhotos.length > 0 && (
                   <div className="photo-suggestions-wrap">
-                    <span className="small muted">Suggested</span>
                     <div className="photo-suggestions">
                       {addSuggestedPhotos.map((url, i) => (
                         <img
