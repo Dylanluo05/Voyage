@@ -30,6 +30,12 @@ export default function SidequestsPage() {
         fetchPublicSidequests();
     }, []);
 
+    useEffect(() => {
+        if (trips.length > 0 && !selectedTripId) {
+            setSelectedTripId(trips[0]._id);
+        }
+    }, [trips]);
+
     async function onSearch() {
         try {
             setLoading(true);
@@ -38,6 +44,27 @@ export default function SidequestsPage() {
             setError(err instanceof ApiError ? err.message : `Failed to load public sidequests for location: ${locationQuery}`);
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function onComplete(id: string) {
+        try {
+            const updated = await sidequestsApi.completePublicSidequest(id, photoUrl);
+            setSidequests(prev => prev.map(s => s._id === id ? updated : s));
+            setCompletingId(null);
+            setPhotoUrl('');
+        } catch (err) {
+            setError(err instanceof ApiError ? err.message : 'Failed to complete public sidequest');
+        }
+    }
+
+    async function onAddToTrip(id: string) {
+        try {
+            await sidequestsApi.addToTrip(id, selectedTripId);
+            setAddingToTripId(null);
+            setSelectedTripId(trips[0]._id);
+        } catch (err) {
+            setError(err instanceof ApiError ? err.message : 'Failed to add public sidequest to trip');
         }
     }
 
@@ -66,7 +93,7 @@ export default function SidequestsPage() {
                                             <p className="muted small">{s.createdBy.userName}</p>
                                             <p className="muted small">{s.completions.length} completion{s.completions.length !== 1 ? 's' : ''}</p>
                                             {s.completions.map(c => (
-                                                <img src={c.photoUrl} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8 }} />
+                                                <img key={c.userId} src={c.photoUrl} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8 }} />
                                             ))}
                                         </div>
                                         <div>
@@ -77,7 +104,7 @@ export default function SidequestsPage() {
                                     {completingId === s._id && (
                                         <div className="row" style={{ gap: '8px' }}>
                                             <input type="text" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} placeholder="url of image..." />
-                                            <button>Confirm</button>
+                                            <button type="button" onClick={() => onComplete(s._id)}>Confirm</button>
                                         </div>
                                     )}
                                     {addingToTripId === s._id && (
@@ -87,7 +114,7 @@ export default function SidequestsPage() {
                                                     <option key={t._id} value={t._id}>{t.title}</option>
                                                 ))}
                                             </select>
-                                            <button>Confirm</button>
+                                            <button type="button" onClick={() => onAddToTrip(s._id)}>Confirm</button>
                                         </div>
                                     )}
                                 </li>

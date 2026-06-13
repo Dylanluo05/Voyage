@@ -12,6 +12,7 @@ import GuestUploadPage from './pages/GuestUploadPage';
 import ProfilePage from './pages/ProfilePage';
 import SubscriptionPage from './pages/SubscriptionPage';
 import DiscoverPage from './pages/DiscoverPage';
+import SidequestsPage from './pages/SidequestsPage';
 
 export default function App() {
   return (
@@ -60,6 +61,16 @@ export default function App() {
             <ProtectedRoute>
               <main>
                 <SubscriptionPage />
+              </main>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/sidequests"
+          element={
+            <ProtectedRoute>
+              <main>
+                <SidequestsPage />
               </main>
             </ProtectedRoute>
           }

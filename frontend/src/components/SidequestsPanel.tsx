@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Trip } from "../types";
-import { addSidequest, assignSidequest, completeSidequest, removeSidequest, addComment, removeComment } from "../api/trips";
+import { addSidequest, assignSidequest, completeSidequest, removeSidequest, addComment, removeComment, publishSidequest } from "../api/trips";
 
 const FUNNY_GIFS = [
     { label: "Facepalm", url: "https://media.giphy.com/media/XsUtdIeJ0MWMo/giphy.gif" },
@@ -133,6 +133,15 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
         }
     };
 
+    const handlePublishSidequest = async (sidequestId: string) => {
+        setError('');
+        try {
+            await publishSidequest(trip._id, sidequestId);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Something went wrong');
+        }
+    };
+
     return (
         <section id="sidequests-section" className="card">
             <div className="sidequest-header-row">
@@ -154,6 +163,7 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
                     const commentForm = commentForms[s._id] ?? { text: '', imageUrl: '' };
                     return (
                         <div key={s._id} className="sidequest-card">
+                            {trip.owner._id === currentUserId && <button type="button" onClick={() => handlePublishSidequest(s._id)}>Publish</button>}
                             <div className="sidequest-card-top">
                                 <h3 className="sidequest-card-header">{s.title}</h3>
                                 {s.completed && <span className="completed-badge">Completed</span>}

@@ -64,45 +64,46 @@
 
 /* ── Design tokens ───────────────────────────────────────────── */
 :root {
-  /* Palette */
-  --midnight: #08090e;
-  --surface-1: #0f1117;
-  --surface-2: #161822;
-  --surface-3: #1e2030;
-  --teal: #00d4c8;
-  --teal-dim: rgba(0, 212, 200, 0.12);
-  --coral: #ff6b6b;
-  --coral-dim: rgba(255, 107, 107, 0.12);
-  --gold: #f59e0b;
+  /* Palette — light theme defaults */
+  --midnight: #f8fafc;
+  --surface-1: #ffffff;
+  --surface-2: #f1f5f9;
+  --surface-3: #e2e8f0;
+  --teal: #0891b2;
+  --teal-dim: rgba(8, 145, 178, 0.1);
+  --coral: #e8484e;
+  --coral-dim: rgba(232, 72, 78, 0.1);
+  --gold: #d97706;
+  --gold-dim: rgba(217, 119, 6, 0.1);
 
-  /* Legacy aliases kept for backwards compat */
-  --deep-ocean: #00d4c8;
+  /* Legacy aliases */
+  --deep-ocean: #0891b2;
   --sand: var(--surface-3);
   --cloud-white: var(--surface-1);
 
   /* Semantics */
   --bg: var(--surface-1);
-  --fg: #f8fafc;
-  --muted: rgba(248, 250, 252, 0.5);
-  --text-dim: rgba(248, 250, 252, 0.3);
-  --border: rgba(255, 255, 255, 0.06);
-  --border-mid: rgba(255, 255, 255, 0.12);
-  --border-strong: rgba(255, 255, 255, 0.24);
-  --border-light: rgba(255, 255, 255, 0.06);
+  --fg: #0f172a;
+  --muted: rgba(15, 23, 42, 0.55);
+  --text-dim: rgba(15, 23, 42, 0.35);
+  --border: rgba(0, 0, 0, 0.07);
+  --border-mid: rgba(0, 0, 0, 0.12);
+  --border-strong: rgba(0, 0, 0, 0.22);
+  --border-light: rgba(0, 0, 0, 0.07);
   --primary: var(--teal);
-  --primary-hover: #00bdb2;
+  --primary-hover: #0e7490;
   --accent: var(--teal);
   --danger: var(--coral);
-  --card-bg: rgba(255, 255, 255, 0.04);
-  --surface-raised: var(--surface-3);
+  --card-bg: #ffffff;
+  --surface-raised: var(--surface-2);
   --text-muted: var(--muted);
 
   /* Shadows & glows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
-  --shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06);
-  --glow-teal: 0 0 40px rgba(0, 212, 200, 0.15);
-  --glow-coral: 0 0 40px rgba(255, 107, 107, 0.2);
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  --glow-teal: 0 0 32px rgba(8, 145, 178, 0.12);
+  --glow-coral: 0 0 32px rgba(232, 72, 78, 0.12);
 
   /* Radii */
   --radius-card: 16px;
@@ -116,6 +117,85 @@
   /* Fonts */
   --font-display: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Theme-specific semantic variables */
+  --navbar-bg: rgba(255, 255, 255, 0.88);
+  --btn-text: #ffffff;
+  --input-bg: rgba(0, 0, 0, 0.04);
+  --input-bg-focus: rgba(0, 0, 0, 0.06);
+  --hover-bg: rgba(0, 0, 0, 0.05);
+  --subtle-bg: rgba(0, 0, 0, 0.025);
+  --drag-color: rgba(0, 0, 0, 0.22);
+  --drag-hover: rgba(0, 0, 0, 0.5);
+  --nav-link-color: rgba(15, 23, 42, 0.55);
+  --nav-link-hover: #0f172a;
+  --nav-btn-color: rgba(15, 23, 42, 0.65);
+  --nav-btn-border: rgba(0, 0, 0, 0.18);
+  --icon-btn-bg: rgba(0, 0, 0, 0.06);
+  --icon-btn-hover: rgba(0, 0, 0, 0.1);
+  --map-overlay-bg: rgba(248, 250, 252, 0.88);
+  --pros-color: #16a34a;
+  --cons-color: #dc2626;
+  --weather-hot: #dc2626;
+  --error-text: #dc2626;
+  --teal-focus-ring: rgba(8, 145, 178, 0.18);
+  --teal-shadow: 0 4px 16px rgba(8, 145, 178, 0.22);
+  --teal-shadow-hover: 0 8px 28px rgba(8, 145, 178, 0.3);
+}
+
+/* ── Dark theme ───────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --midnight: #08090e;
+  --surface-1: #0f1117;
+  --surface-2: #161822;
+  --surface-3: #1e2030;
+  --teal: #00d4c8;
+  --teal-dim: rgba(0, 212, 200, 0.12);
+  --coral: #ff6b6b;
+  --coral-dim: rgba(255, 107, 107, 0.12);
+  --gold: #f59e0b;
+  --gold-dim: rgba(245, 158, 11, 0.12);
+
+  --bg: var(--surface-1);
+  --fg: #f8fafc;
+  --muted: rgba(248, 250, 252, 0.5);
+  --text-dim: rgba(248, 250, 252, 0.3);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-mid: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.24);
+  --border-light: rgba(255, 255, 255, 0.06);
+  --primary-hover: #00bdb2;
+  --card-bg: rgba(255, 255, 255, 0.04);
+  --surface-raised: var(--surface-3);
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --glow-teal: 0 0 40px rgba(0, 212, 200, 0.15);
+  --glow-coral: 0 0 40px rgba(255, 107, 107, 0.2);
+
+  --navbar-bg: rgba(8, 9, 14, 0.82);
+  --btn-text: #08090e;
+  --input-bg: rgba(255, 255, 255, 0.06);
+  --input-bg-focus: rgba(255, 255, 255, 0.09);
+  --hover-bg: rgba(255, 255, 255, 0.07);
+  --subtle-bg: rgba(255, 255, 255, 0.04);
+  --drag-color: rgba(255, 255, 255, 0.18);
+  --drag-hover: rgba(255, 255, 255, 0.5);
+  --nav-link-color: rgba(248, 250, 252, 0.55);
+  --nav-link-hover: #ffffff;
+  --nav-btn-color: rgba(248, 250, 252, 0.7);
+  --nav-btn-border: rgba(255, 255, 255, 0.18);
+  --icon-btn-bg: rgba(255, 255, 255, 0.08);
+  --icon-btn-hover: rgba(255, 255, 255, 0.14);
+  --map-overlay-bg: rgba(8, 9, 14, 0.82);
+  --pros-color: #4ade80;
+  --cons-color: #f87171;
+  --weather-hot: #f87171;
+  --error-text: #ff8080;
+  --teal-focus-ring: rgba(0, 212, 200, 0.15);
+  --teal-shadow: 0 4px 16px rgba(0, 212, 200, 0.25);
+  --teal-shadow-hover: 0 8px 28px rgba(0, 212, 200, 0.35);
 }
 
 /* ── Reset ───────────────────────────────────────────────────── */
@@ -191,10 +271,10 @@ main {
   align-items: center;
   padding: 0 28px;
   height: 54px;
-  background: rgba(8, 9, 14, 0.82);
+  background: var(--navbar-bg);
   backdrop-filter: saturate(180%) blur(24px);
   -webkit-backdrop-filter: saturate(180%) blur(24px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border);
 }
 
 .navbar .brand {
@@ -223,26 +303,26 @@ main {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  color: rgba(248, 250, 252, 0.55);
+  color: var(--nav-link-color);
   transition: color 0.15s var(--ease);
 }
 
 .nav-actions a:hover {
-  color: #fff;
+  color: var(--nav-link-hover);
   opacity: 1;
 }
 
 .nav-actions .muted {
   font-size: 13px;
-  color: rgba(248, 250, 252, 0.3);
+  color: var(--text-dim);
 }
 
 .nav-actions button {
   font-size: 11px;
   padding: 6px 14px;
   background: transparent;
-  color: rgba(248, 250, 252, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--nav-btn-color);
+  border: 1px solid var(--nav-btn-border);
   border-radius: 20px;
   box-shadow: none;
 }
@@ -279,7 +359,7 @@ main {
 
 .card:hover {
   box-shadow: var(--shadow-lg), var(--glow-teal);
-  border-color: rgba(0, 212, 200, 0.18);
+  border-color: color-mix(in srgb, var(--teal) 30%, transparent);
 }
 
 /* ── Row helpers ─────────────────────────────────────────────── */
@@ -307,7 +387,7 @@ textarea {
   padding: 10px 13px;
   border: 1.5px solid var(--border-mid);
   border-radius: var(--radius-input);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--input-bg);
   color: var(--fg);
   transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease), background 0.18s var(--ease);
   box-sizing: border-box;
@@ -318,8 +398,8 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--teal);
-  background: rgba(255, 255, 255, 0.09);
-  box-shadow: 0 0 0 3px rgba(0, 212, 200, 0.15);
+  background: var(--input-bg-focus);
+  box-shadow: 0 0 0 3px var(--teal-focus-ring);
 }
 
 input::placeholder,
@@ -372,22 +452,22 @@ button {
   border: none;
   border-radius: var(--radius-btn);
   background: var(--teal);
-  color: #08090e;
+  color: var(--btn-text);
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 212, 200, 0.25);
+  box-shadow: var(--teal-shadow);
   transition: background 0.18s var(--ease), box-shadow 0.18s var(--ease),
     transform 0.15s var(--ease);
 }
 
 button:hover {
   background: var(--primary-hover);
-  box-shadow: 0 8px 28px rgba(0, 212, 200, 0.35);
+  box-shadow: var(--teal-shadow-hover);
   transform: translateY(-1px);
 }
 
 button:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(0, 212, 200, 0.2);
+  box-shadow: none;
 }
 
 button:disabled {
@@ -427,7 +507,7 @@ button.ghost:hover {
 
 /* ── Error ───────────────────────────────────────────────────── */
 .error {
-  color: #ff8080;
+  color: var(--error-text);
   background: rgba(255, 107, 107, 0.1);
   border: 1px solid rgba(255, 107, 107, 0.25);
   border-radius: var(--radius-input);
@@ -469,6 +549,7 @@ button.ghost:hover {
 
 /* ── Trip / item lists ───────────────────────────────────────── */
 .trip-list,
+.sidequest-list,
 .item-list {
   list-style: none;
   padding: 0;
@@ -544,7 +625,7 @@ fieldset legend {
 .rec-card:hover {
   box-shadow: var(--shadow-md), var(--glow-teal);
   transform: translateY(-3px);
-  border-color: rgba(0, 212, 200, 0.2);
+  border-color: color-mix(in srgb, var(--teal) 30%, transparent);
 }
 
 .rec-card--added {
@@ -620,7 +701,7 @@ fieldset legend {
   color: var(--fg);
   transform: none;
   box-shadow: none;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--hover-bg);
 }
 
 .rec-filter-chip.active {
@@ -683,7 +764,7 @@ fieldset legend {
 .drag-handle {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.18);
+  color: var(--drag-color);
   cursor: grab;
   padding: 0 4px;
   font-size: 16px;
@@ -697,7 +778,7 @@ fieldset legend {
 }
 
 .drag-handle:hover {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--drag-hover);
   background: transparent;
   box-shadow: none;
   transform: none;
@@ -816,7 +897,7 @@ fieldset legend {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--input-bg);
   border: 1px solid var(--border-mid);
   border-radius: 20px;
   padding: 4px 12px;
@@ -847,7 +928,7 @@ fieldset legend {
 
 .commute-mode-btn:hover {
   opacity: 0.85;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--hover-bg);
   box-shadow: none;
   transform: none;
 }
@@ -942,7 +1023,7 @@ fieldset legend {
   position: absolute;
   top: 6px;
   right: 8px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--icon-btn-bg);
   border: none;
   border-radius: 50%;
   width: 22px;
@@ -961,7 +1042,7 @@ fieldset legend {
 }
 
 .map-popup-close:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--icon-btn-hover);
   transform: none;
   box-shadow: none;
   color: var(--fg);
@@ -1035,7 +1116,7 @@ fieldset legend {
 .photo-suggestion-thumb:hover {
   border-color: var(--teal);
   transform: scale(1.06);
-  box-shadow: 0 4px 16px rgba(0, 212, 200, 0.3);
+  box-shadow: var(--teal-shadow);
 }
 
 /* ── Vote button ─────────────────────────────────────────────── */
@@ -1050,21 +1131,21 @@ fieldset legend {
 .vote-btn:hover {
   border-color: var(--border-strong);
   color: var(--fg);
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--hover-bg);
   box-shadow: none;
   transform: none;
 }
 
 .vote-btn--active {
   background: var(--teal);
-  color: #08090e;
+  color: var(--btn-text);
   border-color: var(--teal);
 }
 
 .vote-btn--active:hover {
   background: var(--primary-hover);
   border-color: var(--primary-hover);
-  color: #08090e;
+  color: var(--btn-text);
   box-shadow: none;
   transform: none;
 }
@@ -1082,7 +1163,7 @@ fieldset legend {
 .weather-day {
   flex-shrink: 0;
   text-align: center;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--subtle-bg);
   border: 1px solid var(--border-mid);
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
@@ -1094,7 +1175,7 @@ fieldset legend {
 .weather-day:hover {
   box-shadow: var(--shadow-md), var(--glow-teal);
   transform: translateY(-2px);
-  border-color: rgba(0, 212, 200, 0.2);
+  border-color: color-mix(in srgb, var(--teal) 30%, transparent);
 }
 
 .weather-date {
@@ -1131,7 +1212,7 @@ fieldset legend {
 }
 
 .weather-max {
-  color: #f87171;
+  color: var(--weather-hot);
 }
 
 .weather-precip {
@@ -1231,17 +1312,17 @@ fieldset legend {
   letter-spacing: 0.09em;
   padding: 16px 36px;
   background: var(--teal);
-  color: #08090e;
+  color: var(--btn-text);
   border-radius: var(--radius-btn);
   text-decoration: none;
   transition: opacity 0.18s var(--ease), transform 0.15s var(--ease), box-shadow 0.18s var(--ease);
-  box-shadow: 0 8px 32px rgba(0, 212, 200, 0.4);
+  box-shadow: var(--teal-shadow-hover);
 }
 
 .btn-primary-lg:hover {
   opacity: 0.9;
   transform: translateY(-3px);
-  box-shadow: 0 16px 48px rgba(0, 212, 200, 0.5);
+  box-shadow: var(--teal-shadow-hover), 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
 .btn-ghost-lg {
@@ -1299,7 +1380,7 @@ fieldset legend {
 
 .feature-card {
   padding: 28px 24px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--subtle-bg);
   border: 1px solid var(--border-mid);
   border-radius: var(--radius-card);
   position: relative;
@@ -1327,9 +1408,9 @@ fieldset legend {
 
 .feature-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 212, 200, 0.12);
-  border-color: rgba(0, 212, 200, 0.2);
-  background: rgba(255, 255, 255, 0.07);
+  box-shadow: var(--shadow-lg), var(--glow-teal);
+  border-color: color-mix(in srgb, var(--teal) 30%, transparent);
+  background: var(--hover-bg);
 }
 
 .feature-icon {
@@ -1412,7 +1493,7 @@ fieldset legend {
   border: 1px dashed var(--border-mid);
   border-radius: 8px;
   margin-bottom: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--subtle-bg);
 }
 
 .grouping-checkbox-row {
@@ -1459,7 +1540,7 @@ fieldset legend {
 
 .reaction-btn:hover:not(:disabled) {
   border-color: var(--border-strong);
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--hover-bg);
   color: var(--fg);
   transform: scale(1.08);
   box-shadow: none;
@@ -1511,7 +1592,7 @@ fieldset legend {
 }
 
 .debate-option {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--subtle-bg);
   border: 1.5px solid var(--border-mid);
   border-radius: 10px;
   padding: 10px 12px;
@@ -1554,11 +1635,11 @@ fieldset legend {
 }
 
 .pros-label {
-  color: #4ade80;
+  color: var(--pros-color);
 }
 
 .cons-label {
-  color: #f87171;
+  color: var(--cons-color);
 }
 
 .pros-cons-list {
@@ -1703,7 +1784,7 @@ fieldset legend {
   flex-direction: column;
   gap: 10px;
   margin-bottom: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--subtle-bg);
 }
 
 .debate-create-ui h4 {
@@ -1787,15 +1868,15 @@ fieldset legend {
   padding: 8px 10px;
   border: 1px solid var(--border-mid);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--subtle-bg);
   flex-wrap: wrap;
   transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
 }
 
 .playlist-result-item:hover,
 .playlist-track-item:hover {
-  border-color: rgba(0, 212, 200, 0.2);
-  background: rgba(255, 255, 255, 0.07);
+  border-color: color-mix(in srgb, var(--teal) 30%, transparent);
+  background: var(--hover-bg);
 }
 
 .playlist-art {
@@ -1865,7 +1946,7 @@ fieldset legend {
   padding: 14px;
   border: 1px dashed var(--border-mid);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--subtle-bg);
 }
 
 .vibe-label {
@@ -2125,7 +2206,7 @@ fieldset legend {
 }
 
 .log-album-item:hover {
-  border-color: rgba(0, 212, 200, 0.3);
+  border-color: color-mix(in srgb, var(--teal) 40%, transparent);
 }
 
 .log-album-img {
@@ -2440,7 +2521,7 @@ fieldset legend {
 }
 
 .booking-card:hover {
-  border-color: rgba(0, 212, 200, 0.2);
+  border-color: color-mix(in srgb, var(--teal) 30%, transparent);
 }
 
 .booking-card-header {
@@ -2485,7 +2566,7 @@ fieldset legend {
 
 /* ── Import box (Hotels / Flights) ──────────────────────────── */
 .import-box {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--subtle-bg);
   border: 1px solid var(--border-mid);
   border-radius: 12px;
   padding: 16px;
@@ -2517,7 +2598,7 @@ fieldset legend {
 }
 
 .expense-form {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--subtle-bg);
   border: 1px solid var(--border-mid);
   border-radius: 12px;
   padding: 16px;
@@ -2574,7 +2655,7 @@ fieldset legend {
 }
 
 .split-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--hover-bg);
   color: var(--fg);
 }
 
@@ -2621,7 +2702,7 @@ fieldset legend {
 }
 
 .expense-balances {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--subtle-bg);
   border: 1px solid var(--border-mid);
   border-radius: 12px;
   padding: 14px 16px;
@@ -2710,7 +2791,7 @@ fieldset legend {
   font-size: 13px;
   padding: 5px 8px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--subtle-bg);
 }
 
 .expense-split-row.is-settled {
@@ -2753,14 +2834,14 @@ fieldset legend {
   border-radius: 12px;
   padding: 12px 16px;
   margin-bottom: 12px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--subtle-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   transition: border-color 0.22s var(--ease);
 }
 
 .sidequest-card:hover {
-  border-color: rgba(0, 212, 200, 0.2);
+  border-color: color-mix(in srgb, var(--teal) 30%, transparent);
 }
 
 .sidequest-card-header {
@@ -2879,7 +2960,7 @@ fieldset legend {
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   padding: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--subtle-bg);
   border: 1px solid var(--border-mid);
   border-radius: 10px;
   width: 100%;
@@ -2926,22 +3007,22 @@ fieldset legend {
 .map-day-btn:hover {
   color: var(--fg);
   border-color: var(--border-strong);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--hover-bg);
   transform: none;
   box-shadow: none;
 }
 
 .map-day-btn.active {
   background: var(--teal);
-  color: #08090e;
+  color: var(--btn-text);
   border-color: var(--teal);
-  box-shadow: 0 4px 16px rgba(0, 212, 200, 0.25);
+  box-shadow: var(--teal-shadow);
 }
 
 .map-day-btn.active:hover {
   background: var(--primary-hover);
   border-color: var(--primary-hover);
-  box-shadow: 0 4px 16px rgba(0, 212, 200, 0.3);
+  box-shadow: var(--teal-shadow);
   transform: none;
 }
 
@@ -2977,7 +3058,7 @@ fieldset legend {
 
 /* ── Map Segment Duration Badge ─────────────────────────────── */
 .map-segment-duration {
-  background: rgba(8, 9, 14, 0.82);
+  background: var(--map-overlay-bg);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(0, 212, 200, 0.45);
   color: var(--teal);
@@ -3011,7 +3092,7 @@ fieldset legend {
 .day-anchor-toggle:hover {
   color: var(--fg);
   border-color: var(--border-strong);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--subtle-bg);
   transform: none;
   box-shadow: none;
 }
@@ -3019,7 +3100,7 @@ fieldset legend {
 .day-anchor-editor {
   margin-top: 8px;
   padding: 14px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--subtle-bg);
   border: 1px solid var(--border-mid);
   border-radius: var(--radius-card);
   display: flex;
@@ -3066,10 +3147,10 @@ fieldset legend {
   position: sticky;
   top: 54px;
   z-index: 99;
-  background: rgba(8, 9, 14, 0.82);
+  background: var(--navbar-bg);
   backdrop-filter: saturate(180%) blur(24px);
   -webkit-backdrop-filter: saturate(180%) blur(24px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border);
 }
 
 .trip-navbar-scroll {
@@ -3095,7 +3176,7 @@ fieldset legend {
 }
 
 .trip-nav-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--hover-bg);
   color: var(--fg);
   transform: none;
   box-shadow: none;
@@ -3127,7 +3208,7 @@ fieldset legend {
 .profile-badge-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-md), var(--glow-teal);
-  border-color: rgba(0, 212, 200, 0.25);
+  border-color: color-mix(in srgb, var(--teal) 35%, transparent);
 }
 
 .profile-badge-flag {
@@ -3218,7 +3299,7 @@ fieldset legend {
 }
 
 .sub-card--featured {
-  box-shadow: var(--shadow-lg), 0 0 40px rgba(0, 212, 200, 0.12);
+  box-shadow: var(--shadow-lg), var(--glow-teal);
 }
 
 .sub-badge {
@@ -3227,7 +3308,7 @@ fieldset legend {
   left: 50%;
   transform: translateX(-50%);
   background: var(--teal);
-  color: #08090e;
+  color: var(--btn-text);
   font-family: var(--font-display);
   font-size: 10px;
   font-weight: 700;
@@ -3465,7 +3546,7 @@ fieldset legend {
 
 .chat-msg--user .chat-msg-text {
   background: var(--teal);
-  color: #08090e;
+  color: var(--btn-text);
   border-bottom-right-radius: 4px;
 }
 
@@ -3577,7 +3658,30 @@ fieldset legend {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 10px rgba(0, 212, 200, 0.25);
+  box-shadow: var(--teal-shadow);
+}
+
+/* ── Theme toggle ────────────────────────────────────────────── */
+.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--nav-btn-border);
+  color: var(--nav-btn-color);
+  padding: 4px 9px;
+  font-size: 14px;
+  border-radius: 20px;
+  box-shadow: none;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: inherit;
+}
+
+.theme-toggle:hover {
+  background: var(--hover-bg);
+  color: var(--fg);
+  box-shadow: none;
+  transform: none;
+  border-color: var(--border-strong);
 }
 
 .chat-send-btn:disabled {

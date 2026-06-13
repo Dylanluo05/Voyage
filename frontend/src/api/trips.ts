@@ -293,6 +293,12 @@ export function removeComment(tripId: string, sidequestId: string, commentId: st
   });
 }
 
+export function publishSidequest(tripId: string, sidequestId: string): Promise<void> {
+  return apiFetch<void>(`/api/trips/${tripId}/sidequests/${sidequestId}/publish`, {
+    method: 'POST',
+  })
+}
+
 // ── Share ─────────────────────────────────────────────────────────────────
 
 export function getPublicTrip(shareToken: string): Promise<Trip> {
