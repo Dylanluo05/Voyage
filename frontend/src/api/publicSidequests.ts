@@ -9,16 +9,31 @@ export function listPublicSidequests(
     });
 }
 
+export function listClaimedSidequests(): Promise<PublicSidequest[]> {
+    return apiFetch<PublicSidequest[]>(`/api/public-sidequests/claimed`, {
+        method: 'GET',
+    });
+}
+
 export function createPublicSidequest(
     data: {
         title: string;
         description?: string;
         location?: string;
+        difficulty: 'easy' | 'medium' | 'hard' | 'legendary';
     }
 ): Promise<PublicSidequest> {
     return apiFetch<PublicSidequest>(`/api/public-sidequests/`, {
         method: 'POST',
         body: JSON.stringify(data),
+    });
+}
+
+export function claimPublicSidequest(
+    id: string,
+): Promise<PublicSidequest> {
+    return apiFetch<PublicSidequest>(`/api/public-sidequests/${id}/claim`, {
+        method: 'PATCH',
     });
 }
 

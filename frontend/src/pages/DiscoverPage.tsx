@@ -42,37 +42,53 @@ export default function DiscoverPage() {
     return (
         <div className="page">
             <h1>Discover Itineraries</h1>
+
             <section className="card">
-                <div className="row" style={{ gap: '8px' }}>
-                    <input type="text" value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Destination..." />
+                <div className="search-row">
+                    <input
+                        type="text"
+                        value={destination}
+                        onChange={(e) => setDestination(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && onSearch()}
+                        placeholder="Search by destination…"
+                    />
                     <button type="button" onClick={onSearch}>Search</button>
                 </div>
             </section>
-            <section style={{ marginTop: '20px' }}>
-                {loading && <p>Loading...</p>}
+
+            <section className="list-section">
+                {loading && <p className="muted">Loading…</p>}
                 {error && <p className="error">{error}</p>}
-                {!loading && trips.length === 0 && <p className="muted" style={{ marginTop: '16px' }}>No public itineraries</p>}
+                {!loading && trips.length === 0 && (
+                    <p className="muted">No public itineraries found.</p>
+                )}
+
                 {trips.length > 0 && (
                     <ul className="trip-list">
-                        {trips.map(t => {
-                            return (
-                                <li key={t._id} className="card">
-                                    <div className="row spread">
-                                        <div>
-                                            <h3 style={{ margin: '0 0 4px' }}>{t.title}</h3>
-                                            <p className="muted">{t.destination} · {formatDate(t.startDate)} – {formatDate(t.endDate)}</p>
-                                            {t.description && <p className="small" style={{ margin: '4px 0 0' }}>{t.description}</p>}
-                                            <p className="muted small">{t.items.length} itinerary item{t.items.length === 1 ? '' : 's'}</p>
-                                        </div>
-                                        <Link to={`/share/${t.shareToken}`} className="ghost small-btn">View</Link>
+                        {trips.map(t => (
+                            <li key={t._id} className="card">
+                                <div className="row spread">
+                                    <div>
+                                        <h3 style={{ margin: '0 0 4px' }}>{t.title}</h3>
+                                        <p className="muted">
+                                            {t.destination} · {formatDate(t.startDate)} – {formatDate(t.endDate)}
+                                        </p>
+                                        {t.description && (
+                                            <p className="muted small" style={{ marginTop: '4px' }}>{t.description}</p>
+                                        )}
+                                        <p className="muted small">
+                                            {t.items.length} itinerary item{t.items.length === 1 ? '' : 's'}
+                                        </p>
                                     </div>
-                                </li>
-                            );
-
-                        })}
+                                    <Link to={`/share/${t.shareToken}`} className="ghost small-btn">
+                                        View
+                                    </Link>
+                                </div>
+                            </li>
+                        ))}
                     </ul>
                 )}
             </section>
-        </div >
+        </div>
     );
 }

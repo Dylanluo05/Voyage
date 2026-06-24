@@ -14,10 +14,7 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showForm, setShowForm] = useState(false);
-    const [form, setForm] = useState({
-        destination: '',
-        countryCode: '',
-    });
+    const [form, setForm] = useState({ destination: '', countryCode: '' });
     const [saving, setSaving] = useState(false);
     const [removingId, setRemovingId] = useState<string | null>(null);
     const { user } = useAuth();
@@ -25,8 +22,7 @@ export default function ProfilePage() {
     const loadUserProfile = async () => {
         try {
             setLoading(true);
-            const userProfile = await getProfile();
-            setProfile(userProfile);
+            setProfile(await getProfile());
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong');
         } finally {
@@ -51,8 +47,7 @@ export default function ProfilePage() {
     const handleRemove = async (badgeId: string) => {
         try {
             setRemovingId(badgeId);
-            const updated = await removeBadge(badgeId);
-            setProfile(updated);
+            setProfile(await removeBadge(badgeId));
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong');
         } finally {
@@ -60,47 +55,97 @@ export default function ProfilePage() {
         }
     };
 
-    useEffect(() => {
-        loadUserProfile();
-    }, []);
+    useEffect(() => { loadUserProfile(); }, []);
 
     return (
         <div className="page">
             <h1>Profile</h1>
 
             <section className="card">
-                <h2>{profile && profile.name}</h2>
-                <h3>Email: {profile && profile.email}</h3>
-                <h3>Member since: {profile && new Date(profile.createdAt).toLocaleDateString()}</h3>
+                <h2>{profile?.name ?? user?.name}</h2>
+                {profile && (
+                    <>
+                        <p className="muted small">Email: {profile.email}</p>
+                        <p className="muted small">Member since: {new Date(profile.createdAt).toLocaleDateString()}</p>
+                    </>
+                )}
             </section>
 
             <section className="card">
-                <h2>Badges</h2>
-                <button onClick={() => setShowForm(f => !f)}>{showForm ? 'Cancel' : '+ Add'}</button>
+                <div className="sidequest-header-row">
+                    <h2>Badges</h2>
+                    <button
+                        type="button"
+                        className="ghost small-btn"
+                        onClick={() => setShowForm(f => !f)}
+                    >
+                        {showForm ? 'Cancel' : '+ Add Badge'}
+                    </button>
+                </div>
+
                 {showForm && (
-                    <form onSubmit={(e) => { e.preventDefault(); handleAdd(); }}>
-                        <label htmlFor="destination">Destination:</label>
-                        <input id="destination" placeholder="e.g. NYC..." value={form.destination} onChange={(e) => setForm({ ...form, destination: e.target.value })} />
-                        <label htmlFor="country-code">Country Code:</label>
-                        <input id="country-code" placeholder="e.g. US" maxLength={2} value={form.countryCode} onChange={(e) => setForm({ ...form, countryCode: e.target.value })} />
-                        <input disabled={!form.destination || saving} type="submit" value="Submit" />
+                    <form
+                        onSubmit={(e) => { e.preventDefault(); handleAdd(); }}
+                        className="form grid-2"
+                        style={{ marginBottom: '20px' }}
+                    >
+                        <label>
+                            Destination
+                            <input
+                                id="destination"
+                                placeholder="e.g. New York City"
+                                value={form.destination}
+                                onChange={(e) => setForm({ ...form, destination: e.target.value })}
+                            />
+                        </label>
+                        <label>
+                            Country Code
+                            <input
+                                id="country-code"
+                                placeholder="e.g. US"
+                                maxLength={2}
+                                value={form.countryCode}
+                                onChange={(e) => setForm({ ...form, countryCode: e.target.value.toUpperCase() })}
+                            />
+                        </label>
+                        <button
+                            type="submit"
+                            className="full-width"
+                            disabled={!form.destination || saving}
+                        >
+                            {saving ? 'Saving…' : 'Add Badge'}
+                        </button>
                     </form>
                 )}
-                {error && <p className="error">{error}</p>}
-                {loading && <h3>Loading...</h3>}
-                {profile?.badges && profile.badges.length > 0 ? (
+
+                {error && <div className="error">{error}</div>}
+
+                {loading ? (
+                    <p className="muted small">Loading…</p>
+                ) : profile?.badges && profile.badges.length > 0 ? (
                     <div className="profile-badges-grid">
                         {profile.badges.map(b => (
                             <div key={b._id} className="profile-badge-card">
-                                <span className="profile-badge-flag">{b.countryCode ? getFlagEmoji(b.countryCode) : '🌍'}</span>
-                                <p>{b.destination}</p>
-                                <span className="profile-badge-source">{b.source === 'auto' ? 'Auto' : 'Manual'}</span>
-                                <button disabled={removingId === b._id} onClick={() => handleRemove(b._id)}>Remove</button>
+                                <span className="profile-badge-flag">
+                                    {b.countryCode ? getFlagEmoji(b.countryCode) : '🌍'}
+                                </span>
+                                <p style={{ margin: '0', fontSize: '13px', fontWeight: 600 }}>{b.destination}</p>
+                                <span className="profile-badge-source">
+                                    {b.source === 'auto' ? 'Auto' : 'Manual'}
+                                </span>
+                                <button
+                                    type="button"
+                                    className="danger small-btn"
+                                    disabled={removingId === b._id}
+                                    onClick={() => handleRemove(b._id)}
+                                >
+                                    {removingId === b._id ? '…' : 'Remove'}
+                                </button>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <p>No badges yet</p>
+                    <p className="muted small">No badges yet — add destinations you've visited.</p>
                 )}
             </section>
         </div>

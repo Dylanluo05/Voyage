@@ -37,12 +37,18 @@ function weatherDescription(code: number): string {
 }
 
 function geocodeWithGoogle(address: string): Promise<{ lat: number; lng: number }> {
+  const cacheKey = `geocode:${address}`;
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) return Promise.resolve(JSON.parse(cached) as { lat: number; lng: number });
+
   return new Promise((resolve, reject) => {
     const geocoder = new google.maps.Geocoder();
     geocoder.geocode({ address }, (results, status) => {
       if (status === google.maps.GeocoderStatus.OK && results?.[0]?.geometry?.location) {
         const loc = results[0].geometry.location;
-        resolve({ lat: loc.lat(), lng: loc.lng() });
+        const coords = { lat: loc.lat(), lng: loc.lng() };
+        sessionStorage.setItem(cacheKey, JSON.stringify(coords));
+        resolve(coords);
       } else {
         reject(new Error(`Geocode failed: ${status}`));
       }

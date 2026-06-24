@@ -48,6 +48,7 @@ import {
   removeComment,
   updateDayAnchor,
   getTripEvents,
+  issueSseToken,
   publishTrip,
   listPublicTrips,
   addPublicSidequestToTrip,
@@ -63,6 +64,8 @@ router.get('/:id/events', getTripEvents);
 router.get('/public', listPublicTrips);
 
 router.use(requireAuth);
+
+router.post('/:id/sse-token', issueSseToken);
 
 router.patch('/:id/public', publishTrip);
 

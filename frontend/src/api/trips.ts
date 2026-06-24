@@ -293,8 +293,8 @@ export function removeComment(tripId: string, sidequestId: string, commentId: st
   });
 }
 
-export function publishSidequest(tripId: string, sidequestId: string): Promise<void> {
-  return apiFetch<void>(`/api/trips/${tripId}/sidequests/${sidequestId}/publish`, {
+export function publishSidequest(tripId: string, sidequestId: string): Promise<{ title: string }> {
+  return apiFetch<{ title: string }>(`/api/trips/${tripId}/sidequests/${sidequestId}/publish`, {
     method: 'POST',
   })
 }

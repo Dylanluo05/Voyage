@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Location } from '../types';
 
 interface Props {
@@ -21,6 +21,7 @@ export default function CommuteWidget({ origin, destination }: Props) {
   const [distance, setDistance] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const originRef: google.maps.LatLng | google.maps.Place | string =
@@ -34,57 +35,64 @@ export default function CommuteWidget({ origin, destination }: Props) {
 
     if (!originRef || !destRef) return;
 
-    let cancelled = false;
     setLoading(true);
     setError(false);
     setDuration(null);
     setDistance(null);
 
-    if (mode === 'TRANSIT') {
-      // DirectionsService has much better transit coverage than DistanceMatrixService
-      const service = new google.maps.DirectionsService();
-      service.route(
-        {
-          origin: originRef,
-          destination: destRef,
-          travelMode: google.maps.TravelMode.TRANSIT,
-          transitOptions: { departureTime: new Date() },
-        },
-        (result, status) => {
-          if (cancelled) return;
-          setLoading(false);
-          const leg = result?.routes?.[0]?.legs?.[0];
-          if (status === 'OK' && leg) {
-            setDuration(leg.duration?.text ?? null);
-            setDistance(leg.distance?.text ?? null);
-          } else {
-            setError(true);
-          }
-        }
-      );
-    } else {
-      const service = new google.maps.DistanceMatrixService();
-      service.getDistanceMatrix(
-        {
-          origins: [originRef],
-          destinations: [destRef],
-          travelMode: google.maps.TravelMode[mode],
-        },
-        (response, status) => {
-          if (cancelled) return;
-          setLoading(false);
-          if (status === 'OK' && response?.rows[0]?.elements[0]?.status === 'OK') {
-            const el = response.rows[0].elements[0];
-            setDuration(el.duration.text);
-            setDistance(el.distance.text);
-          } else {
-            setError(true);
-          }
-        }
-      );
-    }
+    if (timerRef.current) clearTimeout(timerRef.current);
 
-    return () => { cancelled = true; };
+    let cancelled = false;
+
+    timerRef.current = setTimeout(() => {
+      if (mode === 'TRANSIT') {
+        const service = new google.maps.DirectionsService();
+        service.route(
+          {
+            origin: originRef,
+            destination: destRef,
+            travelMode: google.maps.TravelMode.TRANSIT,
+            transitOptions: { departureTime: new Date() },
+          },
+          (result, status) => {
+            if (cancelled) return;
+            setLoading(false);
+            const leg = result?.routes?.[0]?.legs?.[0];
+            if (status === 'OK' && leg) {
+              setDuration(leg.duration?.text ?? null);
+              setDistance(leg.distance?.text ?? null);
+            } else {
+              setError(true);
+            }
+          }
+        );
+      } else {
+        const service = new google.maps.DistanceMatrixService();
+        service.getDistanceMatrix(
+          {
+            origins: [originRef],
+            destinations: [destRef],
+            travelMode: google.maps.TravelMode[mode],
+          },
+          (response, status) => {
+            if (cancelled) return;
+            setLoading(false);
+            if (status === 'OK' && response?.rows[0]?.elements[0]?.status === 'OK') {
+              const el = response.rows[0].elements[0];
+              setDuration(el.duration.text);
+              setDistance(el.distance.text);
+            } else {
+              setError(true);
+            }
+          }
+        );
+      }
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [origin.lat, origin.lng, origin.address, origin.name, destination.lat, destination.lng, destination.address, destination.name, mode]);
 
   return (

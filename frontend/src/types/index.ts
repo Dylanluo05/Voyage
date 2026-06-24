@@ -268,12 +268,19 @@ export interface PublicSidequest {
     userId: string;
     userName: string;
   };
+  claims: {
+    userId: string;
+    userName: string;
+    claimedAt: string;
+  }[];
   completions: {
     userId: string;
     userName: string;
     photoUrl: string;
     completedAt: string;
   }[];
+  difficulty: 'easy' | 'medium' | 'hard' | 'legendary';
+  xpReward: number;
   tripId?: string;
   createdAt: string;
   updatedAt: string;

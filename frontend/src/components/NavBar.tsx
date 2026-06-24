@@ -16,9 +16,9 @@ export default function NavBar() {
         <Link to="/discover">Discover</Link>
         {user ? (
           <>
-            <span className="muted">Hi, {user.name}</span>
             <Link to="/profile">Profile</Link>
             <Link to="/sidequests">Sidequests</Link>
+            <Link to="/claims">Claims</Link>
             <Link to="/subscription">Upgrade</Link>
             <button
               type="button"

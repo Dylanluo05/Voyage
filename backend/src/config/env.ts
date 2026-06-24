@@ -13,7 +13,7 @@ function required(name: string, fallback?: string): string {
 export const env = {
   port: Number(process.env.PORT ?? 4000),
   mongoUri: required('MONGO_URI', 'mongodb://localhost:27017/trip_planner'),
-  jwtSecret: required('JWT_SECRET', 'dev_only_secret_change_me'),
+  jwtSecret: required('JWT_SECRET'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
   clientOrigin: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173',
   nodeEnv: process.env.NODE_ENV ?? 'development',
@@ -23,4 +23,5 @@ export const env = {
   stripePricePro: process.env.STRIPE_PRICE_PRO ?? '',
   stripePriceGlobetrotter: process.env.STRIPE_PRICE_GLOBETROTTER ?? '',
   pexelsApiKey: process.env.PEXELS_API_KEY ?? '',
+  adminEmails: new Set((process.env.ADMIN_EMAILS ?? '').split(',').map(e => e.trim()).filter(Boolean)),
 };

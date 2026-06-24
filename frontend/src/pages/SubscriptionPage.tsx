@@ -4,10 +4,40 @@ import { getBillingStatus, startCheckout, openPortal, BillingStatus, Plan } from
 const TIER_ORDER: Plan[] = ['free', 'explorer', 'pro', 'globetrotter'];
 
 const TIER_FEATURES: Record<Plan, string[]> = {
-  free:         ['3 trips', '5 AI requests / day', 'AI trip chat', 'All core planning features'],
-  explorer:     ['15 trips', '30 AI requests / day', 'AI trip chat', 'All core planning features'],
-  pro:          ['Unlimited trips', '100 AI requests / day', 'AI trip chat', 'All core planning features'],
-  globetrotter: ['Unlimited trips', '500 AI requests / day', 'AI trip chat', 'All core planning features', 'Priority support'],
+  free: [
+    '3 trips',
+    '5 AI requests / day',
+    'AI trip chat & itinerary planning',
+    'Drag-and-drop itinerary builder',
+    'Flight & hotel tracking',
+    'Expense splitting',
+    'Collaborative trips',
+    'Public sidequests & claims',
+  ],
+  explorer: [
+    '15 trips',
+    '30 AI requests / day',
+    'Everything in Free',
+    'Trip playlist (Spotify export)',
+    'AI photo suggestions',
+    'Weather forecasts',
+    'Commute time estimates',
+  ],
+  pro: [
+    'Unlimited trips',
+    '100 AI requests / day',
+    'Everything in Explorer',
+    'AI day planning & regeneration',
+    'Trip debates & voting',
+    'Trip log & memory',
+    'Guest photo uploads',
+  ],
+  globetrotter: [
+    'Unlimited trips',
+    '500 AI requests / day',
+    'Everything in Pro',
+    'Priority support',
+  ],
 };
 
 const TIER_ACCENT: Record<Plan, string> = {

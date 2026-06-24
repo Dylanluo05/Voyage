@@ -21,7 +21,8 @@ function nextMidnightUTC(): Date {
   return d;
 }
 
-const ADMIN_EMAILS = new Set(['dylan.luo.777@gmail.com']);
+import { env } from '../config/env';
+const ADMIN_EMAILS = env.adminEmails;
 
 export async function checkAndIncrementQuota(userId: string): Promise<{ remaining: number; resetAt: Date }> {
   const user = await User.findById(userId).select('aiUsage email');

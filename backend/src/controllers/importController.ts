@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { HttpError } from '../middleware/error';
+import { checkAndIncrementQuota } from '../lib/aiQuota';
 
 const anthropic = new Anthropic();
 
@@ -19,6 +20,8 @@ export async function parseHotelConfirmation(
   next: NextFunction
 ): Promise<void> {
   try {
+    if (!req.user) { next(new HttpError(401, 'Unauthenticated')); return; }
+    await checkAndIncrementQuota(req.user.sub);
     const { text } = BodySchema.parse(req.body);
 
     const message = await anthropic.messages.create({
@@ -66,6 +69,8 @@ export async function parseFlightConfirmation(
   next: NextFunction
 ): Promise<void> {
   try {
+    if (!req.user) { next(new HttpError(401, 'Unauthenticated')); return; }
+    await checkAndIncrementQuota(req.user.sub);
     const { text } = BodySchema.parse(req.body);
 
     const message = await anthropic.messages.create({

@@ -36,7 +36,7 @@ import { useAuth } from '../context/AuthContext';
 import BudgetPanel from '../components/BudgetPanel';
 import ExpenseSplitPanel from '../components/ExpenseSplitPanel';
 import SidequestsPanel from '../components/SidequestsPanel';
-import TripNavBar from '../components/TripNavBar';
+import TripNavBar, { ALL_SECTIONS } from '../components/TripNavBar';
 import DayAnchorEditor from '../components/DayAnchorEditor';
 import TripChatPanel from '../components/TripChatPanel';
 
@@ -113,6 +113,23 @@ export default function TripDetailPage() {
   const [debateOptionDrafts, setDebateOptionDrafts] = useState<string[]>(['', '']);
   const [submittingDebate, setSubmittingDebate] = useState(false);
   const [section, setSection] = useState('');
+  const [visibleSections, setVisibleSections] = useState<Set<string>>(() => {
+    const saved = id ? localStorage.getItem(`trip-sections-${id}`) : null;
+    if (saved) {
+      try { return new Set(JSON.parse(saved) as string[]); } catch { /* fall through */ }
+    }
+    return new Set(ALL_SECTIONS.map(s => s.key));
+  });
+
+  function onToggleSection(key: string) {
+    setVisibleSections(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      if (id) localStorage.setItem(`trip-sections-${id}`, JSON.stringify([...next]));
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!section) return;
@@ -180,11 +197,27 @@ export default function TripDetailPage() {
     if (!id) return;
     const token = getToken();
     if (!token) return;
-    const es = new EventSource(`${API_URL}/api/trips/${id}/events?token=${encodeURIComponent(token)}`);
-    es.addEventListener('updated', () => {
-      tripsApi.getTrip(id).then(setTrip).catch(() => { });
-    });
-    return () => es.close();
+    let es: EventSource | null = null;
+    let cancelled = false;
+
+    fetch(`${API_URL}/api/trips/${id}/sse-token`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(({ token: sseToken }: { token: string }) => {
+        if (cancelled) return;
+        es = new EventSource(`${API_URL}/api/trips/${id}/events?token=${encodeURIComponent(sseToken)}`);
+        es.addEventListener('updated', () => {
+          tripsApi.getTrip(id).then(setTrip).catch(() => { });
+        });
+      })
+      .catch(() => { });
+
+    return () => {
+      cancelled = true;
+      es?.close();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -251,8 +284,6 @@ export default function TripDetailPage() {
     return result;
   }, [topLevelByDay, totalDays]);
 
-
-  if (!isLoaded) return <div>Loading...</div>;
 
   async function handleAddImageFile(file: File) {
     setCompressing(true);
@@ -706,61 +737,80 @@ export default function TripDetailPage() {
       </p>
       {trip.description && <p>{trip.description}</p>}
 
-      <TripNavBar setSection={setSection} />
+      <TripNavBar setSection={setSection} visibleSections={visibleSections} onToggleSection={onToggleSection} />
 
-      <div id="map-section">
-        <TripMap items={orderedMapItems} />
-      </div>
+      {visibleSections.has('map') && isLoaded && (
+        <div id="map-section">
+          <TripMap items={orderedMapItems} />
+        </div>
+      )}
 
-      <div id="budget-section">
-        <BudgetPanel trip={trip} onUpdate={setTrip} />
-      </div>
+      {visibleSections.has('budget') && (
+        <div id="budget-section">
+          <BudgetPanel trip={trip} onUpdate={setTrip} />
+        </div>
+      )}
 
-      <div id="hotels-section">
-        <HotelsPanel trip={trip} onUpdate={setTrip} />
-      </div>
+      {visibleSections.has('hotels') && (
+        <div id="hotels-section">
+          <HotelsPanel trip={trip} onUpdate={setTrip} />
+        </div>
+      )}
 
-      <div id="flights-section">
-        <FlightsPanel trip={trip} onUpdate={setTrip} />
-      </div>
+      {visibleSections.has('flights') && (
+        <div id="flights-section">
+          <FlightsPanel trip={trip} onUpdate={setTrip} />
+        </div>
+      )}
 
-      <div id="sidequests-section">
-        <SidequestsPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
-      </div>
+      {visibleSections.has('sidequests') && (
+        <div id="sidequests-section">
+          <SidequestsPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+        </div>
+      )}
 
-      <div id="expenses-section">
-        <ExpenseSplitPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
-      </div>
+      {visibleSections.has('expenses') && (
+        <div id="expenses-section">
+          <ExpenseSplitPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+        </div>
+      )}
 
-      <div id="weather-section">
-        <WeatherWidget
-          destination={trip.destination}
-          startDate={trip.startDate.split('T')[0]}
-          endDate={trip.endDate.split('T')[0]}
-        />
-      </div>
-
-      <div id="collaborators-section">
-        <CollaboratorsPanel
-          trip={trip}
-          isOwner={trip.owner._id === user?.id}
-          onUpdate={setTrip}
-        />
-      </div>
-
-
-      <div id="trip-playlist-section">
-        <PlaylistPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
-      </div>
-
-      <div id="chat-section">
-        <section className="card">
-          <TripChatPanel
-            trip={trip}
-            onTripRefresh={() => id && tripsApi.getTrip(id).then(setTrip).catch(() => { })}
+      {visibleSections.has('weather') && isLoaded && (
+        <div id="weather-section">
+          <WeatherWidget
+            destination={trip.destination}
+            startDate={trip.startDate.split('T')[0]}
+            endDate={trip.endDate.split('T')[0]}
           />
-        </section>
-      </div>
+        </div>
+      )}
+
+      {visibleSections.has('collaborators') && (
+        <div id="collaborators-section">
+          <CollaboratorsPanel
+            trip={trip}
+            isOwner={trip.owner._id === user?.id}
+            onUpdate={setTrip}
+          />
+        </div>
+      )}
+
+      {visibleSections.has('trip-playlist') && (
+        <div id="trip-playlist-section">
+          <PlaylistPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+        </div>
+      )}
+
+      {visibleSections.has('chat') && (
+        <div id="chat-section">
+          <section className="card">
+            <TripChatPanel
+              trip={trip}
+              onTripRefresh={() => id && tripsApi.getTrip(id).then(setTrip).catch(() => { })}
+            />
+          </section>
+        </div>
+      )}
 
       {trip.isCompleted && (
         <section className="card">
@@ -769,6 +819,7 @@ export default function TripDetailPage() {
         </section>
       )}
 
+      {visibleSections.has('itinerary') && <>
       <section id="itinerary-section" className="card">
         <h2>Add itinerary item</h2>
         <form onSubmit={onAddItem} className="form grid-2">
@@ -788,7 +839,7 @@ export default function TripDetailPage() {
           <label>
             Title
             <input
-              ref={titleRefCallback}
+              ref={isLoaded ? titleRefCallback : undefined}
               value={draft.title}
               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
               required
@@ -851,29 +902,42 @@ export default function TripDetailPage() {
             <div className="grid-2">
               <label className="full-width">
                 Address
-                <Autocomplete
-                  onLoad={(autocomplete) => {
-                    autocompleteRef.current = autocomplete;
-                  }}
-
-                  onPlaceChanged={() => {
-                    const place = autocompleteRef.current?.getPlace();
-                    if (!place) return;
-                    const address = place.formatted_address;
-                    const lat = place.geometry?.location?.lat();
-                    const lng = place.geometry?.location?.lng();
-                    setDraft((prev) => ({
-                      ...prev,
-                      location: {
-                        ...(prev.location ?? {}),
-                        name: place.name,
-                        address,
-                        lat,
-                        lng,
-                      },
-                    }));
-                  }}
-                >
+                {isLoaded ? (
+                  <Autocomplete
+                    onLoad={(autocomplete) => {
+                      autocompleteRef.current = autocomplete;
+                    }}
+                    onPlaceChanged={() => {
+                      const place = autocompleteRef.current?.getPlace();
+                      if (!place) return;
+                      const address = place.formatted_address;
+                      const lat = place.geometry?.location?.lat();
+                      const lng = place.geometry?.location?.lng();
+                      setDraft((prev) => ({
+                        ...prev,
+                        location: {
+                          ...(prev.location ?? {}),
+                          name: place.name,
+                          address,
+                          lat,
+                          lng,
+                        },
+                      }));
+                    }}
+                  >
+                    <input
+                      type="text"
+                      placeholder="Search location..."
+                      value={draft.location?.address ?? ''}
+                      onChange={(e) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          location: { ...(prev.location ?? {}), address: e.target.value },
+                        }))
+                      }
+                    />
+                  </Autocomplete>
+                ) : (
                   <input
                     type="text"
                     placeholder="Search location..."
@@ -881,14 +945,11 @@ export default function TripDetailPage() {
                     onChange={(e) =>
                       setDraft((prev) => ({
                         ...prev,
-                        location: {
-                          ...(prev.location ?? {}),
-                          address: e.target.value,
-                        },
+                        location: { ...(prev.location ?? {}), address: e.target.value },
                       }))
                     }
                   />
-                </Autocomplete>
+                )}
               </label>
             </div>
           </fieldset>
@@ -1197,7 +1258,7 @@ export default function TripDetailPage() {
                   onUpdate={setTrip}
                 />
 
-                {showStartCommute && (
+                {showStartCommute && isLoaded && (
                   <ul className="item-list">
                     <li className="commute-row">
                       <CommuteWidget
@@ -1242,7 +1303,7 @@ export default function TripDetailPage() {
                                 currentUserId={user?.id}
                               />
                             </li>
-                            {showCommute && (
+                            {showCommute && isLoaded && (
                               <li className="commute-row">
                                 <CommuteWidget origin={lastItem.location!} destination={nextItem.location!} />
                               </li>
@@ -1295,7 +1356,7 @@ export default function TripDetailPage() {
                               onReact={(emoji) => onReactToItem(item._id, emoji)}
                             />
                           </li>
-                          {showCommute && (
+                          {showCommute && isLoaded && (
                             <li className="commute-row">
                               <CommuteWidget
                                 origin={item.location!}
@@ -1309,7 +1370,7 @@ export default function TripDetailPage() {
                   </ul>
                 </SortableContext>
 
-                {showEndCommute && (
+                {showEndCommute && isLoaded && (
                   <ul className="item-list">
                     <li className="commute-row">
                       <CommuteWidget
@@ -1324,6 +1385,7 @@ export default function TripDetailPage() {
           })}
         </DndContext>
       </section>
+      </>}
     </div>
   );
 }

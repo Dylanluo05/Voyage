@@ -491,18 +491,42 @@ button.danger:hover {
   color: var(--coral);
 }
 
-button.ghost {
+button.ghost,
+a.ghost {
   background: transparent;
   color: var(--teal);
-  border: 1.5px solid rgba(0, 212, 200, 0.35);
+  border: 1.5px solid color-mix(in srgb, var(--teal) 35%, transparent);
   box-shadow: none;
 }
 
-button.ghost:hover {
+button.ghost:hover,
+a.ghost:hover {
   background: var(--teal-dim);
   color: var(--teal);
   border-color: var(--teal);
-  box-shadow: 0 4px 20px rgba(0, 212, 200, 0.2);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--teal) 20%, transparent);
+  opacity: 1;
+}
+
+a.ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  padding: 10px 20px;
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.18s var(--ease), border-color 0.18s var(--ease), box-shadow 0.18s var(--ease), transform 0.15s var(--ease);
+}
+
+a.ghost.small-btn {
+  padding: 6px 14px;
+  font-size: 11px;
 }
 
 /* ── Error ───────────────────────────────────────────────────── */
@@ -2876,16 +2900,6 @@ fieldset legend {
   margin-top: 12px;
 }
 
-.completed-badge {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 20px;
-  display: inline-block;
-  color: var(--teal);
-  background-color: var(--teal-dim);
-  border: 1px solid rgba(0, 212, 200, 0.2);
-}
 
 .sidequest-comments {
   margin-top: 16px;
@@ -3153,16 +3167,86 @@ fieldset legend {
   border-bottom: 1px solid var(--border);
 }
 
+.trip-navbar-inner {
+  display: flex;
+  align-items: center;
+}
+
 .trip-navbar-scroll {
   display: flex;
   gap: 4px;
   overflow-x: auto;
   scrollbar-width: none;
-  padding: 10px 28px;
+  padding: 10px 8px 10px 28px;
+  flex: 1;
+  min-width: 0;
 
   &::-webkit-scrollbar {
     display: none
   }
+}
+
+.trip-nav-customize-wrap {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  align-self: stretch;
+  border-left: 1px solid var(--border);
+}
+
+.trip-nav-sections-btn {
+  color: var(--fg);
+  border-radius: var(--radius-btn);
+}
+
+.trip-nav-customize-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 200;
+  background: var(--card-bg);
+  border: 1px solid var(--border-mid);
+  border-radius: 12px;
+  padding: 6px;
+  min-width: 172px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  animation: fadeIn 0.12s var(--ease) both;
+}
+
+.trip-nav-customize-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg);
+  user-select: none;
+  transition: background 0.12s var(--ease);
+}
+
+.trip-nav-customize-row:hover {
+  background: var(--hover-bg);
+}
+
+.trip-nav-customize-row input[type="checkbox"] {
+  accent-color: var(--teal);
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  cursor: pointer;
 }
 
 .trip-nav-btn {
@@ -3715,7 +3799,11 @@ fieldset legend {
   }
 
   .trip-navbar-scroll {
-    padding: 8px 16px;
+    padding: 8px 4px 8px 16px;
+  }
+
+  .trip-nav-customize-wrap {
+    padding: 0 12px;
   }
 
   /* Trip title row: stack actions below title */
@@ -3812,6 +3900,232 @@ fieldset legend {
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+/* ── Claims Page ─────────────────────────────────────────────── */
+.claims-stats-row {
+  display: flex;
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.claims-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px;
+  background: var(--card-bg);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-mid);
+  box-shadow: var(--shadow-sm);
+}
+
+.claims-stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--fg);
+  line-height: 1;
+}
+
+.claims-stat-xp {
+  color: #d97706;
+}
+
+.claims-stat-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 4px;
+}
+
+.claims-card {
+  border-left: 4px solid var(--border);
+  transition: border-color 0.2s;
+}
+
+.claims-card--easy   { border-left-color: #22c55e; }
+.claims-card--medium { border-left-color: #f59e0b; }
+.claims-card--hard   { border-left-color: #f97316; }
+.claims-card--legendary { border-left-color: #a855f7; }
+
+.claims-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.claims-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.difficulty-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.difficulty-badge--easy {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+
+.difficulty-badge--medium {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+}
+
+.difficulty-badge--hard {
+  background: rgba(249, 115, 22, 0.15);
+  color: #c2410c;
+}
+
+.difficulty-badge--legendary {
+  background: rgba(168, 85, 247, 0.15);
+  color: #7c3aed;
+}
+
+[data-theme="dark"] .difficulty-badge--easy     { color: #4ade80; }
+[data-theme="dark"] .difficulty-badge--medium   { color: #fbbf24; }
+[data-theme="dark"] .difficulty-badge--hard     { color: #fb923c; }
+[data-theme="dark"] .difficulty-badge--legendary { color: #c084fc; }
+
+.xp-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(217, 119, 6, 0.12);
+  color: #d97706;
+  letter-spacing: 0.02em;
+}
+
+[data-theme="dark"] .xp-badge {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+}
+
+.completed-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(20, 184, 166, 0.12);
+  color: var(--teal);
+}
+
+.claims-card-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--fg);
+  line-height: 1.3;
+}
+
+.claims-card-footer-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.claims-proof {
+  margin-top: 12px;
+  border-radius: var(--radius-input);
+  overflow: hidden;
+}
+
+.claims-proof-img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  display: block;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--border);
+}
+
+.claims-complete-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.claims-proof-preview {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--border);
+}
+
+/* ── Sidequest completion thumbnails ─────────────────────────── */
+.sidequest-completion-thumbs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.sidequest-completion-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-mid);
+  transition: transform 0.15s var(--ease);
+}
+
+.sidequest-completion-thumb:hover {
+  transform: scale(1.1);
+}
+
+.sidequest-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── Search row utility ───────────────────────────────────────── */
+.search-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-row input {
+  flex: 1;
+}
+
+/* ── List section spacing ────────────────────────────────────── */
+.list-section {
+  margin-top: 16px;
+}
+
+/* ── Profile info list ───────────────────────────────────────── */
+.profile-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 0;
+}
+
+.profile-info-row + .profile-info-row {
+  margin-top: 2px;
 }
 
 /* ── Print styles ────────────────────────────────────────────── */

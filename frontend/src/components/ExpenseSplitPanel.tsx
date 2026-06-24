@@ -192,7 +192,9 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                                     setForm(prev => ({
                                         ...prev,
                                         amount: newAmount,
-                                        splits: recalculateSplits(newAmount + prev.tax + prev.tip, prev.splits),
+                                        splits: splitMode === 'equal'
+                                            ? recalculateSplits(newAmount + prev.tax + prev.tip, prev.splits)
+                                            : prev.splits,
                                     }));
                                 }}
                                 required
@@ -212,8 +214,10 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                                     setForm(prev => ({
                                         ...prev,
                                         tax: newTax,
-                                        splits: recalculateSplits(prev.amount + newTax + prev.tip, prev.splits),
-                                    }))
+                                        splits: splitMode === 'equal'
+                                            ? recalculateSplits(prev.amount + newTax + prev.tip, prev.splits)
+                                            : prev.splits,
+                                    }));
                                 }}
                             />
                         </label>
@@ -229,8 +233,10 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                                     setForm(prev => ({
                                         ...prev,
                                         tip: newTip,
-                                        splits: recalculateSplits(prev.amount + prev.tax + newTip, prev.splits),
-                                    }))
+                                        splits: splitMode === 'equal'
+                                            ? recalculateSplits(prev.amount + prev.tax + newTip, prev.splits)
+                                            : prev.splits,
+                                    }));
                                 }}
                             />
                         </label>

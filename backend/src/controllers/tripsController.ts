@@ -7,8 +7,9 @@ import { User } from '../models/User';
 import { HttpError } from '../middleware/error';
 import { searchTracks, getSpotifyAuthUrl } from '../lib/spotify';
 import { interpretVibe } from '../lib/vibeInterpreter';
-import { checkTripQuota } from '../lib/aiQuota';
+import { checkTripQuota, checkAndIncrementQuota } from '../lib/aiQuota';
 import { addTripClient, removeTripClient } from '../lib/tripEvents';
+import { createSseToken, consumeSseToken } from '../lib/sseTokens';
 import { env } from '../config/env';
 import { PublicSidequest } from '../models/PublicSidequest';
 
@@ -26,11 +27,11 @@ const itemSchema = z.object({
   position: z.number().int().min(0).optional(),
   startTime: z.string().optional(),
   endTime: z.string().optional(),
-  title: z.string().min(1),
-  notes: z.string().optional(),
+  title: z.string().min(1).max(200),
+  notes: z.string().max(2000).optional(),
   location: locationSchema,
-  imageUrl: z.string().optional(),
-  cost: z.number().min(0).optional(),
+  imageUrl: z.string().url().optional(),
+  cost: z.number().min(0).max(1_000_000).optional(),
   category: z.enum(['food', 'activity', 'attraction']).optional(),
 });
 
@@ -47,11 +48,11 @@ const reorderSchema = z.object({
 });
 
 const tripBaseSchema = z.object({
-  title: z.string().min(1),
-  destination: z.string().min(1),
+  title: z.string().min(1).max(200),
+  destination: z.string().min(1).max(200),
   startDate: z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'Invalid startDate'),
   endDate: z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'Invalid endDate'),
-  description: z.string().optional(),
+  description: z.string().max(1000).optional(),
 });
 
 const tripCreateSchema = tripBaseSchema.refine(
@@ -646,6 +647,7 @@ export async function removeTrack(req: Request, res: Response, next: NextFunctio
 export async function recommendByVibe(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     ensureValidObjectId(req.params.id, 'trip id');
+    await checkAndIncrementQuota(req.user!.sub);
     const { vibes } = z.object({ vibes: z.string().min(1).max(200) }).parse(req.query);
     const trip = await Trip.findOne(accessFilter(req, req.params.id));
     if (!trip) throw new HttpError(404, 'Trip not found');
@@ -990,13 +992,13 @@ export async function settleSplit(req: Request, res: Response, next: NextFunctio
     if (!trip) throw new HttpError(404, 'Trip not found');
     const expense = trip.expenses.find((e) => e._id?.toString() === req.params.expenseId);
     if (!expense) throw new HttpError(404, 'Expense not found');
-    if (req.params.userId === ownerId(req).toString() || trip.owner.toString() === ownerId(req).toString()) {
-      const split = expense.splits.find((s) => s.userId.toString() === req.params.userId);
-      if (!split) throw new HttpError(404, 'Split not found');
-      split.settled = true;
-    } else {
-      throw new HttpError(403, 'Not authorized to settle this split');
-    }
+    const split = expense.splits.find((s) => s.userId.toString() === req.params.userId);
+    if (!split) throw new HttpError(404, 'Split not found');
+    const currentUid = ownerId(req).toString();
+    const isDebtor = currentUid === req.params.userId;
+    const isCreditor = currentUid === expense.paidBy.userId.toString();
+    if (!isDebtor && !isCreditor) throw new HttpError(403, 'Not authorized to settle this split');
+    split.settled = true;
     await trip.save();
     await trip.populate(COLLAB_POPULATE);
     res.json(trip);
@@ -1169,6 +1171,8 @@ export async function publishSidequest(req: Request, res: Response, next: NextFu
     if (!user) throw new HttpError(404, 'User not found');
     const sidequest = trip.sidequests.find(s => String(s._id) === req.params.sidequestId);
     if (!sidequest) throw new HttpError(404, 'Sidequest not found');
+    const XP_BY_DIFFICULTY = { easy: 50, medium: 100, hard: 200, legendary: 500 } as const;
+    const difficulty = 'easy' as const;
     const publicSidequest = await PublicSidequest.create({
       title: sidequest.title,
       description: sidequest.description,
@@ -1177,7 +1181,10 @@ export async function publishSidequest(req: Request, res: Response, next: NextFu
         userId: uid,
         userName: user.name,
       },
+      claims: [],
       completions: [],
+      difficulty,
+      xpReward: XP_BY_DIFFICULTY[difficulty],
       tripId: trip.id,
     });
     res.status(201).json(publicSidequest);
@@ -1210,19 +1217,26 @@ export async function addPublicSidequestToTrip(req: Request, res: Response, next
   }
 }
 
+export async function issueSseToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) { next(new HttpError(404, 'Trip not found')); return; }
+    const token = createSseToken(ownerId(req).toString(), req.params.id);
+    res.json({ token });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getTripEvents(req: Request, res: Response): Promise<void> {
   const { token } = req.query as { token?: string };
   if (!token) { res.status(401).json({ error: 'Unauthorized' }); return; }
 
-  let userId: string;
-  try {
-    const payload = jwt.verify(token, env.jwtSecret) as { userId: string };
-    userId = payload.userId;
-  } catch {
-    res.status(401).json({ error: 'Invalid token' }); return;
-  }
-
   ensureValidObjectId(req.params.id, 'trip id');
+  const userId = consumeSseToken(token, req.params.id);
+  if (!userId) { res.status(401).json({ error: 'Invalid or expired token' }); return; }
+
   const trip = await Trip.findOne({
     _id: req.params.id,
     $or: [{ owner: userId }, { collaborators: userId }],
@@ -1268,7 +1282,8 @@ export async function publishTrip(req: Request, res: Response, next: NextFunctio
 export async function listPublicTrips(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { destination } = req.query;
-    const trips = await Trip.find({ isPublic: true, ...(destination && { destination: new RegExp(destination as string, 'i') }) }).select('title destination startDate endDate items owner shareToken');
+    const safeDestination = destination ? String(destination).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : null;
+    const trips = await Trip.find({ isPublic: true, ...(safeDestination && { destination: new RegExp(safeDestination, 'i') }) }).select('title destination startDate endDate items owner shareToken');
     res.json(trips);
   } catch (err) {
     next(err);

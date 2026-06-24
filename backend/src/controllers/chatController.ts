@@ -153,7 +153,7 @@ Answer travel questions and help the user plan their trip. When they ask to add 
       max_tokens: 2048,
       system: systemPrompt,
       tools,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      messages: messages.slice(-20).map(m => ({ role: m.role, content: m.content })),
     });
 
     for await (const event of stream) {

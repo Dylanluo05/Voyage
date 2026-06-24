@@ -39,6 +39,8 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
     const [removingCommentId, setRemovingCommentId] = useState<string | null>(null);
     const [commentForms, setCommentForms] = useState<Record<string, { text: string; imageUrl: string }>>({});
     const [gifPickerId, setGifPickerId] = useState<string | null>(null);
+    const [publishedIds, setPublishedIds] = useState<Set<string>>(new Set());
+    const [publishingId, setPublishingId] = useState<string | null>(null);
     const [error, setError] = useState('');
 
     const handleAdd = async (e: React.FormEvent) => {
@@ -134,11 +136,15 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
     };
 
     const handlePublishSidequest = async (sidequestId: string) => {
+        setPublishingId(sidequestId);
         setError('');
         try {
             await publishSidequest(trip._id, sidequestId);
+            setPublishedIds(prev => new Set(prev).add(sidequestId));
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong');
+        } finally {
+            setPublishingId(null);
         }
     };
 
@@ -146,7 +152,13 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
         <section id="sidequests-section" className="card">
             <div className="sidequest-header-row">
                 <h2>Sidequests</h2>
-                <button onClick={() => setShowForm(showForm => !showForm)}>{showForm ? 'Cancel' : '+ Add'}</button>
+                <button
+                    type="button"
+                    className="ghost small-btn"
+                    onClick={() => setShowForm(showForm => !showForm)}
+                >
+                    {showForm ? 'Cancel' : '+ Add'}
+                </button>
             </div>
             {showForm && (
                 <form className="form" onSubmit={handleAdd}>
@@ -161,9 +173,9 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
             {trip.sidequests.length > 0 ? (
                 trip.sidequests.map(s => {
                     const commentForm = commentForms[s._id] ?? { text: '', imageUrl: '' };
+                    const isPublished = publishedIds.has(s._id);
                     return (
                         <div key={s._id} className="sidequest-card">
-                            {trip.owner._id === currentUserId && <button type="button" onClick={() => handlePublishSidequest(s._id)}>Publish</button>}
                             <div className="sidequest-card-top">
                                 <h3 className="sidequest-card-header">{s.title}</h3>
                                 {s.completed && <span className="completed-badge">Completed</span>}
@@ -184,14 +196,26 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
                                                 <option key={c._id} value={c._id}>{c.name}</option>
                                             ))}
                                         </select>
-                                        <button disabled={!selectedAssignee || assignLoadingId === s._id} onClick={() => handleAssign(s._id)}>Confirm</button>
-                                        <button onClick={() => { setAssigningId(null); setSelectedAssignee(''); }}>Cancel</button>
+                                        <button type="button" className="small-btn" disabled={!selectedAssignee || assignLoadingId === s._id} onClick={() => handleAssign(s._id)}>Confirm</button>
+                                        <button type="button" className="ghost small-btn" onClick={() => { setAssigningId(null); setSelectedAssignee(''); }}>Cancel</button>
                                     </div>
                                 ) : (
-                                    <button disabled={s.completed} onClick={() => setAssigningId(s._id)}>Assign</button>
+                                    <button type="button" className="ghost small-btn" disabled={s.completed} onClick={() => setAssigningId(s._id)}>Assign</button>
                                 )}
-                                {(currentUserId === s.assigner?.userId && !s.completed) && <button disabled={completingId === s._id} onClick={() => handleComplete(s._id)}>Complete</button>}
-                                <button disabled={removingId === s._id} onClick={() => handleRemove(s._id)}>Remove</button>
+                                {(currentUserId === s.assigner?.userId && !s.completed) && (
+                                    <button type="button" className="ghost small-btn" disabled={completingId === s._id} onClick={() => handleComplete(s._id)}>Complete</button>
+                                )}
+                                {trip.owner._id === currentUserId && (
+                                    <button
+                                        type="button"
+                                        className={isPublished ? 'ghost small-btn' : 'ghost small-btn'}
+                                        disabled={isPublished || publishingId === s._id}
+                                        onClick={() => handlePublishSidequest(s._id)}
+                                    >
+                                        {publishingId === s._id ? 'Publishing…' : isPublished ? '✓ Published' : 'Publish'}
+                                    </button>
+                                )}
+                                <button type="button" className="danger small-btn" disabled={removingId === s._id} onClick={() => handleRemove(s._id)}>Remove</button>
                             </div>
 
                             <div className="sidequest-comments">
@@ -203,7 +227,9 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
                                         </div>
                                         <p className="sidequest-comment-text">{c.text}</p>
                                         {c.imageUrl && <img className="sidequest-comment-image" src={c.imageUrl} />}
-                                        {c.userId === currentUserId && <button className="sidequest-comment-remove" onClick={() => handleRemoveComment(s._id, c._id)}>Remove</button>}
+                                        {c.userId === currentUserId && (
+                                            <button type="button" className="ghost small-btn sidequest-comment-remove" disabled={removingCommentId === c._id} onClick={() => handleRemoveComment(s._id, c._id)}>Remove</button>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -212,7 +238,7 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
                                 <input type="text" placeholder="Add a comment..." value={commentForm.text} onChange={(e) => setCommentForms(prev => ({ ...prev, [s._id]: { ...commentForm, text: e.target.value } }))} />
                                 <div className="sidequest-image-row">
                                     <input type="text" placeholder="Image URL (optional)..." value={commentForm.imageUrl} onChange={(e) => setCommentForms(prev => ({ ...prev, [s._id]: { ...commentForm, imageUrl: e.target.value } }))} />
-                                    <button type="button" onClick={() => setGifPickerId(gifPickerId === s._id ? null : s._id)}>
+                                    <button type="button" className="ghost small-btn" onClick={() => setGifPickerId(gifPickerId === s._id ? null : s._id)}>
                                         {gifPickerId === s._id ? 'Close' : '🎬 GIF'}
                                     </button>
                                 </div>
@@ -233,13 +259,13 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
                                         ))}
                                     </div>
                                 )}
-                                <button disabled={!commentForm.text || commentingId === s._id} type="submit">Post</button>
+                                <button type="submit" className="ghost small-btn" disabled={!commentForm.text || commentingId === s._id}>Post</button>
                             </form>
                         </div>
                     )
                 })
             ) : (
-                <p>No sidequests added yet</p>
+                <p className="muted">No sidequests added yet</p>
             )}
         </section>
     );

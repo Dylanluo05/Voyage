@@ -451,6 +451,8 @@ const tripSchema = new Schema<TripDoc>(
 );
 
 tripSchema.index({ owner: 1, startDate: 1 });
+tripSchema.index({ collaborators: 1 });
+tripSchema.index({ isPublic: 1 });
 
 tripSchema.post('save', function (doc) {
   notifyTripUpdate(doc._id.toString());

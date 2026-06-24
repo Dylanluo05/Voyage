@@ -128,7 +128,7 @@ export async function stripeWebhook(req: Request, res: Response, next: NextFunct
       const sub = event.data.object as { id: string };
       await User.findOneAndUpdate(
         { 'aiUsage.stripeSubscriptionId': sub.id },
-        { 'aiUsage.plan': 'free', 'aiUsage.stripeSubscriptionId': undefined }
+        { $set: { 'aiUsage.plan': 'free' }, $unset: { 'aiUsage.stripeSubscriptionId': '' } }
       );
     }
 

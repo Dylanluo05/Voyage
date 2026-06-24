@@ -13,6 +13,7 @@ import ProfilePage from './pages/ProfilePage';
 import SubscriptionPage from './pages/SubscriptionPage';
 import DiscoverPage from './pages/DiscoverPage';
 import SidequestsPage from './pages/SidequestsPage';
+import ClaimsPage from './pages/ClaimsPage';
 
 export default function App() {
   return (
@@ -71,6 +72,16 @@ export default function App() {
             <ProtectedRoute>
               <main>
                 <SidequestsPage />
+              </main>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/claims"
+          element={
+            <ProtectedRoute>
+              <main>
+                <ClaimsPage />
               </main>
             </ProtectedRoute>
           }
