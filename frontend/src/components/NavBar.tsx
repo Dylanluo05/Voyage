@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 
@@ -9,31 +9,43 @@ export default function NavBar() {
 
   return (
     <nav className="navbar">
-      <Link to="/" className="brand">
-        Voyage
-      </Link>
+      <Link to="/" className="brand">Voyage</Link>
       <div className="nav-actions">
-        <Link to="/discover">Discover</Link>
+        <NavLink to="/discover" className={({ isActive }) => isActive ? 'active' : ''}>
+          Discover
+        </NavLink>
         {user ? (
           <>
-            <Link to="/profile">Profile</Link>
-            <Link to="/sidequests">Sidequests</Link>
-            <Link to="/claims">Claims</Link>
-            <Link to="/subscription">Upgrade</Link>
+            <NavLink to="/trips" className={({ isActive }) => isActive ? 'active' : ''}>
+              Trips
+            </NavLink>
+            <NavLink to="/sidequests" className={({ isActive }) => isActive ? 'active' : ''}>
+              Sidequests
+            </NavLink>
+            <NavLink to="/claims" className={({ isActive }) => isActive ? 'active' : ''}>
+              Claims
+            </NavLink>
+            <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>
+              Profile
+            </NavLink>
+            <NavLink to="/subscription" className={({ isActive }) => isActive ? 'active' : ''}>
+              Upgrade
+            </NavLink>
             <button
               type="button"
-              onClick={() => {
-                logout();
-                navigate('/login');
-              }}
+              onClick={() => { logout(); navigate('/login'); }}
             >
               Log out
             </button>
           </>
         ) : (
           <>
-            <Link to="/login">Log in</Link>
-            <Link to="/register">Sign up</Link>
+            <NavLink to="/login" className={({ isActive }) => isActive ? 'active' : ''}>
+              Log in
+            </NavLink>
+            <NavLink to="/register" className={({ isActive }) => isActive ? 'active' : ''}>
+              Sign up
+            </NavLink>
           </>
         )}
         <button
