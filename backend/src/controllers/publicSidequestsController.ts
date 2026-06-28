@@ -135,8 +135,9 @@ export async function claimPublicSidequest(req: Request, res: Response, next: Ne
 
 export async function completePublicSidequest(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-        const { photoUrl } = z.object({
-            photoUrl: z.string().min(1)
+        const { photoUrl, isPublic } = z.object({
+            photoUrl: z.string().min(1),
+            isPublic: z.boolean().default(false),
         }).parse(req.body);
         const publicSidequest = await PublicSidequest.findById(req.params.id);
         if (!publicSidequest) throw new HttpError(404, 'Public sidequest not found');
@@ -175,6 +176,7 @@ export async function completePublicSidequest(req: Request, res: Response, next:
             userName: user.name,
             photoUrl: photoUrl,
             completedAt: new Date(),
+            isPublic,
         });
         const sidequestHistoryData = {
             sidequestId: publicSidequest._id,
@@ -255,6 +257,46 @@ export async function getLeaderboard(req: Request, res: Response, next: NextFunc
     try {
         const leaderboard = await User.find({}).select('name xp').sort({ xp: -1 }).limit(50);
         res.status(200).json(leaderboard);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function addComment(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+        const { text } = z.object({ text: z.string().min(1).max(500) }).parse(req.body);
+        const uid = ownerId(req);
+        const [sq, user] = await Promise.all([
+            PublicSidequest.findById(req.params.id),
+            User.findById(uid).select('name avatarUrl'),
+        ]);
+        if (!sq) throw new HttpError(404, 'Sidequest not found');
+        if (!user) throw new HttpError(404, 'User not found');
+        sq.comments.push({
+            userId: uid,
+            userName: user.name,
+            avatarUrl: (user as any).avatarUrl,
+            text,
+            createdAt: new Date(),
+        });
+        await sq.save();
+        res.status(201).json(sq);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function removeComment(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+        const uid = ownerId(req);
+        const sq = await PublicSidequest.findById(req.params.id);
+        if (!sq) throw new HttpError(404, 'Sidequest not found');
+        const comment = sq.comments.find(c => c._id?.toString() === req.params.commentId);
+        if (!comment) throw new HttpError(404, 'Comment not found');
+        if (!comment.userId.equals(uid)) throw new HttpError(403, 'Cannot delete another user\'s comment');
+        sq.comments = sq.comments.filter(c => c._id?.toString() !== req.params.commentId) as typeof sq.comments;
+        await sq.save();
+        res.status(200).json(sq);
     } catch (err) {
         next(err);
     }

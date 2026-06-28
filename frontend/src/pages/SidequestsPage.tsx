@@ -86,7 +86,13 @@ export default function SidequestsPage() {
     const [completedCard, setCompletedCard] = useState<{ cardSuit: CardSuit; cardRank: CardRank; xp: number } | null>(null);
     const [proofInputMode, setProofInputMode] = useState<'url' | 'file'>('file');
     const [uploadingProof, setUploadingProof] = useState(false);
+    const [proofIsPublic, setProofIsPublic] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+    const [commentingId, setCommentingId] = useState<string | null>(null);
+    const [commentText, setCommentText] = useState('');
+    const [submittingComment, setSubmittingComment] = useState(false);
+    const [expandedCommentsId, setExpandedCommentsId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchAll = async () => {
@@ -185,16 +191,41 @@ export default function SidequestsPage() {
 
     async function onComplete(id: string) {
         try {
-            const updated = await sidequestsApi.completePublicSidequest(id, photoUrl);
+            const updated = await sidequestsApi.completePublicSidequest(id, photoUrl, proofIsPublic);
             setSidequests(prev => prev.map(s => s._id === id ? updated : s));
             setCompletingId(null);
             setPhotoUrl('');
             setProofInputMode('file');
+            setProofIsPublic(false);
             const xp = computeXp(updated.cardSuit, updated.cardRank);
             setCompletedCard({ cardSuit: updated.cardSuit, cardRank: updated.cardRank, xp });
             setTimeout(() => setCompletedCard(null), 3500);
         } catch (err) {
             setError(err instanceof ApiError ? err.message : 'Failed to complete sidequest');
+        }
+    }
+
+    async function onAddComment(id: string) {
+        if (!commentText.trim()) return;
+        setSubmittingComment(true);
+        try {
+            const updated = await sidequestsApi.addComment(id, commentText.trim());
+            setSidequests(prev => prev.map(s => s._id === id ? updated : s));
+            setCommentText('');
+            setCommentingId(null);
+        } catch (err) {
+            setError(err instanceof ApiError ? err.message : 'Failed to post comment');
+        } finally {
+            setSubmittingComment(false);
+        }
+    }
+
+    async function onRemoveComment(sidequestId: string, commentId: string) {
+        try {
+            const updated = await sidequestsApi.removeComment(sidequestId, commentId);
+            setSidequests(prev => prev.map(s => s._id === sidequestId ? updated : s));
+        } catch {
+            setError('Failed to delete comment');
         }
     }
 
@@ -606,11 +637,21 @@ export default function SidequestsPage() {
                                             </>
                                         )}
 
+                                        {/* Public/private toggle */}
+                                        <label className="proof-visibility-toggle">
+                                            <input
+                                                type="checkbox"
+                                                checked={proofIsPublic}
+                                                onChange={e => setProofIsPublic(e.target.checked)}
+                                            />
+                                            <span>Make photo public (visible to other users)</span>
+                                        </label>
+
                                         <div className="search-row">
                                             <button type="button" disabled={!photoUrl || uploadingProof} onClick={() => onComplete(s._id)}>
                                                 Confirm
                                             </button>
-                                            <button type="button" className="ghost" onClick={() => { setCompletingId(null); setPhotoUrl(''); setProofInputMode('file'); }}>
+                                            <button type="button" className="ghost" onClick={() => { setCompletingId(null); setPhotoUrl(''); setProofInputMode('file'); setProofIsPublic(false); }}>
                                                 Cancel
                                             </button>
                                         </div>
@@ -630,10 +671,103 @@ export default function SidequestsPage() {
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Public completion photos */}
+                                {s.completions.some(c => c.isPublic) && (
+                                    <div className="sq-public-photos">
+                                        {s.completions.filter(c => c.isPublic).map((c, i) => (
+                                            <img
+                                                key={i}
+                                                src={c.photoUrl}
+                                                alt={`${c.userName} completion`}
+                                                className="sq-public-photo-thumb"
+                                                title={`${c.userName} — ${new Date(c.completedAt).toLocaleDateString()}`}
+                                                onClick={() => setLightboxUrl(c.photoUrl)}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Comments */}
+                                <div className="sq-comments-section">
+                                    <button
+                                        type="button"
+                                        className="ghost small-btn"
+                                        style={{ fontSize: 12 }}
+                                        onClick={() => setExpandedCommentsId(prev => prev === s._id ? null : s._id)}
+                                    >
+                                        💬 {s.comments.length} comment{s.comments.length !== 1 ? 's' : ''}
+                                    </button>
+
+                                    {expandedCommentsId === s._id && (
+                                        <div className="sq-comments-list">
+                                            {s.comments.length === 0 && (
+                                                <p className="muted small">No comments yet. Be the first!</p>
+                                            )}
+                                            {s.comments.map(c => (
+                                                <div key={c._id} className="sq-comment">
+                                                    <div className="sq-comment-avatar">
+                                                        {c.avatarUrl
+                                                            ? <img src={c.avatarUrl} alt={c.userName} />
+                                                            : <span>{c.userName.slice(0, 1).toUpperCase()}</span>
+                                                        }
+                                                    </div>
+                                                    <div className="sq-comment-body">
+                                                        <span className="sq-comment-author">{c.userName}</span>
+                                                        <span className="muted small" style={{ marginLeft: 6 }}>{new Date(c.createdAt).toLocaleDateString()}</span>
+                                                        <p className="sq-comment-text">{c.text}</p>
+                                                    </div>
+                                                    {c.userId === user?.id && (
+                                                        <button
+                                                            type="button"
+                                                            className="danger small-btn"
+                                                            style={{ fontSize: 11, alignSelf: 'flex-start' }}
+                                                            onClick={() => onRemoveComment(s._id, c._id)}
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+
+                                            {user && (
+                                                <div className="sq-comment-form">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Add a comment…"
+                                                        value={commentingId === s._id ? commentText : ''}
+                                                        maxLength={500}
+                                                        onFocus={() => setCommentingId(s._id)}
+                                                        onChange={e => setCommentText(e.target.value)}
+                                                        onKeyDown={e => e.key === 'Enter' && onAddComment(s._id)}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        disabled={submittingComment || !commentText.trim()}
+                                                        onClick={() => onAddComment(s._id)}
+                                                    >
+                                                        Post
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </li>
                         );
                     })}
                 </ul>
+            )}
+
+            {/* Lightbox */}
+            {lightboxUrl && createPortal(
+                <div className="sq-lightbox-overlay" onClick={() => setLightboxUrl(null)}>
+                    <div className="sq-lightbox-content" onClick={e => e.stopPropagation()}>
+                        <button type="button" className="sq-lightbox-close" onClick={() => setLightboxUrl(null)}>✕</button>
+                        <img src={lightboxUrl} alt="Completion proof" className="sq-lightbox-img" />
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );

@@ -7,6 +7,13 @@ export function getProfile(): Promise<UserProfile> {
     });
 }
 
+export function updateProfile(data: { bio?: string; wishlist?: string[]; avatarUrl?: string }): Promise<UserProfile> {
+    return apiFetch<UserProfile>(`/api/users/profile`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
 export function addBadge(badge: { destination: string; countryCode?: string }): Promise<UserProfile> {
     return apiFetch<UserProfile>(`/api/users/badges`, {
         method: 'POST',

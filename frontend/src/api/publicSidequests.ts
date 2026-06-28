@@ -45,10 +45,24 @@ export function claimPublicSidequest(
 export function completePublicSidequest(
     id: string,
     photoUrl: string,
+    isPublic = false,
 ): Promise<PublicSidequest> {
     return apiFetch<PublicSidequest>(`/api/public-sidequests/${id}/complete`, {
         method: 'PATCH',
-        body: JSON.stringify({ photoUrl }),
+        body: JSON.stringify({ photoUrl, isPublic }),
+    });
+}
+
+export function addComment(sidequestId: string, text: string): Promise<PublicSidequest> {
+    return apiFetch<PublicSidequest>(`/api/public-sidequests/${sidequestId}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ text }),
+    });
+}
+
+export function removeComment(sidequestId: string, commentId: string): Promise<PublicSidequest> {
+    return apiFetch<PublicSidequest>(`/api/public-sidequests/${sidequestId}/comments/${commentId}`, {
+        method: 'DELETE',
     });
 }
 

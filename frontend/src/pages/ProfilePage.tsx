@@ -1,13 +1,36 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { UserProfile } from "../types";
-import { getProfile, addBadge, removeBadge } from "../api/users";
+import { getProfile, addBadge, removeBadge, updateProfile } from "../api/users";
 import { getLeaderboard } from "../api/publicSidequests";
 import { useAuth } from "../context/AuthContext";
+import { uploadToCloudinary } from "../utils/image";
 
 function getFlagEmoji(countryCode: string): string {
     return [...countryCode.toUpperCase()].map(c =>
         String.fromCodePoint(127397 + c.charCodeAt(0))
     ).join('');
+}
+
+function getInitials(name: string): string {
+    return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+}
+
+function AvatarDisplay({ avatarUrl, name, size = 72 }: { avatarUrl?: string; name: string; size?: number }) {
+    if (avatarUrl) {
+        return (
+            <img
+                src={avatarUrl}
+                alt={name}
+                className="profile-avatar-img"
+                style={{ width: size, height: size }}
+            />
+        );
+    }
+    return (
+        <div className="profile-avatar-initials" style={{ width: size, height: size, fontSize: size * 0.35 }}>
+            {getInitials(name)}
+        </div>
+    );
 }
 
 export default function ProfilePage() {
@@ -22,10 +45,22 @@ export default function ProfilePage() {
     const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null);
     const { user } = useAuth();
 
+    // Profile edit state
+    const [editingProfile, setEditingProfile] = useState(false);
+    const [editBio, setEditBio] = useState('');
+    const [editWishlist, setEditWishlist] = useState<string[]>([]);
+    const [newWishlistItem, setNewWishlistItem] = useState('');
+    const [savingProfile, setSavingProfile] = useState(false);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
+
     const loadUserProfile = async () => {
         try {
             setLoading(true);
-            setProfile(await getProfile());
+            const p = await getProfile();
+            setProfile(p);
+            setEditBio(p.bio ?? '');
+            setEditWishlist(p.wishlist ?? []);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong');
         } finally {
@@ -56,6 +91,39 @@ export default function ProfilePage() {
         } finally {
             setRemovingId(null);
         }
+    };
+
+    const handleAvatarUpload = async (file: File) => {
+        try {
+            setUploadingAvatar(true);
+            const url = await uploadToCloudinary(file);
+            const updated = await updateProfile({ avatarUrl: url });
+            setProfile(updated);
+        } catch {
+            setError('Failed to upload avatar');
+        } finally {
+            setUploadingAvatar(false);
+        }
+    };
+
+    const handleSaveProfile = async () => {
+        try {
+            setSavingProfile(true);
+            const updated = await updateProfile({ bio: editBio || undefined, wishlist: editWishlist });
+            setProfile(updated);
+            setEditingProfile(false);
+        } catch {
+            setError('Failed to save profile');
+        } finally {
+            setSavingProfile(false);
+        }
+    };
+
+    const addWishlistItem = () => {
+        const item = newWishlistItem.trim();
+        if (!item || editWishlist.includes(item)) return;
+        setEditWishlist(prev => [...prev, item]);
+        setNewWishlistItem('');
     };
 
     useEffect(() => { loadUserProfile(); }, []);
@@ -92,7 +160,6 @@ export default function ProfilePage() {
 
         const rank = thresholds[index].name;
         const nextRank = index < 7 ? thresholds[index + 1].name : '';
-
         const xpBeforeNextRank = index < 7 ? thresholds[index + 1].value - xp : 0;
         const percentageBeforeNextRank = index < 7 ? Math.round((xp - thresholds[index].value) / (thresholds[index + 1].value - thresholds[index].value) * 100) : 100;
 
@@ -115,21 +182,132 @@ export default function ProfilePage() {
     };
 
     const [rank, nextRank, xpBeforeNextRank, percentageBeforeNextRank] = profile ? determineRank(profile.xp) : ['', '', 1000, 0];
+    const displayName = profile?.name ?? user?.name ?? '';
 
     return (
         <div className="page">
             <h1>Profile</h1>
 
+            {/* Identity card */}
             <section className="card">
-                <h2>{profile?.name ?? user?.name}</h2>
-                {profile && (
-                    <>
-                        <p className="muted small">Email: {profile.email}</p>
-                        <p className="muted small">Member since: {new Date(profile.createdAt).toLocaleDateString()}</p>
-                    </>
+                <div className="profile-identity-row">
+                    {/* Avatar */}
+                    <div className="profile-avatar-wrap">
+                        <AvatarDisplay avatarUrl={profile?.avatarUrl} name={displayName} size={80} />
+                        <button
+                            type="button"
+                            className="profile-avatar-edit-btn"
+                            title="Change photo"
+                            disabled={uploadingAvatar}
+                            onClick={() => avatarInputRef.current?.click()}
+                        >
+                            {uploadingAvatar ? '…' : '✎'}
+                        </button>
+                        <input
+                            ref={avatarInputRef}
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={e => { const f = e.target.files?.[0]; if (f) handleAvatarUpload(f); e.target.value = ''; }}
+                        />
+                    </div>
+
+                    {/* Name, email, bio */}
+                    <div className="profile-identity-info">
+                        <h2 style={{ margin: 0 }}>{displayName}</h2>
+                        {profile && (
+                            <>
+                                <p className="muted small" style={{ margin: '2px 0 0' }}>{profile.email}</p>
+                                <p className="muted small" style={{ margin: '2px 0 0' }}>Member since: {new Date(profile.createdAt).toLocaleDateString()}</p>
+                                {!editingProfile && profile.bio && (
+                                    <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5 }}>{profile.bio}</p>
+                                )}
+                            </>
+                        )}
+                    </div>
+
+                    <button
+                        type="button"
+                        className="ghost small-btn"
+                        style={{ alignSelf: 'flex-start', marginLeft: 'auto' }}
+                        onClick={() => setEditingProfile(e => !e)}
+                    >
+                        {editingProfile ? 'Cancel' : 'Edit'}
+                    </button>
+                </div>
+
+                {editingProfile && (
+                    <div className="profile-edit-form" style={{ marginTop: 16 }}>
+                        <label style={{ display: 'block', marginBottom: 12 }}>
+                            <span className="muted small" style={{ display: 'block', marginBottom: 4 }}>Bio (max 300 chars)</span>
+                            <textarea
+                                value={editBio}
+                                onChange={e => setEditBio(e.target.value)}
+                                maxLength={300}
+                                rows={3}
+                                placeholder="Tell other travellers about yourself…"
+                                style={{ width: '100%', resize: 'vertical' }}
+                            />
+                            <span className="muted small">{editBio.length}/300</span>
+                        </label>
+
+                        <button
+                            type="button"
+                            disabled={savingProfile}
+                            onClick={handleSaveProfile}
+                        >
+                            {savingProfile ? 'Saving…' : 'Save'}
+                        </button>
+                    </div>
                 )}
             </section>
 
+            {/* Wishlist */}
+            <section className="card">
+                <div className="sidequest-header-row">
+                    <h2>Travel Wishlist</h2>
+                    <button type="button" className="ghost small-btn" onClick={() => setEditingProfile(e => !e)}>
+                        {editingProfile ? 'Done' : 'Edit'}
+                    </button>
+                </div>
+
+                {profile && profile.wishlist.length > 0 ? (
+                    <div className="profile-wishlist">
+                        {(editingProfile ? editWishlist : profile.wishlist).map((place, i) => (
+                            <div key={i} className="profile-wishlist-item">
+                                <span>✈ {place}</span>
+                                {editingProfile && (
+                                    <button
+                                        type="button"
+                                        className="danger small-btn"
+                                        style={{ padding: '2px 8px', fontSize: 11 }}
+                                        onClick={() => setEditWishlist(prev => prev.filter((_, idx) => idx !== i))}
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="muted small">No destinations on your wishlist yet.</p>
+                )}
+
+                {editingProfile && (
+                    <div className="search-row" style={{ marginTop: 12 }}>
+                        <input
+                            placeholder="Add a destination…"
+                            value={newWishlistItem}
+                            onChange={e => setNewWishlistItem(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && addWishlistItem()}
+                        />
+                        <button type="button" onClick={addWishlistItem} disabled={!newWishlistItem.trim()}>Add</button>
+                        <button type="button" disabled={savingProfile} onClick={handleSaveProfile}>{savingProfile ? 'Saving…' : 'Save'}</button>
+                    </div>
+                )}
+            </section>
+
+            {/* XP & Rank */}
             {profile && (
                 <section className="card">
                     <h2>Total XP:</h2>
@@ -147,6 +325,7 @@ export default function ProfilePage() {
                 </section>
             )}
 
+            {/* Past Sidequests */}
             {profile && (
                 <section className="card">
                     <h2>Past Sidequests</h2>
@@ -170,9 +349,9 @@ export default function ProfilePage() {
                         )) : <p>No sidequests completed yet...</p>}
                     </div>
                 </section>
-            )
-            }
+            )}
 
+            {/* Badges */}
             <section className="card">
                 <div className="sidequest-header-row">
                     <h2>Badges</h2>
@@ -250,6 +429,6 @@ export default function ProfilePage() {
                     <p className="muted small">No badges yet — add destinations you've visited.</p>
                 )}
             </section>
-        </div >
+        </div>
     );
 }

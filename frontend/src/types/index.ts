@@ -233,6 +233,9 @@ export interface UserProfile {
   _id: string;
   name: string;
   email: string;
+  bio?: string;
+  wishlist: string[];
+  avatarUrl?: string;
   createdAt: string;
   badges: Badge[];
   xp: number;
@@ -269,6 +272,15 @@ export interface PublicSidequest {
     userName: string;
     photoUrl: string;
     completedAt: string;
+    isPublic: boolean;
+  }[];
+  comments: {
+    _id: string;
+    userId: string;
+    userName: string;
+    avatarUrl?: string;
+    text: string;
+    createdAt: string;
   }[];
   cardSuit: 'spades' | 'hearts' | 'diamonds' | 'clubs';
   cardRank: 'J' | 'Q' | 'K' | 'A';

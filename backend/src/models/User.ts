@@ -17,6 +17,9 @@ export interface UserDoc extends Document {
   passwordHash?: string;
   googleId?: string;
   name: string;
+  bio?: string;
+  wishlist: string[];
+  avatarUrl?: string;
   createdAt: Date;
   updatedAt: Date;
   badges: BadgeData[];
@@ -81,6 +84,9 @@ const userSchema = new Schema<UserDoc>(
     passwordHash: { type: String },
     googleId: { type: String },
     name: { type: String, required: true, trim: true },
+    bio: { type: String, trim: true, maxlength: 300 },
+    wishlist: { type: [String], default: [] },
+    avatarUrl: { type: String, trim: true },
     badges: { type: [badgeSchema], default: [] },
     xp: { type: Number, default: 0 },
     sidequestHistory: { type: [sidequestHistorySchema], default: [] },

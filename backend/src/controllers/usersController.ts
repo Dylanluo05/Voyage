@@ -15,8 +15,27 @@ function ensureValidObjectId(id: string, label = 'id'): void {
 
 export async function getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-        const user = await User.findById(ownerId(req)).select('name email badges xp sidequestHistory createdAt');
+        const user = await User.findById(ownerId(req)).select('name email bio wishlist avatarUrl badges xp sidequestHistory createdAt');
         if (!user) throw new HttpError(404, 'User not found');
+        res.status(200).json(user);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+        const { bio, wishlist, avatarUrl } = z.object({
+            bio: z.string().max(300).optional(),
+            wishlist: z.array(z.string().min(1)).optional(),
+            avatarUrl: z.string().url().optional().or(z.literal('')),
+        }).parse(req.body);
+        const user = await User.findById(ownerId(req)).select('name email bio wishlist avatarUrl badges xp sidequestHistory createdAt');
+        if (!user) throw new HttpError(404, 'User not found');
+        if (bio !== undefined) user.bio = bio || undefined;
+        if (wishlist !== undefined) user.wishlist = wishlist;
+        if (avatarUrl !== undefined) user.avatarUrl = avatarUrl || undefined;
+        await user.save();
         res.status(200).json(user);
     } catch (err) {
         next(err);

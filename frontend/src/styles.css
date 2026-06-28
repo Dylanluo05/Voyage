@@ -5818,6 +5818,237 @@ fieldset legend {
   font-size: 12px;
 }
 
+/* ── Profile avatar & identity ───────────────────────────────── */
+.profile-identity-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.profile-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.profile-avatar-img {
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  border: 2px solid var(--border-mid);
+}
+
+.profile-avatar-initials {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: linear-gradient(135deg, var(--violet), var(--teal));
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.profile-avatar-edit-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 1px solid var(--border-mid);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.2s;
+}
+
+.profile-avatar-edit-btn:hover {
+  background: var(--violet);
+  color: #fff;
+  border-color: var(--violet);
+}
+
+.profile-identity-info {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Profile wishlist ─────────────────────────────────────────── */
+.profile-wishlist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.profile-wishlist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--violet) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--violet) 20%, transparent);
+  font-size: 14px;
+}
+
+/* ── Proof visibility toggle ──────────────────────────────────── */
+.proof-visibility-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.proof-visibility-toggle input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--teal);
+}
+
+/* ── Public completion photos ─────────────────────────────────── */
+.sq-public-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.sq-public-photo-thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--border-mid);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.sq-public-photo-thumb:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* ── Comments ─────────────────────────────────────────────────── */
+.sq-comments-section {
+  margin-top: 10px;
+  border-top: 1px solid var(--border-mid);
+  padding-top: 10px;
+}
+
+.sq-comments-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sq-comment {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.sq-comment-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--violet), var(--teal));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.sq-comment-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sq-comment-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.sq-comment-author {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sq-comment-text {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.sq-comment-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sq-comment-form input {
+  flex: 1;
+}
+
+/* ── Lightbox ─────────────────────────────────────────────────── */
+.sq-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.sq-lightbox-content {
+  position: relative;
+  max-width: min(90vw, 900px);
+  max-height: 90vh;
+}
+
+.sq-lightbox-img {
+  display: block;
+  max-width: 100%;
+  max-height: 90vh;
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+.sq-lightbox-close {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 1px solid var(--border-mid);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  z-index: 1;
+}
+
 /* ── Search row utility ───────────────────────────────────────── */
 .search-row {
   display: flex;
