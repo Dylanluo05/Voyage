@@ -15,7 +15,9 @@ export const env = {
   mongoUri: required('MONGO_URI', 'mongodb://localhost:27017/trip_planner'),
   jwtSecret: required('JWT_SECRET'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
-  clientOrigin: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173',
+  clientOrigins: (process.env.CLIENT_ORIGIN ?? 'http://localhost:5173')
+    .split(',').map(o => o.trim()).filter(Boolean),
+  get clientOrigin() { return this.clientOrigins[0]; },
   nodeEnv: process.env.NODE_ENV ?? 'development',
   stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? '',
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',

@@ -14,6 +14,8 @@ import SubscriptionPage from './pages/SubscriptionPage';
 import DiscoverPage from './pages/DiscoverPage';
 import SidequestsPage from './pages/SidequestsPage';
 import ClaimsPage from './pages/ClaimsPage';
+import HowToPlayPage from './pages/HowToPlayPage';
+import LeaderboardPage from './pages/LeaderboardPage';
 
 export default function App() {
   return (
@@ -82,6 +84,17 @@ export default function App() {
             <ProtectedRoute>
               <main>
                 <ClaimsPage />
+              </main>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/how-to-play" element={<HowToPlayPage />} />
+        <Route
+          path="/leaderboard"
+          element={
+            <ProtectedRoute>
+              <main>
+                <LeaderboardPage />
               </main>
             </ProtectedRoute>
           }

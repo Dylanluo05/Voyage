@@ -1,22 +1,19 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 const SPOTLIGHT_QUESTS = [
-  { title: 'Catch a sunrise', location: 'Anywhere', xp: 50, difficulty: 'easy' as const },
-  { title: 'Pull an all-nighter in a new city', location: 'Any Major City', xp: 200, difficulty: 'hard' as const },
-  { title: 'Island hop with no set plan', location: 'Greece / Philippines', xp: 500, difficulty: 'legendary' as const },
-  { title: 'Explore a night market', location: 'Asia', xp: 100, difficulty: 'medium' as const },
+  { title: 'Watch a sunrise from a hilltop', location: 'Anywhere', xp: 375, cardSuit: 'spades', cardRank: 'J' },
+  { title: 'Make a local friend and share a meal', location: 'Anywhere', xp: 250, cardSuit: 'hearts', cardRank: 'J' },
+  { title: 'Navigate a full day without Google Maps', location: 'Any City', xp: 600, cardSuit: 'diamonds', cardRank: 'Q' },
+  { title: 'Organize a group activity for strangers', location: 'Anywhere', xp: 550, cardSuit: 'clubs', cardRank: 'Q' },
 ];
+
+const SUIT_SYMBOLS: Record<string, string> = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' };
 
 export default function HomePage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const revealRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (user) navigate('/trips');
-  }, [user]);
 
   useEffect(() => {
     const els = revealRef.current?.querySelectorAll<HTMLElement>('[data-reveal]');
@@ -52,8 +49,17 @@ export default function HomePage() {
           </p>
 
           <div className="landing-cta-row">
-            <Link to="/register" className="btn-primary-lg">Start for free</Link>
-            <Link to="/login" className="btn-ghost-lg">Sign in</Link>
+            {user ? (
+              <>
+                <Link to="/trips" className="btn-primary-lg">My Trips</Link>
+                <Link to="/profile" className="btn-ghost-lg">View Profile</Link>
+              </>
+            ) : (
+              <>
+                <Link to="/register" className="btn-primary-lg">Start for free</Link>
+                <Link to="/login" className="btn-ghost-lg">Sign in</Link>
+              </>
+            )}
           </div>
 
           <div className="hero-stats">
@@ -191,20 +197,25 @@ export default function HomePage() {
               to solo-tripping a country where you know no one. Claim one, complete it,
               submit proof, and earn XP on your profile.
             </p>
-            <Link to="/register" className="sq-spotlight-cta">
-              Start earning XP →
-            </Link>
+            {user ? (
+              <Link to="/sidequests" className="sq-spotlight-cta">Browse Sidequests →</Link>
+            ) : (
+              <Link to="/register" className="sq-spotlight-cta">Start earning XP →</Link>
+            )}
           </div>
 
           <div className="sq-spotlight-cards" data-reveal data-delay="2">
             {SPOTLIGHT_QUESTS.map(q => (
               <div key={q.title} className="sq-mini-card">
-                <div className={`sq-mini-dot sq-mini-dot--${q.difficulty}`} />
+                <span className={`sq-mini-suit suit-${q.cardSuit}`}>{SUIT_SYMBOLS[q.cardSuit]}</span>
                 <div className="sq-mini-info">
                   <div className="sq-mini-title">{q.title}</div>
                   <div className="sq-mini-loc">📍 {q.location}</div>
                 </div>
-                <span className="sq-mini-xp">+{q.xp} XP</span>
+                <div className="sq-mini-right">
+                  <span className="sq-mini-rank">{q.cardRank}</span>
+                  <span className="sq-mini-xp">+{q.xp} XP</span>
+                </div>
               </div>
             ))}
           </div>
@@ -218,8 +229,17 @@ export default function HomePage() {
           Free to start. No credit card needed. Your next adventure is one trip away.
         </p>
         <div className="landing-cta-row" data-reveal data-delay="2">
-          <Link to="/register" className="btn-primary-lg">Create your first trip</Link>
-          <Link to="/discover" className="btn-ghost-lg">Browse itineraries</Link>
+          {user ? (
+            <>
+              <Link to="/trips" className="btn-primary-lg">Go to My Trips</Link>
+              <Link to="/sidequests" className="btn-ghost-lg">Browse Sidequests</Link>
+            </>
+          ) : (
+            <>
+              <Link to="/register" className="btn-primary-lg">Create your first trip</Link>
+              <Link to="/discover" className="btn-ghost-lg">Browse itineraries</Link>
+            </>
+          )}
         </div>
       </section>
 

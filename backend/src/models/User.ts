@@ -20,6 +20,8 @@ export interface UserDoc extends Document {
   createdAt: Date;
   updatedAt: Date;
   badges: BadgeData[];
+  xp: number;
+  sidequestHistory: SidequestHistoryData[];
   aiUsage: AiUsage;
   comparePassword(plain: string): Promise<boolean>;
 }
@@ -33,6 +35,16 @@ export interface BadgeData {
   tripId?: Types.ObjectId;
 }
 
+export interface SidequestHistoryData {
+  _id?: Types.ObjectId;
+  sidequestId: Types.ObjectId;
+  title: string;
+  cardSuit: 'spades' | 'hearts' | 'diamonds' | 'clubs';
+  cardRank: 'J' | 'Q' | 'K' | 'A';
+  xpEarned: number;
+  completedAt: Date;
+}
+
 const badgeSchema = new Schema(
   {
     destination: { type: String, required: true },
@@ -40,6 +52,18 @@ const badgeSchema = new Schema(
     awardedAt: { type: Date, default: Date.now },
     source: { type: String, enum: ['auto', 'manual'], required: true },
     tripId: { type: Schema.Types.ObjectId, ref: 'Trip' },
+  },
+  { _id: true }
+);
+
+const sidequestHistorySchema = new Schema(
+  {
+    sidequestId: { type: Schema.Types.ObjectId, ref: 'PublicSidequest', required: true },
+    title: { type: String, required: true },
+    cardSuit: { type: String, enum: ['spades', 'hearts', 'diamonds', 'clubs'], required: true },
+    cardRank: { type: String, enum: ['J', 'Q', 'K', 'A'], required: true },
+    xpEarned: { type: Number, required: true },
+    completedAt: { type: Date, required: true, default: Date.now },
   },
   { _id: true }
 );
@@ -58,6 +82,8 @@ const userSchema = new Schema<UserDoc>(
     googleId: { type: String },
     name: { type: String, required: true, trim: true },
     badges: { type: [badgeSchema], default: [] },
+    xp: { type: Number, default: 0 },
+    sidequestHistory: { type: [sidequestHistorySchema], default: [] },
     aiUsage: {
       count: { type: Number, default: 0 },
       resetAt: {

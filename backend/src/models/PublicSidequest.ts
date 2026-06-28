@@ -20,7 +20,17 @@ export interface PublicSidequestDoc extends Document {
         photoUrl: string,
         completedAt: Date,
     }[],
-    difficulty: 'easy' | 'medium' | 'hard' | 'legendary',
+    cardSuit: 'spades' | 'hearts' | 'diamonds' | 'clubs',
+    cardRank: 'J' | 'Q' | 'K' | 'A',
+    event?: {
+        date: Date,
+        maxParticipants?: number,
+        enrollments: {
+            userId: Types.ObjectId,
+            userName: string,
+            enrolledAt: Date,
+        }[],
+    }
     xpReward: number,
     tripId?: Types.ObjectId,
 }
@@ -32,7 +42,9 @@ const publicSidequestSchema = new Schema({
     createdBy: { userId: { type: Schema.Types.ObjectId, required: true, index: true }, userName: { type: String, required: true, trim: true } },
     claims: [{ userId: { type: Schema.Types.ObjectId, required: true, index: true }, userName: { type: String, required: true, trim: true }, claimedAt: { type: Date } }],
     completions: [{ userId: { type: Schema.Types.ObjectId, required: true, index: true }, userName: { type: String, required: true, trim: true }, photoUrl: { type: String, required: true, trim: true }, completedAt: { type: Date } }],
-    difficulty: { type: String, enum: ['easy', 'medium', 'hard', 'legendary'], required: true },
+    cardSuit: { type: String, enum: ['spades', 'hearts', 'diamonds', 'clubs'], required: true },
+    cardRank: { type: String, enum: ['J', 'Q', 'K', 'A'], required: true },
+    event: { type: new Schema({ date: { type: Date, required: true }, maxParticipants: { type: Number, min: 1 }, enrollments: [{ userId: { type: Schema.Types.ObjectId, required: true }, userName: { type: String, required: true, trim: true }, enrolledAt: { type: Date, required: true } }] }) },
     xpReward: { type: Number, required: true },
     tripId: { type: Schema.Types.ObjectId },
 }, { timestamps: true });

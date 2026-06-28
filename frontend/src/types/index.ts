@@ -257,6 +257,18 @@ export interface UserProfile {
   email: string;
   createdAt: string;
   badges: Badge[];
+  xp: number;
+  sidequestHistory: SidequestHistoryData[];
+}
+
+export interface SidequestHistoryData {
+  _id: string;
+  sidequestId: string;
+  title: string;
+  cardSuit: 'spades' | 'hearts' | 'diamonds' | 'clubs';
+  cardRank: 'J' | 'Q' | 'K' | 'A';
+  xpEarned: number;
+  completedAt: string;
 }
 
 export interface PublicSidequest {
@@ -279,9 +291,25 @@ export interface PublicSidequest {
     photoUrl: string;
     completedAt: string;
   }[];
-  difficulty: 'easy' | 'medium' | 'hard' | 'legendary';
+  cardSuit: 'spades' | 'hearts' | 'diamonds' | 'clubs';
+  cardRank: 'J' | 'Q' | 'K' | 'A';
+  event?: {
+    date: string;
+    maxParticipants?: number;
+    enrollments: {
+      userId: string;
+      userName: string;
+      enrolledAt: string;
+    }[];
+  };
   xpReward: number;
   tripId?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface LeaderboardEntry {
+  _id: string;
+  name: string;
+  xp: number;
 }

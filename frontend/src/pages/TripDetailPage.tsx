@@ -686,16 +686,14 @@ export default function TripDetailPage() {
     persistTopLevel(newGroups, newItems, newDebates);
   }
 
-  if (loading) return <div className="page">Loading…</div>;
-  if (!trip)
-    return (
-      <div className="page">
-        Trip not found. <Link to="/">Back</Link>
-      </div>
-    );
-
   return (
     <div className="page">
+      {loading ? (
+        <div style={{ padding: '64px 0', textAlign: 'center', color: 'var(--muted)' }}>Loading trip…</div>
+      ) : !trip ? (
+        <div>Trip not found. <Link to="/">Back</Link></div>
+      ) : (
+        <>
       <Link to="/trips" className="muted">
         &larr; All trips
       </Link>
@@ -1386,6 +1384,8 @@ export default function TripDetailPage() {
         </DndContext>
       </section>
       </>}
+        </>
+      )}
     </div>
   );
 }

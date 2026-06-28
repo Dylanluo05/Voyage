@@ -1,16 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { PublicSidequest } from '../types';
 import * as sidequestsApi from '../api/publicSidequests';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { uploadToCloudinary } from '../utils/image';
 
-const DIFFICULTY_LABEL: Record<string, string> = {
-  easy: 'Easy',
-  medium: 'Medium',
-  hard: 'Hard',
-  legendary: 'Legendary ⚡',
-};
+const SUIT_SYMBOLS: Record<string, string> = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' };
 
 export default function ClaimsPage() {
   const { user } = useAuth();
@@ -22,6 +18,9 @@ export default function ClaimsPage() {
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [proofInputMode, setProofInputMode] = useState<'url' | 'file'>('file');
+  const [uploadingProof, setUploadingProof] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchClaimed = async () => {
@@ -50,6 +49,21 @@ export default function ClaimsPage() {
     );
   };
 
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError('');
+    setUploadingProof(true);
+    try {
+      const url = await uploadToCloudinary(file);
+      setPhotoUrl(url);
+    } catch {
+      setError('Image upload failed. Please try again or paste a URL instead.');
+    } finally {
+      setUploadingProof(false);
+    }
+  };
+
   const onComplete = async (id: string) => {
     setSubmitting(true);
     setError('');
@@ -59,6 +73,7 @@ export default function ClaimsPage() {
       setVisibleSidequests(prev => prev.map(s => (s._id === id ? updated : s)));
       setCompletingId(null);
       setPhotoUrl('');
+      setProofInputMode('file');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to complete sidequest');
     } finally {
@@ -127,13 +142,16 @@ export default function ClaimsPage() {
               const myCompletion = s.completions.find(c => c.userId === user?.id);
 
               return (
-                <li key={s._id} className={`card claims-card claims-card--${s.difficulty}`}>
+                <li key={s._id} className={`card claims-card claims-card--${s.cardSuit}`}>
                   <div className="claims-card-header">
                     <div className="claims-card-meta">
-                      <span className={`difficulty-badge difficulty-badge--${s.difficulty}`}>
-                        {DIFFICULTY_LABEL[s.difficulty]}
+                      <span className={`sq-suit-badge suit-${s.cardSuit}`}>
+                        {SUIT_SYMBOLS[s.cardSuit]} {s.cardSuit.charAt(0).toUpperCase() + s.cardSuit.slice(1)}
                       </span>
                       <span className="xp-badge">+{s.xpReward} XP</span>
+                      <span className="xp-badge" style={{ background: 'rgba(100,116,139,0.12)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                        {s.cardRank}
+                      </span>
                     </div>
                     {isCompleted && <span className="completed-badge">Completed ✓</span>}
                   </div>
@@ -157,7 +175,7 @@ export default function ClaimsPage() {
                       <button
                         type="button"
                         className="ghost small-btn"
-                        onClick={() => { setCompletingId(s._id); setPhotoUrl(''); setError(''); }}
+                        onClick={() => { setCompletingId(s._id); setPhotoUrl(''); setError(''); setProofInputMode('file'); }}
                       >
                         Submit Proof
                       </button>
@@ -166,20 +184,59 @@ export default function ClaimsPage() {
 
                   {!isCompleted && completingId === s._id && (
                     <div className="claims-complete-form">
-                      <input
-                        type="text"
-                        placeholder="Paste a photo URL as proof…"
-                        value={photoUrl}
-                        onChange={e => setPhotoUrl(e.target.value)}
-                        autoFocus
-                      />
-                      {photoUrl && (
-                        <img src={photoUrl} alt="Proof preview" className="claims-proof-preview" />
+                      <div className="proof-mode-toggle">
+                        <button
+                          type="button"
+                          className={proofInputMode === 'file' ? 'proof-mode-btn active' : 'proof-mode-btn'}
+                          onClick={() => { setProofInputMode('file'); setPhotoUrl(''); }}
+                        >
+                          Upload Photo
+                        </button>
+                        <button
+                          type="button"
+                          className={proofInputMode === 'url' ? 'proof-mode-btn active' : 'proof-mode-btn'}
+                          onClick={() => { setProofInputMode('url'); setPhotoUrl(''); }}
+                        >
+                          Paste URL
+                        </button>
+                      </div>
+
+                      {proofInputMode === 'file' ? (
+                        <div className="proof-upload-area" onClick={() => fileInputRef.current?.click()}>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={onPickFile}
+                          />
+                          {uploadingProof ? (
+                            <span className="proof-upload-hint">Uploading…</span>
+                          ) : photoUrl ? (
+                            <img src={photoUrl} className="claims-proof-preview" alt="Preview" />
+                          ) : (
+                            <span className="proof-upload-hint">Click to choose a photo from your device</span>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          <input
+                            type="text"
+                            placeholder="Paste a photo URL as proof…"
+                            value={photoUrl}
+                            onChange={e => setPhotoUrl(e.target.value)}
+                            autoFocus
+                          />
+                          {photoUrl && (
+                            <img src={photoUrl} alt="Proof preview" className="claims-proof-preview" />
+                          )}
+                        </>
                       )}
+
                       <div className="search-row">
                         <button
                           type="button"
-                          disabled={!photoUrl || submitting}
+                          disabled={!photoUrl || submitting || uploadingProof}
                           onClick={() => onComplete(s._id)}
                         >
                           {submitting ? 'Submitting…' : 'Complete'}
@@ -187,7 +244,7 @@ export default function ClaimsPage() {
                         <button
                           type="button"
                           className="ghost"
-                          onClick={() => { setCompletingId(null); setPhotoUrl(''); }}
+                          onClick={() => { setCompletingId(null); setPhotoUrl(''); setProofInputMode('file'); }}
                         >
                           Cancel
                         </button>

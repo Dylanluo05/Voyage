@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { UserProfile } from "../types";
 import { getProfile, addBadge, removeBadge } from "../api/users";
+import { getLeaderboard } from "../api/publicSidequests";
 import { useAuth } from "../context/AuthContext";
 
 function getFlagEmoji(countryCode: string): string {
@@ -16,7 +17,9 @@ export default function ProfilePage() {
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({ destination: '', countryCode: '' });
     const [saving, setSaving] = useState(false);
+    const [flippedId, setFlippedId] = useState<string | null>(null);
     const [removingId, setRemovingId] = useState<string | null>(null);
+    const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null);
     const { user } = useAuth();
 
     const loadUserProfile = async () => {
@@ -57,6 +60,62 @@ export default function ProfilePage() {
 
     useEffect(() => { loadUserProfile(); }, []);
 
+    useEffect(() => {
+        if (!user) return;
+        getLeaderboard().then(entries => {
+            const pos = entries.findIndex(e => e._id === user.id);
+            if (pos !== -1) setLeaderboardRank(pos + 1);
+        }).catch(() => {});
+    }, [user]);
+
+    const determineRank = (xp: number): [string, string, number, number] => {
+        const thresholds = [{ name: 'Recruit', value: 0 }, { name: 'Wanderer', value: 1000 }, { name: 'Adventurer', value: 2000 }, { name: 'Explorer', value: 4000 }, { name: 'Veteran', value: 7000 }, { name: 'Champion', value: 10000 }, { name: 'Legend', value: 15000 }, { name: 'Voyager', value: 20000 }];
+        let index;
+
+        if (xp >= thresholds[7].value) {
+            index = 7;
+        } else if (xp >= thresholds[6].value) {
+            index = 6;
+        } else if (xp >= thresholds[5].value) {
+            index = 5;
+        } else if (xp >= thresholds[4].value) {
+            index = 4;
+        } else if (xp >= thresholds[3].value) {
+            index = 3;
+        } else if (xp >= thresholds[2].value) {
+            index = 2;
+        } else if (xp >= thresholds[1].value) {
+            index = 1;
+        } else {
+            index = 0;
+        }
+
+        const rank = thresholds[index].name;
+        const nextRank = index < 7 ? thresholds[index + 1].name : '';
+
+        const xpBeforeNextRank = index < 7 ? thresholds[index + 1].value - xp : 0;
+        const percentageBeforeNextRank = index < 7 ? Math.round((xp - thresholds[index].value) / (thresholds[index + 1].value - thresholds[index].value) * 100) : 100;
+
+        return [rank, nextRank, xpBeforeNextRank, percentageBeforeNextRank];
+    };
+
+    const getSuitSymbol = (suit: 'spades' | 'hearts' | 'diamonds' | 'clubs'): string => {
+        const SUIT_SYMBOL_MAPPINGS = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' }
+        return SUIT_SYMBOL_MAPPINGS[suit];
+    };
+
+    const getSuitLabel = (suit: 'spades' | 'hearts' | 'diamonds' | 'clubs'): string => {
+        const SUIT_LABEL_MAPPINGS = { spades: 'Physical', hearts: 'Social', diamonds: 'Intellectual', clubs: 'Teamwork' };
+        return SUIT_LABEL_MAPPINGS[suit];
+    };
+
+    const getSuitColor = (suit: 'spades' | 'hearts' | 'diamonds' | 'clubs'): string => {
+        const SUIT_COLOR_MAPPINGS = { spades: '#33415533', hearts: '#ef444433', diamonds: '#3b82f633', clubs: '#10b98133' };
+        return SUIT_COLOR_MAPPINGS[suit];
+    };
+
+    const [rank, nextRank, xpBeforeNextRank, percentageBeforeNextRank] = profile ? determineRank(profile.xp) : ['', '', 1000, 0];
+
     return (
         <div className="page">
             <h1>Profile</h1>
@@ -70,6 +129,49 @@ export default function ProfilePage() {
                     </>
                 )}
             </section>
+
+            {profile && (
+                <section className="card">
+                    <h2>Total XP:</h2>
+                    <div className="row" style={{ gap: '3rem' }}>
+                        <span className="gradient-text"><strong>{profile.xp}</strong> xp</span>
+                        {rank !== '' && <span className="gradient-text">Current rank: {rank}</span>}
+                        {nextRank !== '' && <span className="gradient-text">{xpBeforeNextRank} xp before next rank: {nextRank}</span>}
+                        <span className="gradient-text">Current rank percentage: {percentageBeforeNextRank}%</span>
+                        {leaderboardRank !== null && <span className="gradient-text">Global rank: #{leaderboardRank}</span>}
+                    </div>
+                    <br />
+                    <div className="budget-progress-bar">
+                        <div className="budget-progress-fill" style={{ width: percentageBeforeNextRank + '%', backgroundColor: 'var(--violet)' }}></div>
+                    </div>
+                </section>
+            )}
+
+            {profile && (
+                <section className="card">
+                    <h2>Past Sidequests</h2>
+                    <div className="flip-cards-grid">
+                        {profile.sidequestHistory.length > 0 ? profile.sidequestHistory.map((s) => (
+                            <div key={s._id} onClick={() => setFlippedId(prev => prev === s._id ? null : s._id)} className="flip-card">
+                                <div className={`flip-card-inner${s._id === flippedId ? ' flipped' : ''}`}>
+                                    <div className="flip-card-front" style={{ background: `linear-gradient(135deg, var(--card-bg) 40%, ${getSuitColor(s.cardSuit)})` }}>
+                                        <span className={`flip-card-suit suit-${s.cardSuit}`}>{getSuitSymbol(s.cardSuit)}</span>
+                                        <span className="flip-card-rank">{s.cardRank}</span>
+                                        <span className="past-sidequest-title">{s.title}</span>
+                                    </div>
+                                    <div className="flip-card-back" style={{ border: `1px solid ${getSuitColor(s.cardSuit)}` }}>
+                                        <span style={{ fontWeight: 600, fontSize: 12, textAlign: 'center' }}>{s.title}</span>
+                                        <span className="muted small">{getSuitLabel(s.cardSuit)}</span>
+                                        <span className="muted small">{new Date(s.completedAt).toLocaleDateString()}</span>
+                                        <span className="xp-badge">+{s.xpEarned} xp</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )) : <p>No sidequests completed yet...</p>}
+                    </div>
+                </section>
+            )
+            }
 
             <section className="card">
                 <div className="sidequest-header-row">
@@ -148,6 +250,6 @@ export default function ProfilePage() {
                     <p className="muted small">No badges yet — add destinations you've visited.</p>
                 )}
             </section>
-        </div>
+        </div >
     );
 }

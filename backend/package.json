@@ -5,7 +5,7 @@
   "description": "Express + TypeScript + MongoDB API for the trip itinerary planner",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "lsof -ti:4000 | xargs kill -9 2>/dev/null; ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit"

@@ -17,29 +17,35 @@ const dailyCompletions = new Map<string, { count: number; date: string }>();
 const DAILY_COMPLETION_LIMIT = 10;
 
 function todayUtc(): string {
-  return new Date().toISOString().slice(0, 10);
+    return new Date().toISOString().slice(0, 10);
 }
 
 function checkDailyCompletionLimit(userId: string): void {
-  const today = todayUtc();
-  const entry = dailyCompletions.get(userId);
-  if (!entry || entry.date !== today) {
-    dailyCompletions.set(userId, { count: 0, date: today });
-    return;
-  }
-  if (entry.count >= DAILY_COMPLETION_LIMIT) {
-    throw new HttpError(429, 'Daily sidequest completion limit reached. Try again tomorrow.');
-  }
+    const today = todayUtc();
+    const entry = dailyCompletions.get(userId);
+    if (!entry || entry.date !== today) {
+        dailyCompletions.set(userId, { count: 0, date: today });
+        return;
+    }
+    if (entry.count >= DAILY_COMPLETION_LIMIT) {
+        throw new HttpError(429, 'Daily sidequest completion limit reached. Try again tomorrow.');
+    }
 }
 
 function incrementDailyCompletion(userId: string): void {
-  const today = todayUtc();
-  const entry = dailyCompletions.get(userId);
-  if (!entry || entry.date !== today) {
-    dailyCompletions.set(userId, { count: 1, date: today });
-  } else {
-    entry.count += 1;
-  }
+    const today = todayUtc();
+    const entry = dailyCompletions.get(userId);
+    if (!entry || entry.date !== today) {
+        dailyCompletions.set(userId, { count: 1, date: today });
+    } else {
+        entry.count += 1;
+    }
+}
+
+function computeXp(cardSuit: 'spades' | 'hearts' | 'diamonds' | 'clubs', cardRank: 'J' | 'Q' | 'K' | 'A'): number {
+    const BASE_XP = { 'J': 250, 'Q': 500, 'K': 750, 'A': 1000 };
+    const MULTIPLIER = { 'spades': 1.5, 'hearts': 1.0, 'diamonds': 1.2, 'clubs': 1.1 };
+    return Math.round(BASE_XP[cardRank] * MULTIPLIER[cardSuit] / 5) * 5;
 }
 
 function ownerId(req: Request): Types.ObjectId {
@@ -73,12 +79,13 @@ export async function createPublicSidequest(req: Request, res: Response, next: N
             title: z.string().min(1),
             description: z.string().optional(),
             location: z.string().optional(),
-            difficulty: z.enum(['easy', 'medium', 'hard', 'legendary']),
+            cardSuit: z.enum(['spades', 'hearts', 'diamonds', 'clubs']),
+            cardRank: z.enum(['J', 'Q', 'K', 'A']),
+            event: z.object({ date: z.string(), maxParticipants: z.number().min(1).optional() }).optional(),
         }).parse(req.body);
         const uid = ownerId(req);
         const user = await User.findById(uid).select('name');
         if (!user) throw new HttpError(404, 'User not found');
-        const XP_BY_DIFFICULTY = { easy: 50, medium: 100, hard: 200, legendary: 500 }
         const publicSidequest = await PublicSidequest.create({
             title: publicSidequestSchema.title,
             description: publicSidequestSchema.description,
@@ -89,8 +96,15 @@ export async function createPublicSidequest(req: Request, res: Response, next: N
             },
             claims: [],
             completions: [],
-            difficulty: publicSidequestSchema.difficulty,
-            xpReward: XP_BY_DIFFICULTY[publicSidequestSchema.difficulty],
+            cardSuit: publicSidequestSchema.cardSuit,
+            cardRank: publicSidequestSchema.cardRank,
+            xpReward: computeXp(publicSidequestSchema.cardSuit, publicSidequestSchema.cardRank),
+            ...(publicSidequestSchema.event &&
+            {
+                event: {
+                    ...publicSidequestSchema.event, enrollments: []
+                }
+            })
         });
         res.status(201).json(publicSidequest);
     } catch (err) {
@@ -140,21 +154,21 @@ export async function completePublicSidequest(req: Request, res: Response, next:
         if (!user) throw new HttpError(404, 'User not found');
         const response = await anthropic.messages.create({
             model: 'claude-haiku-4-5-20251001',
-            max_tokens: 150,
+            max_tokens: 200,
             messages: [{
                 role: 'user',
                 content: [
                     { type: 'image', source: { type: 'url', url: photoUrl } },
-                    { type: 'text', text: `here is a sidequest called ${publicSidequest.title} with description ${publicSidequest.description}; does the provided photo effectively show that it was completed? Answer only YES or NO on the first line, and give a single sentence explaining your verdict on the second line` },
+                    { type: 'text', text: `Sidequest: "${publicSidequest.title}"\nDescription: ${publicSidequest.description ?? 'No description'}\n\nDoes this photo show that the sidequest was completed? Be lenient — if the photo plausibly shows the activity, accept it.\n\nRespond in exactly this format:\nLine 1: YES or NO (one word only)\nLine 2: One sentence explaining your verdict.` },
                 ],
             }],
         });
         const textBlock = response.content.find(b => b.type === 'text');
         if (!textBlock || textBlock.type !== 'text') throw new HttpError(500, 'AI returned unexpected response');
-        const lines = textBlock.text.split(`\n`).map(l => l.trim());
-        const verdict = lines[0]
-        const explanation = lines[1] ?? 'No explanation provided';
-        if (!verdict.includes('YES')) throw new HttpError(400, `AI could not verify sidequest and has the following explanation: ${explanation}`);
+        const lines = textBlock.text.trim().split('\n').map(l => l.trim()).filter(Boolean);
+        const verdict = lines[0] ?? '';
+        const explanation = lines.slice(1).join(' ') || 'No explanation provided';
+        if (!verdict.toUpperCase().startsWith('YES')) throw new HttpError(400, `AI could not verify completion: ${explanation}`);
         incrementDailyCompletion(uid.toString());
         publicSidequest.completions.push({
             userId: uid,
@@ -162,8 +176,85 @@ export async function completePublicSidequest(req: Request, res: Response, next:
             photoUrl: photoUrl,
             completedAt: new Date(),
         });
+        const sidequestHistoryData = {
+            sidequestId: publicSidequest._id,
+            title: publicSidequest.title,
+            cardSuit: publicSidequest.cardSuit,
+            cardRank: publicSidequest.cardRank,
+            xpEarned: publicSidequest.xpReward,
+            completedAt: new Date(),
+        };
+        await user.updateOne({ $inc: { xp: publicSidequest.xpReward }, $push: { sidequestHistory: sidequestHistoryData } });
         await publicSidequest.save();
         res.status(200).json(publicSidequest);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function enrollInSidequest(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+        const uid = ownerId(req);
+        const [user, publicSidequest] = await Promise.all([
+            User.findById(uid),
+            PublicSidequest.findById(req.params.id),
+        ]);
+        if (!publicSidequest) throw new HttpError(404, 'Public sidequest not found');
+        if (!user) throw new HttpError(404, 'User not found');
+        if (!publicSidequest.event) throw new HttpError(400, 'Public sidequest does not have an active event');
+        if (publicSidequest.event.enrollments.some((e) => e.userId.equals(uid))) throw new HttpError(400, 'User already enrolled in public sidequest event');
+        if (publicSidequest.event.maxParticipants && publicSidequest.event.maxParticipants === publicSidequest.event.enrollments.length) throw new HttpError(400, 'Sidequest enrollment limit already reached');
+        publicSidequest.event.enrollments.push({ userId: uid, userName: user.name, enrolledAt: new Date() });
+        if (!publicSidequest.claims.some(c => c.userId.equals(uid))) {
+            publicSidequest.claims.push({ userId: uid, userName: user.name, claimedAt: new Date() });
+        }
+        await publicSidequest.save();
+        res.status(200).json(publicSidequest);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function leaveEvent(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+        const uid = ownerId(req);
+        const publicSidequest = await PublicSidequest.findById(req.params.id);
+        if (!publicSidequest) throw new HttpError(404, 'Public sidequest not found');
+        if (!publicSidequest.event) throw new HttpError(400, 'Public sidequest does not have an active event');
+        if (!publicSidequest.event.enrollments.some(e => e.userId.equals(uid))) throw new HttpError(400, 'User is not enrolled in this event');
+        const updated = await PublicSidequest.findByIdAndUpdate(
+            req.params.id,
+            { $pull: { 'event.enrollments': { userId: uid }, claims: { userId: uid } } },
+            { new: true }
+        );
+        res.status(200).json(updated);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function unclaimPublicSidequest(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+        const uid = ownerId(req);
+        const publicSidequest = await PublicSidequest.findById(req.params.id);
+        if (!publicSidequest) throw new HttpError(404, 'Public sidequest not found');
+        if (!publicSidequest.claims.some(c => c.userId.equals(uid))) throw new HttpError(400, 'Sidequest not claimed by user');
+        if (publicSidequest.completions.some(c => c.userId.equals(uid))) throw new HttpError(400, 'Cannot unclaim a completed sidequest');
+        const updated = await PublicSidequest.findByIdAndUpdate(
+            req.params.id,
+            { $pull: { claims: { userId: uid } } },
+            { new: true }
+        );
+        res.status(200).json(updated);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function getLeaderboard(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+        const leaderboard = await User.find({}).select('name xp').sort({ xp: -1 }).limit(50);
+        res.status(200).json(leaderboard);
     } catch (err) {
         next(err);
     }
