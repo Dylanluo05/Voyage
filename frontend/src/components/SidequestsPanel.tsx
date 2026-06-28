@@ -2,6 +2,18 @@ import { useState } from "react";
 import { Trip } from "../types";
 import { addSidequest, assignSidequest, completeSidequest, removeSidequest, addComment, removeComment, publishSidequest } from "../api/trips";
 
+type CardSuit = 'spades' | 'hearts' | 'diamonds' | 'clubs';
+type CardRank = 'J' | 'Q' | 'K' | 'A';
+
+const SUIT_SYMBOLS: Record<CardSuit, string> = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' };
+const SUIT_LABELS: Record<CardSuit, string> = { spades: 'Physical', hearts: 'Social', diamonds: 'Intellectual', clubs: 'Teamwork' };
+
+function computeXp(suit: CardSuit, rank: CardRank): number {
+    const BASE: Record<CardRank, number> = { J: 250, Q: 500, K: 750, A: 1000 };
+    const MULT: Record<CardSuit, number> = { spades: 1.5, hearts: 1.0, diamonds: 1.2, clubs: 1.1 };
+    return Math.round(BASE[rank] * MULT[suit] / 5) * 5;
+}
+
 const FUNNY_GIFS = [
     { label: "Facepalm", url: "https://media.giphy.com/media/XsUtdIeJ0MWMo/giphy.gif" },
     { label: "Mind blown", url: "https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif" },
@@ -24,14 +36,16 @@ interface SidequestsPanelProps {
 }
 
 export default function SidequestsPanel({ trip, currentUserId, onUpdate }: SidequestsPanelProps) {
-    const [showForm, setShowForm] = useState<boolean>(false);
+    const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({
         title: '',
         description: '',
+        cardSuit: 'spades' as CardSuit,
+        cardRank: 'J' as CardRank,
     });
     const [assigningId, setAssigningId] = useState<string | null>(null);
     const [selectedAssignee, setSelectedAssignee] = useState('');
-    const [saving, setSaving] = useState<boolean>(false);
+    const [saving, setSaving] = useState(false);
     const [assignLoadingId, setAssignLoadingId] = useState<string | null>(null);
     const [completingId, setCompletingId] = useState<string | null>(null);
     const [removingId, setRemovingId] = useState<string | null>(null);
@@ -50,13 +64,12 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
         try {
             const updated = await addSidequest(trip._id, {
                 title: form.title,
-                description: form.description || undefined
+                description: form.description || undefined,
+                cardSuit: form.cardSuit,
+                cardRank: form.cardRank,
             });
             onUpdate(updated);
-            setForm({
-                title: '',
-                description: '',
-            });
+            setForm({ title: '', description: '', cardSuit: 'spades', cardRank: 'J' });
             setShowForm(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -69,8 +82,7 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
         setRemovingId(sidequestId);
         setError('');
         try {
-            const updated = await removeSidequest(trip._id, sidequestId);
-            onUpdate(updated);
+            onUpdate(await removeSidequest(trip._id, sidequestId));
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong');
         } finally {
@@ -82,8 +94,7 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
         setAssignLoadingId(sidequestId);
         setError('');
         try {
-            const updated = await assignSidequest(trip._id, sidequestId, selectedAssignee);
-            onUpdate(updated);
+            onUpdate(await assignSidequest(trip._id, sidequestId, selectedAssignee));
             setAssigningId(null);
             setSelectedAssignee('');
         } catch (err) {
@@ -97,8 +108,7 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
         setCompletingId(sidequestId);
         setError('');
         try {
-            const updated = await completeSidequest(trip._id, sidequestId);
-            onUpdate(updated);
+            onUpdate(await completeSidequest(trip._id, sidequestId));
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong');
         } finally {
@@ -112,8 +122,7 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
         setError('');
         try {
             const comment = commentForms[sidequestId];
-            const updated = await addComment(trip._id, sidequestId, comment);
-            onUpdate(updated);
+            onUpdate(await addComment(trip._id, sidequestId, comment));
             setCommentForms(prev => ({ ...prev, [sidequestId]: { text: '', imageUrl: '' } }));
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -126,8 +135,7 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
         setRemovingCommentId(commentId);
         setError('');
         try {
-            const updated = await removeComment(trip._id, sidequestId, commentId);
-            onUpdate(updated);
+            onUpdate(await removeComment(trip._id, sidequestId, commentId));
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong');
         } finally {
@@ -135,7 +143,7 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
         }
     };
 
-    const handlePublishSidequest = async (sidequestId: string) => {
+    const handlePublish = async (sidequestId: string) => {
         setPublishingId(sidequestId);
         setError('');
         try {
@@ -148,6 +156,8 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
         }
     };
 
+    const previewXp = computeXp(form.cardSuit, form.cardRank);
+
     return (
         <section id="sidequests-section" className="card">
             <div className="sidequest-header-row">
@@ -155,69 +165,178 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
                 <button
                     type="button"
                     className="ghost small-btn"
-                    onClick={() => setShowForm(showForm => !showForm)}
+                    onClick={() => setShowForm(f => !f)}
                 >
                     {showForm ? 'Cancel' : '+ Add'}
                 </button>
             </div>
+
             {showForm && (
-                <form className="form" onSubmit={handleAdd}>
-                    <label htmlFor="sidequest-title">Title</label>
-                    <input id="sidequest-title" type="text" placeholder="Title..." value={form.title} onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))} />
-                    <label htmlFor="sidequest-description">Description</label>
-                    <textarea id="sidequest-description" placeholder="Description..." value={form.description} onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))} />
-                    <button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Submit'}</button>
+                <form className="form sq-create-form" onSubmit={handleAdd}>
+                    <label>Title
+                        <input
+                            type="text"
+                            placeholder="e.g. Watch the sunrise from a rooftop"
+                            value={form.title}
+                            onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+                            required
+                        />
+                    </label>
+                    <label>Description <span className="muted">(optional)</span>
+                        <textarea
+                            placeholder="What's the challenge?"
+                            value={form.description}
+                            onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                            rows={2}
+                        />
+                    </label>
+                    <div className="sq-create-form-row">
+                        <div>
+                            <label>Suit — Category
+                                <select
+                                    value={form.cardSuit}
+                                    onChange={e => setForm(p => ({ ...p, cardSuit: e.target.value as CardSuit }))}
+                                >
+                                    <option value="spades">♠ Spades — Physical</option>
+                                    <option value="hearts">♥ Hearts — Social</option>
+                                    <option value="diamonds">♦ Diamonds — Intellectual</option>
+                                    <option value="clubs">♣ Clubs — Teamwork</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div>
+                            <label>Rank — Difficulty
+                                <select
+                                    value={form.cardRank}
+                                    onChange={e => setForm(p => ({ ...p, cardRank: e.target.value as CardRank }))}
+                                >
+                                    <option value="J">J — Beginner</option>
+                                    <option value="Q">Q — Novice</option>
+                                    <option value="K">K — Intermediate</option>
+                                    <option value="A">A — Advanced</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+                    <div className="sq-xp-preview">⚡ {previewXp} XP reward</div>
+                    <button type="submit" disabled={!form.title || saving}>
+                        {saving ? 'Adding…' : 'Add Sidequest'}
+                    </button>
                 </form>
             )}
-            {error && <p className="error">{error}</p>}
-            {trip.sidequests.length > 0 ? (
-                trip.sidequests.map(s => {
-                    const commentForm = commentForms[s._id] ?? { text: '', imageUrl: '' };
-                    const isPublished = publishedIds.has(s._id);
-                    return (
-                        <div key={s._id} className="sidequest-card">
-                            <div className="sidequest-card-top">
-                                <h3 className="sidequest-card-header">{s.title}</h3>
-                                {s.completed && <span className="completed-badge">Completed</span>}
-                            </div>
-                            {s.description && (
-                                <p className="muted">{s.description}</p>
-                            )}
-                            {s.assignee && s.assigner && (
-                                <p className="sidequest-assignment">Assigned to {s.assignee.userName} by {s.assigner.userName}</p>
-                            )}
 
-                            <div className="sidequest-actions">
-                                {assigningId === s._id ? (
-                                    <div className="sidequest-assign-row">
-                                        <select value={selectedAssignee} onChange={(e) => setSelectedAssignee(e.target.value)}>
-                                            <option value="">Select member...</option>
-                                            {[trip.owner, ...trip.collaborators].filter(c => c._id !== currentUserId).map(c => (
+            {error && <p className="error">{error}</p>}
+
+            {trip.sidequests.length === 0 && (
+                <p className="muted">No sidequests yet — add one to challenge your crew.</p>
+            )}
+
+            {trip.sidequests.map(s => {
+                const suit = (s.cardSuit ?? 'spades') as CardSuit;
+                const rank = (s.cardRank ?? 'J') as CardRank;
+                const xp = computeXp(suit, rank);
+                const commentForm = commentForms[s._id] ?? { text: '', imageUrl: '' };
+                const isPublished = publishedIds.has(s._id);
+
+                return (
+                    <div key={s._id} className={`sidequest-card sidequest-card--${suit}`}>
+                        {/* Card meta row */}
+                        <div className="sidequest-card-meta">
+                            <span className={`sq-suit-badge suit-${suit}`}>
+                                {SUIT_SYMBOLS[suit]} {SUIT_LABELS[suit]}
+                            </span>
+                            <span className="sq-rank-badge">{rank}</span>
+                            <span className="xp-badge">+{xp} XP</span>
+                            {s.completed && <span className="completed-badge">Completed ✓</span>}
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="sidequest-card-header">{s.title}</h3>
+                        {s.description && <p className="muted small" style={{ marginTop: 2 }}>{s.description}</p>}
+
+                        {/* Assignment info */}
+                        {s.assignee && s.assigner && (
+                            <p className="sidequest-assignment">
+                                Assigned to <strong>{s.assignee.userName}</strong> by {s.assigner.userName}
+                            </p>
+                        )}
+
+                        {/* Actions */}
+                        <div className="sidequest-actions">
+                            {assigningId === s._id ? (
+                                <div className="sidequest-assign-row">
+                                    <select
+                                        value={selectedAssignee}
+                                        onChange={e => setSelectedAssignee(e.target.value)}
+                                    >
+                                        <option value="">Select member…</option>
+                                        {[trip.owner, ...trip.collaborators]
+                                            .filter(c => c._id !== currentUserId)
+                                            .map(c => (
                                                 <option key={c._id} value={c._id}>{c.name}</option>
                                             ))}
-                                        </select>
-                                        <button type="button" className="small-btn" disabled={!selectedAssignee || assignLoadingId === s._id} onClick={() => handleAssign(s._id)}>Confirm</button>
-                                        <button type="button" className="ghost small-btn" onClick={() => { setAssigningId(null); setSelectedAssignee(''); }}>Cancel</button>
-                                    </div>
-                                ) : (
-                                    <button type="button" className="ghost small-btn" disabled={s.completed} onClick={() => setAssigningId(s._id)}>Assign</button>
-                                )}
-                                {(currentUserId === s.assigner?.userId && !s.completed) && (
-                                    <button type="button" className="ghost small-btn" disabled={completingId === s._id} onClick={() => handleComplete(s._id)}>Complete</button>
-                                )}
-                                {trip.owner._id === currentUserId && (
+                                    </select>
                                     <button
                                         type="button"
-                                        className={isPublished ? 'ghost small-btn' : 'ghost small-btn'}
-                                        disabled={isPublished || publishingId === s._id}
-                                        onClick={() => handlePublishSidequest(s._id)}
+                                        className="small-btn"
+                                        disabled={!selectedAssignee || assignLoadingId === s._id}
+                                        onClick={() => handleAssign(s._id)}
                                     >
-                                        {publishingId === s._id ? 'Publishing…' : isPublished ? '✓ Published' : 'Publish'}
+                                        Confirm
                                     </button>
-                                )}
-                                <button type="button" className="danger small-btn" disabled={removingId === s._id} onClick={() => handleRemove(s._id)}>Remove</button>
-                            </div>
+                                    <button
+                                        type="button"
+                                        className="ghost small-btn"
+                                        onClick={() => { setAssigningId(null); setSelectedAssignee(''); }}
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    className="ghost small-btn"
+                                    disabled={s.completed}
+                                    onClick={() => setAssigningId(s._id)}
+                                >
+                                    Assign
+                                </button>
+                            )}
 
+                            {currentUserId === s.assigner?.userId && !s.completed && (
+                                <button
+                                    type="button"
+                                    className="ghost small-btn"
+                                    disabled={completingId === s._id}
+                                    onClick={() => handleComplete(s._id)}
+                                >
+                                    {completingId === s._id ? 'Completing…' : 'Mark Complete'}
+                                </button>
+                            )}
+
+                            {trip.owner._id === currentUserId && (
+                                <button
+                                    type="button"
+                                    className="ghost small-btn"
+                                    disabled={isPublished || publishingId === s._id}
+                                    onClick={() => handlePublish(s._id)}
+                                >
+                                    {publishingId === s._id ? 'Publishing…' : isPublished ? '✓ Published' : 'Publish'}
+                                </button>
+                            )}
+
+                            <button
+                                type="button"
+                                className="danger small-btn"
+                                disabled={removingId === s._id}
+                                onClick={() => handleRemove(s._id)}
+                            >
+                                Remove
+                            </button>
+                        </div>
+
+                        {/* Comments */}
+                        {s.comments.length > 0 && (
                             <div className="sidequest-comments">
                                 {s.comments.map(c => (
                                     <div key={c._id} className="sidequest-comment">
@@ -226,47 +345,72 @@ export default function SidequestsPanel({ trip, currentUserId, onUpdate }: Sideq
                                             <span className="muted sidequest-comment-time">{c.createdAt}</span>
                                         </div>
                                         <p className="sidequest-comment-text">{c.text}</p>
-                                        {c.imageUrl && <img className="sidequest-comment-image" src={c.imageUrl} />}
+                                        {c.imageUrl && <img className="sidequest-comment-image" src={c.imageUrl} alt="" />}
                                         {c.userId === currentUserId && (
-                                            <button type="button" className="ghost small-btn sidequest-comment-remove" disabled={removingCommentId === c._id} onClick={() => handleRemoveComment(s._id, c._id)}>Remove</button>
+                                            <button
+                                                type="button"
+                                                className="ghost small-btn sidequest-comment-remove"
+                                                disabled={removingCommentId === c._id}
+                                                onClick={() => handleRemoveComment(s._id, c._id)}
+                                            >
+                                                Remove
+                                            </button>
                                         )}
                                     </div>
                                 ))}
                             </div>
+                        )}
 
-                            <form className="sidequest-comment-form" onSubmit={(e) => handleAddComment(e, s._id)}>
-                                <input type="text" placeholder="Add a comment..." value={commentForm.text} onChange={(e) => setCommentForms(prev => ({ ...prev, [s._id]: { ...commentForm, text: e.target.value } }))} />
-                                <div className="sidequest-image-row">
-                                    <input type="text" placeholder="Image URL (optional)..." value={commentForm.imageUrl} onChange={(e) => setCommentForms(prev => ({ ...prev, [s._id]: { ...commentForm, imageUrl: e.target.value } }))} />
-                                    <button type="button" className="ghost small-btn" onClick={() => setGifPickerId(gifPickerId === s._id ? null : s._id)}>
-                                        {gifPickerId === s._id ? 'Close' : '🎬 GIF'}
-                                    </button>
+                        <form className="sidequest-comment-form" onSubmit={e => handleAddComment(e, s._id)}>
+                            <input
+                                type="text"
+                                placeholder="Add a comment…"
+                                value={commentForm.text}
+                                onChange={e => setCommentForms(prev => ({ ...prev, [s._id]: { ...commentForm, text: e.target.value } }))}
+                            />
+                            <div className="sidequest-image-row">
+                                <input
+                                    type="text"
+                                    placeholder="Image URL (optional)…"
+                                    value={commentForm.imageUrl}
+                                    onChange={e => setCommentForms(prev => ({ ...prev, [s._id]: { ...commentForm, imageUrl: e.target.value } }))}
+                                />
+                                <button
+                                    type="button"
+                                    className="ghost small-btn"
+                                    onClick={() => setGifPickerId(gifPickerId === s._id ? null : s._id)}
+                                >
+                                    {gifPickerId === s._id ? 'Close' : '🎬 GIF'}
+                                </button>
+                            </div>
+                            {gifPickerId === s._id && (
+                                <div className="gif-picker">
+                                    {FUNNY_GIFS.map(gif => (
+                                        <img
+                                            key={gif.url}
+                                            src={gif.url}
+                                            alt={gif.label}
+                                            title={gif.label}
+                                            className="gif-thumb"
+                                            onClick={() => {
+                                                setCommentForms(prev => ({ ...prev, [s._id]: { ...commentForm, imageUrl: gif.url } }));
+                                                setGifPickerId(null);
+                                            }}
+                                        />
+                                    ))}
                                 </div>
-                                {gifPickerId === s._id && (
-                                    <div className="gif-picker">
-                                        {FUNNY_GIFS.map(gif => (
-                                            <img
-                                                key={gif.url}
-                                                src={gif.url}
-                                                alt={gif.label}
-                                                title={gif.label}
-                                                className="gif-thumb"
-                                                onClick={() => {
-                                                    setCommentForms(prev => ({ ...prev, [s._id]: { ...commentForm, imageUrl: gif.url } }));
-                                                    setGifPickerId(null);
-                                                }}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-                                <button type="submit" className="ghost small-btn" disabled={!commentForm.text || commentingId === s._id}>Post</button>
-                            </form>
-                        </div>
-                    )
-                })
-            ) : (
-                <p className="muted">No sidequests added yet</p>
-            )}
+                            )}
+                            <button
+                                type="submit"
+                                className="ghost small-btn"
+                                disabled={!commentForm.text || commentingId === s._id}
+                            >
+                                Post
+                            </button>
+                        </form>
+                    </div>
+                );
+            })}
         </section>
     );
 }

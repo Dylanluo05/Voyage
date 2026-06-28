@@ -254,7 +254,7 @@ export function settleSplit(tripId: string, expenseId: string, userId: string): 
   });
 }
 
-export function addSidequest(tripId: string, sidequest: { title: string; description?: string }): Promise<Trip> {
+export function addSidequest(tripId: string, sidequest: { title: string; description?: string; cardSuit: string; cardRank: string }): Promise<Trip> {
   return apiFetch<Trip>(`/api/trips/${tripId}/sidequests`, {
     method: 'POST',
     body: JSON.stringify(sidequest),

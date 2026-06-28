@@ -176,6 +176,8 @@ export interface SidequestData {
   _id?: Types.ObjectId;
   title: string;
   description?: string;
+  cardSuit: 'spades' | 'hearts' | 'diamonds' | 'clubs';
+  cardRank: 'J' | 'Q' | 'K' | 'A';
   assignee?: { userId: Types.ObjectId; userName: string };
   assigner?: { userId: Types.ObjectId; userName: string };
   comments: { _id?: Types.ObjectId; userId: Types.ObjectId; userName: string; text: string; imageUrl?: string; createdAt: Date }[];
@@ -359,6 +361,8 @@ const sidequestSchema = new Schema<SidequestData>(
   {
     title: { type: String, required: true, trim: true },
     description: { type: String, trim: true },
+    cardSuit: { type: String, enum: ['spades', 'hearts', 'diamonds', 'clubs'], default: 'spades' },
+    cardRank: { type: String, enum: ['J', 'Q', 'K', 'A'], default: 'J' },
     assignee: {
       type: new Schema(
         {

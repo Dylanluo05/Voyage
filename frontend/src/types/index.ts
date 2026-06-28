@@ -234,6 +234,8 @@ export interface Sidequest {
   _id: string;
   title: string;
   description?: string;
+  cardSuit: 'spades' | 'hearts' | 'diamonds' | 'clubs';
+  cardRank: 'J' | 'Q' | 'K' | 'A';
   assignee?: { userId: string; userName: string };
   assigner?: { userId: string; userName: string };
   comments: SidequestComment[];

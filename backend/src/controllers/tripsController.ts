@@ -1014,12 +1014,16 @@ export async function addSidequest(req: Request, res: Response, next: NextFuncti
     const sidequest = z.object({
       title: z.string().min(1),
       description: z.string().min(1).optional(),
+      cardSuit: z.enum(['spades', 'hearts', 'diamonds', 'clubs']).default('spades'),
+      cardRank: z.enum(['J', 'Q', 'K', 'A']).default('J'),
     }).parse(req.body);
     const trip = await Trip.findOne(accessFilter(req, req.params.id));
     if (!trip) throw new HttpError(404, 'Trip not found');
     trip.sidequests.push({
       title: sidequest.title,
       description: sidequest.description,
+      cardSuit: sidequest.cardSuit,
+      cardRank: sidequest.cardRank,
       comments: [],
       completed: false
     });
