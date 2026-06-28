@@ -44,7 +44,7 @@ export default function LinkedSidequestsPanel({ tripId }: Props) {
     if (loading) return <p className="muted small">Loading sidequests…</p>;
 
     return (
-        <div className="linked-sq-panel">
+        <section className="card linked-sq-panel">
             <div className="sidequest-header-row">
                 <h2>Sidequests</h2>
                 <a href="/sidequests" className="ghost small-btn" style={{ textDecoration: 'none' }}>Browse & Add</a>
@@ -108,6 +108,6 @@ export default function LinkedSidequestsPanel({ tripId }: Props) {
                     })}
                 </div>
             )}
-        </div>
+        </section>
     );
 }

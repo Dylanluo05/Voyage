@@ -425,6 +425,8 @@ export default function SidequestsPage() {
                     {filtered.map(s => {
                         const isClaimed = s.claims.some(c => c.userId === user?.id);
                         const isCompleted = s.completions.some(c => c.userId === user?.id);
+                        const userClaim = s.claims.find(c => c.userId === user?.id);
+                        const linkedTrip = userClaim?.tripId ? trips.find(t => t._id === userClaim.tripId) : null;
 
                         return (
                             <li key={s._id} className={`card claims-card claims-card--${s.cardSuit}`} style={{ marginBottom: 0 }}>
@@ -529,7 +531,7 @@ export default function SidequestsPage() {
                                             {claimingId === s._id ? 'Claiming…' : '⚑ Claim'}
                                         </button>
                                     )}
-                                    {trips.length > 0 && isClaimed && (
+                                    {trips.length > 0 && isClaimed && !linkedTrip && (
                                         <button
                                             type="button"
                                             className="ghost small-btn"
@@ -539,6 +541,18 @@ export default function SidequestsPage() {
                                         </button>
                                     )}
                                 </div>
+                                {linkedTrip && (
+                                    <div className="sq-linked-trip-badge">
+                                        <span>📎 Linked to <strong>{linkedTrip.title}</strong></span>
+                                        <button
+                                            type="button"
+                                            className="ghost small-btn"
+                                            onClick={() => setAddingToTripId(s._id)}
+                                        >
+                                            Change
+                                        </button>
+                                    </div>
+                                )}
 
                                 {completingId === s._id && (
                                     <div className="claims-complete-form">

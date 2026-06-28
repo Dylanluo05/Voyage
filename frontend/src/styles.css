@@ -5806,6 +5806,18 @@ fieldset legend {
   flex-wrap: wrap;
 }
 
+.sq-linked-trip-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--teal) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--teal) 30%, transparent);
+  font-size: 12px;
+}
+
 /* ── Search row utility ───────────────────────────────────────── */
 .search-row {
   display: flex;
