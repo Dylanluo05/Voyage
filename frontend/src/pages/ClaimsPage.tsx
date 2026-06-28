@@ -88,7 +88,23 @@ export default function ClaimsPage() {
 
   return (
     <div className="page">
-      <h1>My Claims</h1>
+      <div className="claims-page-hero">
+        <h1>My Claims</h1>
+        <p className="claims-page-subtitle">Your active and completed sidequests</p>
+        {sidequests.length > 0 && (
+          <div className="claims-suit-pills">
+            {(['spades', 'hearts', 'diamonds', 'clubs'] as const).map(suit => {
+              const suitSymbols: Record<string, string> = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' };
+              const count = sidequests.filter(s => s.cardSuit === suit).length;
+              return (
+                <span key={suit} className={`sq-page-stat-pill sq-page-stat-pill--${suit}`}>
+                  {suitSymbols[suit]} {count} {suit.charAt(0).toUpperCase() + suit.slice(1)}
+                </span>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {sidequests.length > 0 && (
         <div className="claims-stats-row">

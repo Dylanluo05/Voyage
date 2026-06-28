@@ -324,10 +324,10 @@ export default function SidequestsPage() {
                 <h1>Public Sidequests</h1>
                 <p>Community travel challenges. Complete them. Earn XP. Build your legend.</p>
                 <div className="sq-page-stats">
-                    <span className="sq-page-stat-pill">♠ {counts.spades} Spades</span>
-                    <span className="sq-page-stat-pill">♥ {counts.hearts} Hearts</span>
-                    <span className="sq-page-stat-pill">♦ {counts.diamonds} Diamonds</span>
-                    <span className="sq-page-stat-pill">♣ {counts.clubs} Clubs</span>
+                    <span className="sq-page-stat-pill sq-page-stat-pill--spades">♠ {counts.spades} Spades</span>
+                    <span className="sq-page-stat-pill sq-page-stat-pill--hearts">♥ {counts.hearts} Hearts</span>
+                    <span className="sq-page-stat-pill sq-page-stat-pill--diamonds">♦ {counts.diamonds} Diamonds</span>
+                    <span className="sq-page-stat-pill sq-page-stat-pill--clubs">♣ {counts.clubs} Clubs</span>
                 </div>
             </div>
 
