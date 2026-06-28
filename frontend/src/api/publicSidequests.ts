@@ -1,4 +1,4 @@
-import { LeaderboardEntry, PublicSidequest, Trip } from '../types';
+import { LeaderboardEntry, PublicSidequest } from '../types';
 import { apiFetch } from './client';
 
 export function listPublicSidequests(
@@ -52,12 +52,29 @@ export function completePublicSidequest(
     });
 }
 
-export function addToTrip(
-    publicSidequestId: string,
+export function assignClaimToTrip(
+    sidequestId: string,
     tripId: string,
-): Promise<Trip> {
-    return apiFetch<Trip>(`/api/trips/${tripId}/sidequests/from-public/${publicSidequestId}`, {
-        method: 'POST',
+): Promise<PublicSidequest> {
+    return apiFetch<PublicSidequest>(`/api/public-sidequests/${sidequestId}/assign-trip`, {
+        method: 'PATCH',
+        body: JSON.stringify({ tripId }),
+    });
+}
+
+export function unassignClaimFromTrip(
+    sidequestId: string,
+): Promise<PublicSidequest> {
+    return apiFetch<PublicSidequest>(`/api/public-sidequests/${sidequestId}/unassign-trip`, {
+        method: 'PATCH',
+    });
+}
+
+export function getSidequestsByTrip(
+    tripId: string,
+): Promise<PublicSidequest[]> {
+    return apiFetch<PublicSidequest[]>(`/api/public-sidequests/by-trip/${tripId}`, {
+        method: 'GET',
     });
 }
 

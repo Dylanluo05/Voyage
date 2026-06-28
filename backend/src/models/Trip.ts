@@ -113,7 +113,6 @@ export interface TripDoc extends Document {
   hotels: HotelBookingData[];
   flights: FlightBookingData[];
   expenses: ExpenseData[];
-  sidequests: SidequestData[];
   dayAnchors: DayAnchorData[];
   isPublic: boolean;
 }
@@ -170,20 +169,6 @@ export interface ExpenseData {
   paidBy: { userId: Types.ObjectId; userName: string };
   splits: ExpenseSplitData[];
   createdAt?: Date;
-}
-
-export interface SidequestData {
-  _id?: Types.ObjectId;
-  title: string;
-  description?: string;
-  cardSuit: 'spades' | 'hearts' | 'diamonds' | 'clubs';
-  cardRank: 'J' | 'Q' | 'K' | 'A';
-  assignee?: { userId: Types.ObjectId; userName: string };
-  assigner?: { userId: Types.ObjectId; userName: string };
-  comments: { _id?: Types.ObjectId; userId: Types.ObjectId; userName: string; text: string; imageUrl?: string; createdAt: Date }[];
-  completed: boolean;
-  completedBy?: { userId: Types.ObjectId; userName: string };
-  completedAt?: Date;
 }
 
 const locationSchema = new Schema<LocationData>(
@@ -357,62 +342,6 @@ const expenseSchema = new Schema<ExpenseData>(
   { _id: true }
 );
 
-const sidequestSchema = new Schema<SidequestData>(
-  {
-    title: { type: String, required: true, trim: true },
-    description: { type: String, trim: true },
-    cardSuit: { type: String, enum: ['spades', 'hearts', 'diamonds', 'clubs'], default: 'spades' },
-    cardRank: { type: String, enum: ['J', 'Q', 'K', 'A'], default: 'J' },
-    assignee: {
-      type: new Schema(
-        {
-          userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-          userName: { type: String, required: true, trim: true },
-        },
-        { _id: false }
-      ),
-      default: undefined
-    },
-    assigner: {
-      type: new Schema(
-        {
-          userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-          userName: { type: String, required: true, trim: true },
-        },
-        { _id: false }
-      ),
-      default: undefined
-    },
-    comments: {
-      type: [new Schema(
-        {
-          userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-          userName: { type: String, required: true, trim: true },
-          text: { type: String, required: true, trim: true },
-          imageUrl: { type: String, trim: true },
-          createdAt: { type: Date, default: Date.now },
-        },
-        { _id: true }
-      )],
-      default: [],
-      required: true
-    },
-    completed: { type: Boolean, required: true, default: false },
-    completedBy: {
-      type: new Schema(
-        {
-          userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-          userName: { type: String, required: true, trim: true },
-        },
-        { _id: false }
-      ),
-      default: undefined
-    },
-    completedAt: { type: Date, default: undefined }
-  },
-  { _id: true }
-);
-
 const dayAnchorSchema = new Schema<DayAnchorData>(
   {
     day: { type: Number, required: true },
@@ -447,7 +376,6 @@ const tripSchema = new Schema<TripDoc>(
     hotels: { type: [hotelSchema], default: [] },
     flights: { type: [flightSchema], default: [] },
     expenses: { type: [expenseSchema], default: [] },
-    sidequests: { type: [sidequestSchema], default: [] },
     dayAnchors: { type: [dayAnchorSchema], default: [] },
     isPublic: { type: Boolean, default: false },
   },

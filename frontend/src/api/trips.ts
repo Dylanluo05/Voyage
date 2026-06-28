@@ -254,51 +254,6 @@ export function settleSplit(tripId: string, expenseId: string, userId: string): 
   });
 }
 
-export function addSidequest(tripId: string, sidequest: { title: string; description?: string; cardSuit: string; cardRank: string }): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/sidequests`, {
-    method: 'POST',
-    body: JSON.stringify(sidequest),
-  });
-}
-
-export function removeSidequest(tripId: string, sidequestId: string): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/sidequests/${sidequestId}`, {
-    method: 'DELETE',
-  });
-}
-
-export function assignSidequest(tripId: string, sidequestId: string, assigneeId: string): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/sidequests/${sidequestId}/assign`, {
-    method: 'PATCH',
-    body: JSON.stringify({ assigneeId }),
-  });
-}
-
-export function completeSidequest(tripId: string, sidequestId: string): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/sidequests/${sidequestId}/complete`, {
-    method: 'PATCH',
-  });
-}
-
-export function addComment(tripId: string, sidequestId: string, comment: { text: string, imageUrl?: string }): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/sidequests/${sidequestId}/comments`, {
-    method: 'POST',
-    body: JSON.stringify(comment),
-  });
-}
-
-export function removeComment(tripId: string, sidequestId: string, commentId: string): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/sidequests/${sidequestId}/comments/${commentId}`, {
-    method: 'DELETE',
-  });
-}
-
-export function publishSidequest(tripId: string, sidequestId: string): Promise<{ title: string }> {
-  return apiFetch<{ title: string }>(`/api/trips/${tripId}/sidequests/${sidequestId}/publish`, {
-    method: 'POST',
-  })
-}
-
 // ── Share ─────────────────────────────────────────────────────────────────
 
 export function getPublicTrip(shareToken: string): Promise<Trip> {

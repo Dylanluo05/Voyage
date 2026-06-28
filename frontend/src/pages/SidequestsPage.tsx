@@ -200,10 +200,10 @@ export default function SidequestsPage() {
     async function onAddToTrip(id: string) {
         setError('');
         try {
-            await sidequestsApi.addToTrip(id, selectedTripId);
+            await sidequestsApi.assignClaimToTrip(id, selectedTripId);
             setAddingToTripId(null);
         } catch (err) {
-            setError(err instanceof ApiError ? err.message : 'Failed to add to trip');
+            setError(err instanceof ApiError ? err.message : 'Failed to link sidequest to trip');
         }
     }
 
@@ -529,7 +529,7 @@ export default function SidequestsPage() {
                                             {claimingId === s._id ? 'Claiming…' : '⚑ Claim'}
                                         </button>
                                     )}
-                                    {trips.length > 0 && (
+                                    {trips.length > 0 && isClaimed && (
                                         <button
                                             type="button"
                                             className="ghost small-btn"

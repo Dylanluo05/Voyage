@@ -135,7 +135,6 @@ export interface Trip {
   hotels: HotelBooking[];
   flights: FlightBooking[];
   expenses: Expense[];
-  sidequests: Sidequest[];
   dayAnchors: DayAnchor[] | undefined;
   isPublic: boolean;
 }
@@ -221,29 +220,6 @@ export interface Expense {
   createdAt: string;
 }
 
-export interface SidequestComment {
-  _id: string;
-  userId: string;
-  userName: string;
-  text: string;
-  imageUrl?: string;
-  createdAt: string;
-}
-
-export interface Sidequest {
-  _id: string;
-  title: string;
-  description?: string;
-  cardSuit: 'spades' | 'hearts' | 'diamonds' | 'clubs';
-  cardRank: 'J' | 'Q' | 'K' | 'A';
-  assignee?: { userId: string; userName: string };
-  assigner?: { userId: string; userName: string };
-  comments: SidequestComment[];
-  completed: boolean;
-  completedBy?: { userId: string; userName: string };
-  completedAt?: string;
-}
-
 export interface Badge {
   _id: string;
   destination: string;
@@ -286,6 +262,7 @@ export interface PublicSidequest {
     userId: string;
     userName: string;
     claimedAt: string;
+    tripId?: string;
   }[];
   completions: {
     userId: string;

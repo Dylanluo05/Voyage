@@ -40,19 +40,11 @@ import {
   addExpense,
   removeExpense,
   settleSplit,
-  addSidequest,
-  removeSidequest,
-  assignSidequest,
-  completeSidequest,
-  addComment,
-  removeComment,
   updateDayAnchor,
   getTripEvents,
   issueSseToken,
   publishTrip,
   listPublicTrips,
-  addPublicSidequestToTrip,
-  publishSidequest,
   exportPlaylist,
 } from '../controllers/tripsController';
 import { parseHotelConfirmation, parseFlightConfirmation } from '../controllers/importController';
@@ -123,14 +115,5 @@ router.delete('/:id/expenses/:expenseId', removeExpense);
 router.patch('/:id/expenses/:expenseId/splits/:userId', settleSplit);
 
 router.patch('/:id/day-anchor', updateDayAnchor);
-
-router.post('/:id/sidequests', addSidequest);
-router.delete('/:id/sidequests/:sidequestId', removeSidequest);
-router.patch('/:id/sidequests/:sidequestId/assign', assignSidequest);
-router.patch('/:id/sidequests/:sidequestId/complete', completeSidequest);
-router.post('/:id/sidequests/:sidequestId/comments', addComment);
-router.delete('/:id/sidequests/:sidequestId/comments/:commentId', removeComment);
-router.post('/:id/sidequests/from-public/:publicSidequestId', addPublicSidequestToTrip);
-router.post('/:id/sidequests/:sidequestId/publish', publishSidequest);
 
 export default router;

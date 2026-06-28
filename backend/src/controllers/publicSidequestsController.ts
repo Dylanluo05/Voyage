@@ -259,3 +259,47 @@ export async function getLeaderboard(req: Request, res: Response, next: NextFunc
         next(err);
     }
 }
+
+export async function assignClaimToTrip(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+        const { tripId } = z.object({ tripId: z.string().min(1) }).parse(req.body);
+        const uid = ownerId(req);
+        const sq = await PublicSidequest.findById(req.params.id);
+        if (!sq) throw new HttpError(404, 'Sidequest not found');
+        const claim = sq.claims.find(c => c.userId.equals(uid));
+        if (!claim) throw new HttpError(400, 'You have not claimed this sidequest');
+        claim.tripId = new Types.ObjectId(tripId);
+        await sq.save();
+        res.status(200).json(sq);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function unassignClaimFromTrip(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+        const uid = ownerId(req);
+        const sq = await PublicSidequest.findById(req.params.id);
+        if (!sq) throw new HttpError(404, 'Sidequest not found');
+        const claim = sq.claims.find(c => c.userId.equals(uid));
+        if (!claim) throw new HttpError(400, 'You have not claimed this sidequest');
+        claim.tripId = undefined;
+        await sq.save();
+        res.status(200).json(sq);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function listSidequestsByTrip(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+        const uid = ownerId(req);
+        const tripId = new Types.ObjectId(req.params.tripId);
+        const sidequests = await PublicSidequest.find({
+            claims: { $elemMatch: { userId: uid, tripId } },
+        });
+        res.status(200).json(sidequests);
+    } catch (err) {
+        next(err);
+    }
+}

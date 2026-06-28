@@ -35,7 +35,7 @@ import { compressImage, compressImageFromUrl } from '../utils/image';
 import { useAuth } from '../context/AuthContext';
 import BudgetPanel from '../components/BudgetPanel';
 import ExpenseSplitPanel from '../components/ExpenseSplitPanel';
-import SidequestsPanel from '../components/SidequestsPanel';
+import LinkedSidequestsPanel from '../components/LinkedSidequestsPanel';
 import TripNavBar, { ALL_SECTIONS } from '../components/TripNavBar';
 import DayAnchorEditor from '../components/DayAnchorEditor';
 import TripChatPanel from '../components/TripChatPanel';
@@ -763,7 +763,7 @@ export default function TripDetailPage() {
 
       {visibleSections.has('sidequests') && (
         <div id="sidequests-section">
-          <SidequestsPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+          <LinkedSidequestsPanel tripId={trip._id} />
         </div>
       )}
 

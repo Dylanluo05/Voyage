@@ -13,6 +13,7 @@ export interface PublicSidequestDoc extends Document {
         userId: Types.ObjectId,
         userName: string,
         claimedAt: Date,
+        tripId?: Types.ObjectId,
     }[],
     completions: {
         userId: Types.ObjectId,
@@ -40,7 +41,7 @@ const publicSidequestSchema = new Schema({
     description: { type: String, trim: true },
     location: { type: String, trim: true },
     createdBy: { userId: { type: Schema.Types.ObjectId, required: true, index: true }, userName: { type: String, required: true, trim: true } },
-    claims: [{ userId: { type: Schema.Types.ObjectId, required: true, index: true }, userName: { type: String, required: true, trim: true }, claimedAt: { type: Date } }],
+    claims: [{ userId: { type: Schema.Types.ObjectId, required: true, index: true }, userName: { type: String, required: true, trim: true }, claimedAt: { type: Date }, tripId: { type: Schema.Types.ObjectId, default: undefined } }],
     completions: [{ userId: { type: Schema.Types.ObjectId, required: true, index: true }, userName: { type: String, required: true, trim: true }, photoUrl: { type: String, required: true, trim: true }, completedAt: { type: Date } }],
     cardSuit: { type: String, enum: ['spades', 'hearts', 'diamonds', 'clubs'], required: true },
     cardRank: { type: String, enum: ['J', 'Q', 'K', 'A'], required: true },
