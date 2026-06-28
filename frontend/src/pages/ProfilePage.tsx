@@ -133,7 +133,7 @@ export default function ProfilePage() {
             {profile && (
                 <section className="card">
                     <h2>Total XP:</h2>
-                    <div className="row" style={{ gap: '3rem' }}>
+                    <div className="profile-xp-row">
                         <span className="gradient-text"><strong>{profile.xp}</strong> xp</span>
                         {rank !== '' && <span className="gradient-text">Current rank: {rank}</span>}
                         {nextRank !== '' && <span className="gradient-text">{xpBeforeNextRank} xp before next rank: {nextRank}</span>}

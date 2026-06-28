@@ -6917,3 +6917,241 @@ button.leave-btn:hover {
     padding: 12px 4px;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   MOBILE NAVIGATION — hamburger + slide-down drawer
+══════════════════════════════════════════════════════════════ */
+
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 8px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.nav-hamburger:hover {
+  background: var(--hover-bg);
+  transform: none;
+  box-shadow: none;
+}
+
+.nav-hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--nav-link-color);
+  border-radius: 2px;
+  transition: transform 0.25s var(--ease), opacity 0.2s;
+  transform-origin: center;
+}
+
+.nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+.nav-mobile-drawer {
+  position: fixed;
+  top: 54px;
+  left: 0;
+  right: 0;
+  z-index: 99;
+  background: var(--navbar-bg);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: calc(100dvh - 54px);
+  overflow-y: auto;
+  animation: mobile-drawer-in 0.18s var(--ease) both;
+}
+
+@keyframes mobile-drawer-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.nav-mobile-drawer a {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--nav-link-color);
+  padding: 12px 14px;
+  border-radius: 10px;
+  transition: background 0.15s, color 0.15s;
+  text-decoration: none;
+  display: block;
+}
+
+.nav-mobile-drawer a:hover,
+.nav-mobile-drawer a.active {
+  background: var(--hover-bg);
+  color: var(--nav-link-hover);
+}
+
+.nav-mobile-section-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  padding: 12px 14px 4px;
+  margin-top: 4px;
+}
+
+.nav-mobile-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 0;
+}
+
+.nav-mobile-drawer button {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: var(--nav-link-color);
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.15s;
+}
+
+.nav-mobile-drawer button:hover {
+  background: var(--hover-bg);
+  transform: none;
+  box-shadow: none;
+}
+
+.nav-mobile-logout { color: var(--coral) !important; }
+.nav-mobile-theme  { color: var(--text-muted) !important; }
+
+body.nav-menu-open { overflow: hidden; }
+
+/* ── Profile XP row ─────────────────────────────────────────── */
+.profile-xp-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — tablet + mobile  (≤ 768px)
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Show hamburger, hide desktop nav */
+  .nav-actions { display: none; }
+  .nav-hamburger { display: flex; }
+
+  /* Landing hero */
+  .landing-hero { padding: 72px 20px 56px; min-height: auto; }
+  .hero-orb-1   { width: 260px; height: 260px; }
+  .hero-orb-2   { width: 300px; height: 300px; right: -20%; }
+  .hero-orb-3   { width: 200px; height: 200px; }
+  .landing-sub  { margin-bottom: 28px; }
+  .btn-primary-lg, .btn-ghost-lg { padding: 14px 28px; font-size: 13px; }
+  .hero-stats   { margin-top: 36px; }
+  .hero-stat    { padding: 10px 14px; }
+  .hero-stat-value { font-size: 1.2rem; }
+
+  /* Landing sections */
+  .features-section    { padding: 56px 20px; }
+  .how-section         { padding: 56px 20px; }
+  .sq-spotlight        { padding: 56px 20px; }
+  .landing-bottom-cta  { padding: 64px 20px; }
+  .landing-bottom-cta h2 { font-size: 2rem; }
+
+  /* Sidequest page hero — match mobile main padding (20px 14px) */
+  .sq-page-hero {
+    margin: -20px -14px 24px;
+    padding: 44px 20px 36px;
+  }
+
+  /* Claims page hero */
+  .claims-page-hero {
+    margin: -20px -14px 20px;
+    padding: 36px 20px 28px;
+  }
+
+  /* Trips grid → single column */
+  .trips-grid { grid-template-columns: 1fr; }
+  .trips-page-header { flex-direction: column; align-items: flex-start; }
+
+  /* Claims stats row */
+  .claims-stats-row { gap: 8px; }
+  .claims-stat      { padding: 14px 8px; }
+  .claims-stat-value { font-size: 1.5rem; }
+
+  /* Leaderboard */
+  .lb-hero          { padding: 28px 16px 20px; }
+  .lb-podium        { gap: 6px; }
+  .lb-podium-slot   { max-width: 110px; }
+  .lb-podium-icon   { font-size: 1.4rem; }
+  .lb-podium-bar-1  { height: 76px; }
+  .lb-podium-bar-2  { height: 56px; }
+  .lb-podium-bar-3  { height: 42px; }
+  .lb-podium-name   { font-size: 11px; }
+  .lb-podium-xp     { font-size: 11px; }
+  .lb-row           { padding: 10px 12px; gap: 8px; }
+  .lb-row-rank-label { display: none; }
+
+  /* Profile XP row → stack */
+  .profile-xp-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* Flip cards → tighter */
+  .flip-cards-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .flip-card       { width: 100%; }
+
+  /* HowToPlay */
+  .htp-page { padding: 20px 16px 48px; }
+
+  /* Subscription plans */
+  .sub-grid { grid-template-columns: 1fr !important; }
+
+  /* General touch target: ensure buttons hit 44px */
+  button, a.btn, .sq-filter-tab { min-height: 44px; }
+
+  /* Prevent hero negative-margin overflow */
+  .page { overflow-x: hidden; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   EXTRA SMALL  (≤ 400px)
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 400px) {
+  .sq-page-stat-pill       { padding: 4px 8px; font-size: 10px; }
+  .trips-page-title        { font-size: 1.5rem; }
+  .lb-podium-bar-1         { height: 60px; }
+  .lb-podium-bar-2         { height: 44px; }
+  .lb-podium-bar-3         { height: 32px; }
+  .lb-podium-slot          { max-width: 90px; }
+  .lb-podium-icon          { font-size: 1.1rem; }
+  .landing-cta-row         { flex-direction: column; width: 100%; }
+  .btn-primary-lg, .btn-ghost-lg { width: 100%; text-align: center; justify-content: center; }
+}
