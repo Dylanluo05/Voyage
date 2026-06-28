@@ -5878,6 +5878,25 @@ fieldset legend {
   min-width: 0;
 }
 
+.profile-add-bio-prompt {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--violet);
+  background: none;
+  border: 1px dashed color-mix(in srgb, var(--violet) 50%, transparent);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.profile-add-bio-prompt:hover {
+  opacity: 1;
+  border-color: var(--violet);
+}
+
 /* ── Profile wishlist ─────────────────────────────────────────── */
 .profile-wishlist {
   display: flex;

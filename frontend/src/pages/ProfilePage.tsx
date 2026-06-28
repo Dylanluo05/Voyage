@@ -46,11 +46,13 @@ export default function ProfilePage() {
     const { user } = useAuth();
 
     // Profile edit state
-    const [editingProfile, setEditingProfile] = useState(false);
+    const [editingBio, setEditingBio] = useState(false);
+    const [editingWishlist, setEditingWishlist] = useState(false);
     const [editBio, setEditBio] = useState('');
     const [editWishlist, setEditWishlist] = useState<string[]>([]);
     const [newWishlistItem, setNewWishlistItem] = useState('');
-    const [savingProfile, setSavingProfile] = useState(false);
+    const [savingBio, setSavingBio] = useState(false);
+    const [savingWishlist, setSavingWishlist] = useState(false);
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -106,16 +108,29 @@ export default function ProfilePage() {
         }
     };
 
-    const handleSaveProfile = async () => {
+    const handleSaveBio = async () => {
         try {
-            setSavingProfile(true);
-            const updated = await updateProfile({ bio: editBio || undefined, wishlist: editWishlist });
+            setSavingBio(true);
+            const updated = await updateProfile({ bio: editBio || undefined });
             setProfile(updated);
-            setEditingProfile(false);
+            setEditingBio(false);
         } catch {
-            setError('Failed to save profile');
+            setError('Failed to save bio');
         } finally {
-            setSavingProfile(false);
+            setSavingBio(false);
+        }
+    };
+
+    const handleSaveWishlist = async () => {
+        try {
+            setSavingWishlist(true);
+            const updated = await updateProfile({ wishlist: editWishlist });
+            setProfile(updated);
+            setEditingWishlist(false);
+        } catch {
+            setError('Failed to save wishlist');
+        } finally {
+            setSavingWishlist(false);
         }
     };
 
@@ -219,8 +234,10 @@ export default function ProfilePage() {
                             <>
                                 <p className="muted small" style={{ margin: '2px 0 0' }}>{profile.email}</p>
                                 <p className="muted small" style={{ margin: '2px 0 0' }}>Member since: {new Date(profile.createdAt).toLocaleDateString()}</p>
-                                {!editingProfile && profile.bio && (
-                                    <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5 }}>{profile.bio}</p>
+                                {!editingBio && (
+                                    profile.bio
+                                        ? <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5 }}>{profile.bio}</p>
+                                        : <button type="button" className="profile-add-bio-prompt" onClick={() => { setEditBio(''); setEditingBio(true); }}>+ Add a bio</button>
                                 )}
                             </>
                         )}
@@ -230,13 +247,13 @@ export default function ProfilePage() {
                         type="button"
                         className="ghost small-btn"
                         style={{ alignSelf: 'flex-start', marginLeft: 'auto' }}
-                        onClick={() => setEditingProfile(e => !e)}
+                        onClick={() => { setEditBio(profile?.bio ?? ''); setEditingBio(e => !e); }}
                     >
-                        {editingProfile ? 'Cancel' : 'Edit'}
+                        {editingBio ? 'Cancel' : 'Edit bio'}
                     </button>
                 </div>
 
-                {editingProfile && (
+                {editingBio && (
                     <div className="profile-edit-form" style={{ marginTop: 16 }}>
                         <label style={{ display: 'block', marginBottom: 12 }}>
                             <span className="muted small" style={{ display: 'block', marginBottom: 4 }}>Bio (max 300 chars)</span>
@@ -247,16 +264,12 @@ export default function ProfilePage() {
                                 rows={3}
                                 placeholder="Tell other travellers about yourself…"
                                 style={{ width: '100%', resize: 'vertical' }}
+                                autoFocus
                             />
                             <span className="muted small">{editBio.length}/300</span>
                         </label>
-
-                        <button
-                            type="button"
-                            disabled={savingProfile}
-                            onClick={handleSaveProfile}
-                        >
-                            {savingProfile ? 'Saving…' : 'Save'}
+                        <button type="button" disabled={savingBio} onClick={handleSaveBio}>
+                            {savingBio ? 'Saving…' : 'Save'}
                         </button>
                     </div>
                 )}
@@ -266,17 +279,17 @@ export default function ProfilePage() {
             <section className="card">
                 <div className="sidequest-header-row">
                     <h2>Travel Wishlist</h2>
-                    <button type="button" className="ghost small-btn" onClick={() => setEditingProfile(e => !e)}>
-                        {editingProfile ? 'Done' : 'Edit'}
+                    <button type="button" className="ghost small-btn" onClick={() => { setEditWishlist(profile?.wishlist ?? []); setEditingWishlist(e => !e); }}>
+                        {editingWishlist ? 'Cancel' : 'Edit'}
                     </button>
                 </div>
 
                 {profile && profile.wishlist.length > 0 ? (
                     <div className="profile-wishlist">
-                        {(editingProfile ? editWishlist : profile.wishlist).map((place, i) => (
+                        {(editingWishlist ? editWishlist : profile.wishlist).map((place, i) => (
                             <div key={i} className="profile-wishlist-item">
                                 <span>✈ {place}</span>
-                                {editingProfile && (
+                                {editingWishlist && (
                                     <button
                                         type="button"
                                         className="danger small-btn"
@@ -290,19 +303,24 @@ export default function ProfilePage() {
                         ))}
                     </div>
                 ) : (
-                    <p className="muted small">No destinations on your wishlist yet.</p>
+                    !editingWishlist && <p className="muted small">No destinations on your wishlist yet.</p>
                 )}
 
-                {editingProfile && (
-                    <div className="search-row" style={{ marginTop: 12 }}>
-                        <input
-                            placeholder="Add a destination…"
-                            value={newWishlistItem}
-                            onChange={e => setNewWishlistItem(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && addWishlistItem()}
-                        />
-                        <button type="button" onClick={addWishlistItem} disabled={!newWishlistItem.trim()}>Add</button>
-                        <button type="button" disabled={savingProfile} onClick={handleSaveProfile}>{savingProfile ? 'Saving…' : 'Save'}</button>
+                {editingWishlist && (
+                    <div style={{ marginTop: 12 }}>
+                        <div className="search-row">
+                            <input
+                                placeholder="Add a destination…"
+                                value={newWishlistItem}
+                                onChange={e => setNewWishlistItem(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && addWishlistItem()}
+                                autoFocus
+                            />
+                            <button type="button" onClick={addWishlistItem} disabled={!newWishlistItem.trim()}>Add</button>
+                        </div>
+                        <button type="button" style={{ marginTop: 10 }} disabled={savingWishlist} onClick={handleSaveWishlist}>
+                            {savingWishlist ? 'Saving…' : 'Save Wishlist'}
+                        </button>
                     </div>
                 )}
             </section>
