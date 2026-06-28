@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import { PublicSidequest, Trip } from '../types';
 import * as tripsApi from '../api/trips';
 import * as sidequestsApi from '../api/publicSidequests';
@@ -543,7 +544,7 @@ export default function SidequestsPage() {
                                 </div>
                                 {linkedTrip && (
                                     <div className="sq-linked-trip-badge">
-                                        <span>📎 Linked to <strong>{linkedTrip.title}</strong></span>
+                                        <span>📎 Linked to <Link to={`/trips/${linkedTrip._id}`} onClick={e => e.stopPropagation()} style={{ fontWeight: 600 }}>{linkedTrip.title}</Link></span>
                                         <button
                                             type="button"
                                             className="ghost small-btn"
