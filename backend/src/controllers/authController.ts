@@ -1,8 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import { OAuth2Client } from 'google-auth-library';
 import { User, hashPassword } from '../models/User';
 import { signToken } from '../middleware/auth';
 import { HttpError } from '../middleware/error';
+
+const googleClient = new OAuth2Client();
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -41,11 +44,12 @@ export async function register(req: Request, res: Response, next: NextFunction):
 export async function googleAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { accessToken } = googleAuthScheme.parse(req.body);
-    const resp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${accessToken}` },
+    googleClient.setCredentials({ access_token: accessToken });
+    const userinfoResp = await googleClient.request<{ sub: string; email: string; name: string }>({
+      url: 'https://www.googleapis.com/oauth2/v3/userinfo',
     });
-    if (!resp.ok) throw new HttpError(401, 'Invalid Google access token');
-    const { sub, email, name } = (await resp.json()) as { sub: string; email: string; name: string };
+    if (userinfoResp.status !== 200) throw new HttpError(401, 'Invalid Google access token');
+    const { sub, email, name } = userinfoResp.data;
     if (!email) throw new HttpError(401, 'Google account has no email');
     let user = await User.findOne({ $or: [{ googleId: sub }, { email }] });
     if (!user) {
