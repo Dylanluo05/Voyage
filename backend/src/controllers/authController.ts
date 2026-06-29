@@ -55,8 +55,7 @@ export async function googleAuth(req: Request, res: Response, next: NextFunction
     if (!user) {
       user = await User.create({ email, name, googleId: sub });
     } else if (!user.googleId) {
-      user.googleId = sub;
-      await user.save();
+      await User.updateOne({ _id: user._id }, { $set: { googleId: sub } });
     }
     const token = signToken({ sub: user.id, email: user.email });
     res.status(200).json({
