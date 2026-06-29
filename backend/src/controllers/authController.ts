@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { User, hashPassword } from '../models/User';
 import { signToken } from '../middleware/auth';
 import { HttpError } from '../middleware/error';
-import { OAuth2Client } from 'google-auth-library';
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -12,7 +11,7 @@ const registerSchema = z.object({
 });
 
 const googleAuthScheme = z.object({
-  credential: z.string().min(1)
+  accessToken: z.string().min(1),
 });
 
 const loginSchema = z.object({
@@ -41,15 +40,20 @@ export async function register(req: Request, res: Response, next: NextFunction):
 
 export async function googleAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { credential } = googleAuthScheme.parse(req.body);
-    if (!credential) throw new HttpError(400, 'Credential token missing');
-    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-    const ticket = client.verifyIdToken({ idToken: credential, audience: process.env.GOOGLE_CLIENT_ID });
-    const payload = (await ticket).getPayload();
-    if (!payload) throw new HttpError(401, 'User info missing');
-    const { sub, email, name } = payload;
-    let user = await User.findOne({ email });
-    if (!user) user = await User.create({ email, name, googleId: sub });
+    const { accessToken } = googleAuthScheme.parse(req.body);
+    const resp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!resp.ok) throw new HttpError(401, 'Invalid Google access token');
+    const { sub, email, name } = (await resp.json()) as { sub: string; email: string; name: string };
+    if (!email) throw new HttpError(401, 'Google account has no email');
+    let user = await User.findOne({ $or: [{ googleId: sub }, { email }] });
+    if (!user) {
+      user = await User.create({ email, name, googleId: sub });
+    } else if (!user.googleId) {
+      user.googleId = sub;
+      await user.save();
+    }
     const token = signToken({ sub: user.id, email: user.email });
     res.status(200).json({
       token,

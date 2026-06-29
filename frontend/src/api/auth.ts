@@ -12,10 +12,10 @@ export function register(input: {
   });
 }
 
-export function googleAuth(credential: string): Promise<AuthResponse> {
+export function googleAuth(accessToken: string): Promise<AuthResponse> {
   return apiFetch<AuthResponse>(`/api/auth/google`, {
     method: 'POST',
-    body: JSON.stringify({ credential }),
+    body: JSON.stringify({ accessToken }),
   });
 }
 
