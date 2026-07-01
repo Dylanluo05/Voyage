@@ -432,28 +432,41 @@ export default function SidequestsPage() {
                 </div>
             </section>
 
-            {/* Filter tabs */}
-            <div className="sq-filter-row" style={{ marginTop: '16px' }}>
-                {CARD_SUIT_TABS.map(tab => (
+            {/* Top-level mode tabs */}
+            {user && (
+                <div className="sq-mode-tabs">
                     <button
-                        key={tab.key}
                         type="button"
-                        className={`sq-filter-tab sq-filter-tab--${tab.key}${activeTab === tab.key ? ' active' : ''}`}
-                        onClick={() => setActiveTab(tab.key)}
+                        className={`sq-mode-tab${activeTab !== 'claims' ? ' active' : ''}`}
+                        onClick={() => setActiveTab('all')}
                     >
-                        {tab.label} {counts[tab.key] > 0 && <span style={{ opacity: 0.65, marginLeft: 4 }}>{counts[tab.key]}</span>}
+                        Browse
                     </button>
-                ))}
-                {user && (
                     <button
                         type="button"
-                        className={`sq-filter-tab sq-filter-tab--claims${activeTab === 'claims' ? ' active' : ''}`}
+                        className={`sq-mode-tab sq-mode-tab--claims${activeTab === 'claims' ? ' active' : ''}`}
                         onClick={() => setActiveTab('claims')}
                     >
-                        My Claims {counts.claims > 0 && <span style={{ opacity: 0.65, marginLeft: 4 }}>{counts.claims}</span>}
+                        My Claims {counts.claims > 0 && <span className="sq-mode-tab-count">{counts.claims}</span>}
                     </button>
-                )}
-            </div>
+                </div>
+            )}
+
+            {/* Suit filter tabs — only in Browse mode */}
+            {activeTab !== 'claims' && (
+                <div className="sq-filter-row">
+                    {CARD_SUIT_TABS.map(tab => (
+                        <button
+                            key={tab.key}
+                            type="button"
+                            className={`sq-filter-tab sq-filter-tab--${tab.key}${activeTab === tab.key ? ' active' : ''}`}
+                            onClick={() => setActiveTab(tab.key)}
+                        >
+                            {tab.label} {counts[tab.key] > 0 && <span style={{ opacity: 0.65, marginLeft: 4 }}>{counts[tab.key]}</span>}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {activeTab === 'claims' && myClaims.length > 0 && (
                 <div className="claims-stats-row">

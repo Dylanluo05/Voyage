@@ -2509,11 +2509,69 @@ fieldset legend {
   z-index: 1;
 }
 
+/* Mode tabs (Browse / My Claims) */
+.sq-mode-tabs {
+  display: flex;
+  gap: 0;
+  margin: 20px 0 0;
+  border-bottom: 2px solid var(--border);
+}
+
+.sq-mode-tab {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 10px 22px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s var(--ease), border-color 0.15s var(--ease);
+  box-shadow: none;
+  transform: none;
+  border-radius: 0;
+}
+
+.sq-mode-tab:hover {
+  color: var(--fg);
+  background: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
+.sq-mode-tab.active {
+  color: var(--teal);
+  border-bottom-color: var(--teal);
+}
+
+.sq-mode-tab--claims.active {
+  color: var(--violet, #8b5cf6);
+  border-bottom-color: var(--violet, #8b5cf6);
+}
+
+.sq-mode-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--violet, #8b5cf6);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 1px 6px;
+  margin-left: 6px;
+  line-height: 1.4;
+}
+
 /* Filter tabs */
 .sq-filter-row {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  margin-top: 16px;
   margin-bottom: 20px;
 }
 
