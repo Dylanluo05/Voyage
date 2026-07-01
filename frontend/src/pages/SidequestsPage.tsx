@@ -16,9 +16,6 @@ interface CreateFormState {
     location: string;
     cardSuit: 'spades' | 'hearts' | 'diamonds' | 'clubs';
     cardRank: 'J' | 'Q' | 'K' | 'A';
-    eventDate: string;
-    maxParticipants: number;
-    addEvent: boolean;
 }
 
 type CardSuit = 'spades' | 'hearts' | 'diamonds' | 'clubs';
@@ -76,10 +73,10 @@ export default function SidequestsPage() {
         location: '',
         cardSuit: 'spades',
         cardRank: 'J',
-        eventDate: '',
-        maxParticipants: 1,
-        addEvent: false,
     });
+    const [schedulingEventId, setSchedulingEventId] = useState<string | null>(null);
+    const [scheduleEventDate, setScheduleEventDate] = useState('');
+    const [scheduleEventMax, setScheduleEventMax] = useState('');
     const [enrollingId, setEnrollingId] = useState<string | null>(null);
     const [unclaimingId, setUnclaimingId] = useState<string | null>(null);
     const [claimedCard, setClaimedCard] = useState<{ cardSuit: CardSuit; cardRank: CardRank } | null>(null);
@@ -124,27 +121,28 @@ export default function SidequestsPage() {
                 location: createForm.location,
                 cardSuit: createForm.cardSuit,
                 cardRank: createForm.cardRank,
-                ...(createForm.addEvent && {
-                    event: {
-                        date: createForm.eventDate,
-                        maxParticipants: createForm.maxParticipants,
-                    }
-                })
             });
             setSidequests(prev => [newSidequest, ...prev]);
             setShowCreateForm(false);
-            setCreateForm({
-                title: '',
-                description: '',
-                location: '',
-                cardSuit: 'spades',
-                cardRank: 'J',
-                eventDate: '',
-                maxParticipants: 1,
-                addEvent: false,
-            });
+            setCreateForm({ title: '', description: '', location: '', cardSuit: 'spades', cardRank: 'J' });
         } catch (err) {
             setError(err instanceof ApiError ? err.message : 'Failed to create sidequest');
+        }
+    }
+
+    async function onCreateEvent(id: string) {
+        if (!scheduleEventDate) return;
+        try {
+            const updated = await sidequestsApi.createEvent(id, {
+                date: scheduleEventDate,
+                ...(scheduleEventMax ? { maxParticipants: Number(scheduleEventMax) } : {}),
+            });
+            setSidequests(prev => prev.map(s => s._id === id ? updated : s));
+            setSchedulingEventId(null);
+            setScheduleEventDate('');
+            setScheduleEventMax('');
+        } catch (err) {
+            setError(err instanceof ApiError ? err.message : 'Failed to schedule event');
         }
     }
 
@@ -396,22 +394,6 @@ export default function SidequestsPage() {
                         <div className="sq-xp-preview">
                             ⚡ {computeXp(createForm.cardSuit, createForm.cardRank)} XP Reward
                         </div>
-                        <label className="sq-event-toggle">
-                            <input type="checkbox" checked={createForm.addEvent} onChange={() => setCreateForm(prev => ({ ...prev, addEvent: !prev.addEvent }))} />
-                            Make this an event with a set date?
-                        </label>
-                        {createForm.addEvent && (
-                            <div className="sq-event-fields">
-                                <div>
-                                    <label>Event Date & Time</label>
-                                    <input type="datetime-local" value={createForm.eventDate} onChange={(e) => setCreateForm(prev => ({ ...prev, eventDate: e.target.value }))} required />
-                                </div>
-                                <div>
-                                    <label>Max Participants</label>
-                                    <input type="number" min={1} value={createForm.maxParticipants} onChange={(e) => setCreateForm(prev => ({ ...prev, maxParticipants: Number(e.target.value) }))} />
-                                </div>
-                            </div>
-                        )}
                         <button type="submit">Create Sidequest</button>
                     </form>
                 )}
@@ -518,6 +500,27 @@ export default function SidequestsPage() {
                                             </button>
                                         )}
                                     </div>
+                                )}
+
+                                {isClaimed && !s.event && (
+                                    schedulingEventId === s._id ? (
+                                        <div className="sq-schedule-event-form">
+                                            <label>Event Date & Time
+                                                <input type="datetime-local" value={scheduleEventDate} onChange={e => setScheduleEventDate(e.target.value)} />
+                                            </label>
+                                            <label>Max Participants (optional)
+                                                <input type="number" min={1} placeholder="Unlimited" value={scheduleEventMax} onChange={e => setScheduleEventMax(e.target.value)} />
+                                            </label>
+                                            <div className="sq-schedule-event-actions">
+                                                <button type="button" onClick={() => onCreateEvent(s._id)} disabled={!scheduleEventDate}>Create Event</button>
+                                                <button type="button" className="ghost small-btn" onClick={() => { setSchedulingEventId(null); setScheduleEventDate(''); setScheduleEventMax(''); }}>Cancel</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <button type="button" className="ghost small-btn sq-schedule-event-btn" onClick={() => setSchedulingEventId(s._id)}>
+                                            📅 Schedule Event
+                                        </button>
+                                    )
                                 )}
 
                                 {s.completions.length > 0 && (

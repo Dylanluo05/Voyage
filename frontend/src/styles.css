@@ -6373,40 +6373,36 @@ button.leave-btn:hover {
   border-color: rgba(251, 191, 36, 0.2);
 }
 
-.sq-event-toggle {
+.sq-schedule-event-btn {
+  margin-top: 10px;
+  width: 100%;
+}
+
+.sq-schedule-event-form {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 10px;
-  cursor: pointer;
-  font-family: var(--font-display) !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.08em !important;
-  color: var(--muted) !important;
-  margin-bottom: 0 !important;
-  transition: color 0.15s var(--ease);
-}
-
-.sq-event-toggle:hover {
-  color: var(--fg) !important;
-}
-
-.sq-event-toggle input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--teal);
-  flex-shrink: 0;
-}
-
-.sq-event-fields {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  margin-top: 10px;
   padding: 12px;
   background: var(--subtle-bg);
   border: 1px solid var(--border-mid);
   border-radius: 10px;
+}
+
+.sq-schedule-event-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sq-schedule-event-actions {
+  display: flex;
+  gap: 8px;
 }
 
 /* ── Claim card animation overlay ────────────────────────────── */

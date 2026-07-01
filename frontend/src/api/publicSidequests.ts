@@ -22,10 +22,6 @@ export function createPublicSidequest(
         location?: string;
         cardSuit: 'spades' | 'hearts' | 'diamonds' | 'clubs';
         cardRank: 'J' | 'Q' | 'K' | 'A';
-        event?: {
-            date: string;
-            maxParticipants?: number;
-        };
     }
 ): Promise<PublicSidequest> {
     return apiFetch<PublicSidequest>(`/api/public-sidequests/`, {
@@ -113,6 +109,16 @@ export function leaveEvent(
 ): Promise<PublicSidequest> {
     return apiFetch<PublicSidequest>(`/api/public-sidequests/${id}/leave`, {
         method: 'PATCH',
+    });
+}
+
+export function createEvent(
+    id: string,
+    data: { date: string; maxParticipants?: number },
+): Promise<PublicSidequest> {
+    return apiFetch<PublicSidequest>(`/api/public-sidequests/${id}/event`, {
+        method: 'POST',
+        body: JSON.stringify(data),
     });
 }
 

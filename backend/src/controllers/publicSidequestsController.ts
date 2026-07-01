@@ -81,7 +81,6 @@ export async function createPublicSidequest(req: Request, res: Response, next: N
             location: z.string().optional(),
             cardSuit: z.enum(['spades', 'hearts', 'diamonds', 'clubs']),
             cardRank: z.enum(['J', 'Q', 'K', 'A']),
-            event: z.object({ date: z.string(), maxParticipants: z.number().min(1).optional() }).optional(),
         }).parse(req.body);
         const uid = ownerId(req);
         const user = await User.findById(uid).select('name');
@@ -90,21 +89,12 @@ export async function createPublicSidequest(req: Request, res: Response, next: N
             title: publicSidequestSchema.title,
             description: publicSidequestSchema.description,
             location: publicSidequestSchema.location,
-            createdBy: {
-                userId: uid,
-                userName: user.name,
-            },
+            createdBy: { userId: uid, userName: user.name },
             claims: [],
             completions: [],
             cardSuit: publicSidequestSchema.cardSuit,
             cardRank: publicSidequestSchema.cardRank,
             xpReward: computeXp(publicSidequestSchema.cardSuit, publicSidequestSchema.cardRank),
-            ...(publicSidequestSchema.event &&
-            {
-                event: {
-                    ...publicSidequestSchema.event, enrollments: []
-                }
-            })
         });
         res.status(201).json(publicSidequest);
     } catch (err) {
@@ -341,6 +331,25 @@ export async function listSidequestsByTrip(req: Request, res: Response, next: Ne
             claims: { $elemMatch: { userId: uid, tripId } },
         });
         res.status(200).json(sidequests);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function createEvent(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+        const { date, maxParticipants } = z.object({
+            date: z.string().min(1),
+            maxParticipants: z.number().min(1).optional(),
+        }).parse(req.body);
+        const uid = ownerId(req);
+        const sq = await PublicSidequest.findById(req.params.id);
+        if (!sq) throw new HttpError(404, 'Sidequest not found');
+        if (!sq.claims.some(c => c.userId.equals(uid))) throw new HttpError(403, 'You must claim this sidequest before scheduling an event');
+        if (sq.event) throw new HttpError(400, 'This sidequest already has an event');
+        sq.event = { date: new Date(date), enrollments: [], ...(maxParticipants && { maxParticipants }) };
+        await sq.save();
+        res.status(201).json(sq);
     } catch (err) {
         next(err);
     }
