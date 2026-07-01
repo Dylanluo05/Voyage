@@ -8,7 +8,7 @@ import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { uploadToCloudinary } from '../utils/image';
 
-type CardSuitFilter = 'all' | 'spades' | 'hearts' | 'diamonds' | 'clubs';
+type CardSuitFilter = 'all' | 'spades' | 'hearts' | 'diamonds' | 'clubs' | 'claims';
 
 interface CreateFormState {
     title: string;
@@ -286,9 +286,12 @@ export default function SidequestsPage() {
         }
     }
 
+    const myClaims = sidequests.filter(s => s.claims.some(c => c.userId === user?.id));
     const filtered = activeTab === 'all'
         ? sidequests
-        : sidequests.filter(s => s.cardSuit === activeTab);
+        : activeTab === 'claims'
+            ? myClaims
+            : sidequests.filter(s => s.cardSuit === activeTab);
 
     const counts: Record<CardSuitFilter, number> = {
         all: sidequests.length,
@@ -296,7 +299,12 @@ export default function SidequestsPage() {
         hearts: sidequests.filter(s => s.cardSuit === 'hearts').length,
         diamonds: sidequests.filter(s => s.cardSuit === 'diamonds').length,
         clubs: sidequests.filter(s => s.cardSuit === 'clubs').length,
+        claims: myClaims.length,
     };
+    const claimsCompletedCount = myClaims.filter(s => s.completions.some(c => c.userId === user?.id)).length;
+    const claimsTotalXp = myClaims
+        .filter(s => s.completions.some(c => c.userId === user?.id))
+        .reduce((sum, s) => sum + s.xpReward, 0);
 
     return (
         <div className="page">
@@ -424,7 +432,7 @@ export default function SidequestsPage() {
                 </div>
             </section>
 
-            {/* Difficulty filter tabs */}
+            {/* Filter tabs */}
             <div className="sq-filter-row" style={{ marginTop: '16px' }}>
                 {CARD_SUIT_TABS.map(tab => (
                     <button
@@ -436,11 +444,40 @@ export default function SidequestsPage() {
                         {tab.label} {counts[tab.key] > 0 && <span style={{ opacity: 0.65, marginLeft: 4 }}>{counts[tab.key]}</span>}
                     </button>
                 ))}
+                {user && (
+                    <button
+                        type="button"
+                        className={`sq-filter-tab sq-filter-tab--claims${activeTab === 'claims' ? ' active' : ''}`}
+                        onClick={() => setActiveTab('claims')}
+                    >
+                        My Claims {counts.claims > 0 && <span style={{ opacity: 0.65, marginLeft: 4 }}>{counts.claims}</span>}
+                    </button>
+                )}
             </div>
+
+            {activeTab === 'claims' && myClaims.length > 0 && (
+                <div className="claims-stats-row">
+                    <div className="claims-stat">
+                        <span className="claims-stat-value">{myClaims.length}</span>
+                        <span className="claims-stat-label">Claimed</span>
+                    </div>
+                    <div className="claims-stat">
+                        <span className="claims-stat-value">{claimsCompletedCount}</span>
+                        <span className="claims-stat-label">Completed</span>
+                    </div>
+                    <div className="claims-stat">
+                        <span className="claims-stat-value claims-stat-xp">+{claimsTotalXp}</span>
+                        <span className="claims-stat-label">XP Earned</span>
+                    </div>
+                </div>
+            )}
 
             {error && <p className="error" style={{ marginTop: 8 }}>{error}</p>}
             {loading && <p className="muted" style={{ marginTop: 12 }}>Loading…</p>}
-            {!loading && filtered.length === 0 && (
+            {!loading && filtered.length === 0 && activeTab === 'claims' && (
+                <p className="muted" style={{ marginTop: 16 }}>You haven't claimed any sidequests yet.</p>
+            )}
+            {!loading && filtered.length === 0 && activeTab !== 'claims' && (
                 <p className="muted" style={{ marginTop: 16 }}>No sidequests found.</p>
             )}
 

@@ -35,7 +35,7 @@ export default function NavBar() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const sqActive = ['/sidequests', '/claims', '/leaderboard', '/how-to-play'].includes(location.pathname);
+  const sqActive = ['/sidequests', '/leaderboard', '/how-to-play'].includes(location.pathname);
   const userActive = ['/profile', '/subscription'].includes(location.pathname);
 
   return (
@@ -66,7 +66,6 @@ export default function NavBar() {
                 {sqOpen && (
                   <div className="nav-dropdown-menu">
                     <NavLink to="/sidequests" className={({ isActive }) => isActive ? 'active' : ''}>Browse</NavLink>
-                    <NavLink to="/claims" className={({ isActive }) => isActive ? 'active' : ''}>My Claims</NavLink>
                     <NavLink to="/leaderboard" className={({ isActive }) => isActive ? 'active' : ''}>Leaderboard</NavLink>
                     <NavLink to="/how-to-play" className={({ isActive }) => isActive ? 'active' : ''}>How to Play</NavLink>
                   </div>
@@ -138,8 +137,7 @@ export default function NavBar() {
             <>
               <NavLink to="/trips">Trips</NavLink>
               <div className="nav-mobile-section-label">Sidequests</div>
-              <NavLink to="/sidequests">Browse</NavLink>
-              <NavLink to="/claims">My Claims</NavLink>
+              <NavLink to="/sidequests">Sidequests</NavLink>
               <NavLink to="/leaderboard">Leaderboard</NavLink>
               <NavLink to="/how-to-play">How to Play</NavLink>
               <div className="nav-mobile-divider" />

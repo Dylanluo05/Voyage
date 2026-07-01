@@ -13,7 +13,6 @@ import ProfilePage from './pages/ProfilePage';
 import SubscriptionPage from './pages/SubscriptionPage';
 import DiscoverPage from './pages/DiscoverPage';
 import SidequestsPage from './pages/SidequestsPage';
-import ClaimsPage from './pages/ClaimsPage';
 import HowToPlayPage from './pages/HowToPlayPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 
@@ -78,16 +77,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/claims"
-          element={
-            <ProtectedRoute>
-              <main>
-                <ClaimsPage />
-              </main>
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/claims" element={<Navigate to="/sidequests" replace />} />
         <Route path="/how-to-play" element={<HowToPlayPage />} />
         <Route
           path="/leaderboard"

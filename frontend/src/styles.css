@@ -6164,6 +6164,11 @@ fieldset legend {
   --tab-color: var(--emerald);
 }
 
+.sq-filter-tab--claims.active {
+  --tab-bg: var(--violet-dim, rgba(139, 92, 246, 0.12));
+  --tab-color: var(--violet, #8b5cf6);
+}
+
 /* ── Suit card hover glow ────────────────────────────────────── */
 .claims-card--spades:hover {
   border-left-color: #94a3b8;
