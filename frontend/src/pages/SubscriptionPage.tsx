@@ -28,7 +28,6 @@ const TIER_FEATURES: Record<Plan, string[]> = {
     '100 AI requests / day',
     'Everything in Explorer',
     'AI day planning & regeneration',
-    'Trip debates & voting',
     'Trip log & memory',
     'Guest photo uploads',
   ],
