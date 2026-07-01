@@ -107,65 +107,6 @@ export function dissolveGroup(tripId: string, groupId: string): Promise<Trip> {
   });
 }
 
-export function createDebate(
-  tripId: string,
-  input: { title: string; day: number; options: Array<{ title: string }> }
-): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/debates`, {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
-}
-
-export function deleteDebate(tripId: string, debateId: string): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/debates/${debateId}`, {
-    method: 'DELETE',
-  });
-}
-
-export function addDebateOption(tripId: string, debateId: string, title: string): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/debates/${debateId}/options`, {
-    method: 'POST',
-    body: JSON.stringify({ title }),
-  });
-}
-
-export function updateDebateOption(
-  tripId: string,
-  debateId: string,
-  optionId: string,
-  patch: { title?: string; pros?: string[]; cons?: string[] }
-): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/debates/${debateId}/options/${optionId}`, {
-    method: 'PUT',
-    body: JSON.stringify(patch),
-  });
-}
-
-export function deleteDebateOption(tripId: string, debateId: string, optionId: string): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/debates/${debateId}/options/${optionId}`, {
-    method: 'DELETE',
-  });
-}
-
-export function voteDebateOption(tripId: string, debateId: string, optionId: string): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/debates/${debateId}/options/${optionId}/vote`, {
-    method: 'PUT',
-  });
-}
-
-export function addDebateComment(tripId: string, debateId: string, text: string): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/debates/${debateId}/comments`, {
-    method: 'POST',
-    body: JSON.stringify({ text }),
-  });
-}
-
-export function deleteDebateComment(tripId: string, debateId: string, commentId: string): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/debates/${debateId}/comments/${commentId}`, {
-    method: 'DELETE',
-  });
-}
 
 export function updateBudget(tripId: string, budget: number): Promise<Trip> {
   return apiFetch<Trip>(`/api/trips/${tripId}/budget`, {

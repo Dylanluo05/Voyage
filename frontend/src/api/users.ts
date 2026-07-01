@@ -14,15 +14,3 @@ export function updateProfile(data: { bio?: string; wishlist?: string[]; avatarU
     });
 }
 
-export function addBadge(badge: { destination: string; countryCode?: string }): Promise<UserProfile> {
-    return apiFetch<UserProfile>(`/api/users/badges`, {
-        method: 'POST',
-        body: JSON.stringify(badge),
-    });
-}
-
-export function removeBadge(badgeId: string): Promise<UserProfile> {
-    return apiFetch<UserProfile>(`/api/users/badges/${badgeId}`, {
-        method: 'DELETE',
-    });
-}

@@ -16,14 +16,6 @@ import {
   toggleReaction,
   inviteCollaborator,
   removeCollaborator,
-  createDebate,
-  deleteDebate,
-  addDebateOption,
-  updateDebateOption,
-  deleteDebateOption,
-  voteDebateOption,
-  addDebateComment,
-  deleteDebateComment,
   updateBudget,
   searchSpotify,
   addTrack,
@@ -77,15 +69,6 @@ router.post('/:id/chat', tripChat);
 router.post('/:id/groups', createGroup);
 router.put('/:id/groups/:groupId', renameGroup);
 router.delete('/:id/groups/:groupId', dissolveGroup);
-
-router.post('/:id/debates', createDebate);
-router.delete('/:id/debates/:debateId', deleteDebate);
-router.post('/:id/debates/:debateId/options', addDebateOption);
-router.put('/:id/debates/:debateId/options/:optionId', updateDebateOption);
-router.delete('/:id/debates/:debateId/options/:optionId', deleteDebateOption);
-router.put('/:id/debates/:debateId/options/:optionId/vote', voteDebateOption);
-router.post('/:id/debates/:debateId/comments', addDebateComment);
-router.delete('/:id/debates/:debateId/comments/:commentId', deleteDebateComment);
 
 router.put('/:id/budget', updateBudget);
 

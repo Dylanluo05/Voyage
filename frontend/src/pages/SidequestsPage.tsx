@@ -230,10 +230,21 @@ export default function SidequestsPage() {
     async function onAddToTrip(id: string) {
         setError('');
         try {
-            await sidequestsApi.assignClaimToTrip(id, selectedTripId);
+            const updated = await sidequestsApi.assignClaimToTrip(id, selectedTripId);
+            setSidequests(prev => prev.map(s => s._id === id ? updated : s));
             setAddingToTripId(null);
         } catch (err) {
             setError(err instanceof ApiError ? err.message : 'Failed to link sidequest to trip');
+        }
+    }
+
+    async function onUnlinkTrip(id: string) {
+        setError('');
+        try {
+            const updated = await sidequestsApi.unassignClaimFromTrip(id);
+            setSidequests(prev => prev.map(s => s._id === id ? updated : s));
+        } catch (err) {
+            setError(err instanceof ApiError ? err.message : 'Failed to unlink sidequest from trip');
         }
     }
 
@@ -579,13 +590,22 @@ export default function SidequestsPage() {
                                 {linkedTrip && (
                                     <div className="sq-linked-trip-badge">
                                         <span>📎 Linked to <Link to={`/trips/${linkedTrip._id}`} onClick={e => e.stopPropagation()} style={{ fontWeight: 600 }}>{linkedTrip.title}</Link></span>
-                                        <button
-                                            type="button"
-                                            className="ghost small-btn"
-                                            onClick={() => setAddingToTripId(s._id)}
-                                        >
-                                            Change
-                                        </button>
+                                        <div style={{ display: 'flex', gap: 6 }}>
+                                            <button
+                                                type="button"
+                                                className="ghost small-btn"
+                                                onClick={() => setAddingToTripId(s._id)}
+                                            >
+                                                Change
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="ghost small-btn"
+                                                onClick={() => onUnlinkTrip(s._id)}
+                                            >
+                                                Unlink
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
 

@@ -21,31 +21,6 @@ export interface ReactionData {
   userIds: Types.ObjectId[];
 }
 
-export interface DebateCommentData {
-  _id?: Types.ObjectId;
-  userId: Types.ObjectId;
-  userName: string;
-  text: string;
-  createdAt: Date;
-}
-
-export interface DebateOptionData {
-  _id?: Types.ObjectId;
-  title: string;
-  pros: string[];
-  cons: string[];
-  votes: Types.ObjectId[];
-}
-
-export interface DebateData {
-  _id?: Types.ObjectId;
-  title: string;
-  day: number;
-  position: number;
-  options: DebateOptionData[];
-  comments: DebateCommentData[];
-}
-
 export interface PlaylistTrackData {
   _id?: Types.ObjectId;
   spotifyId: string;
@@ -102,7 +77,6 @@ export interface TripDoc extends Document {
   description?: string;
   items: ItineraryItemData[];
   groups: GroupData[];
-  debates: DebateData[];
   playlist: PlaylistTrackData[];
   isCompleted: boolean;
   log: TripLogData;
@@ -196,37 +170,6 @@ const reactionSchema = new Schema<ReactionData>(
     userIds: { type: [{ type: Schema.Types.ObjectId, ref: 'User' }], default: [] },
   },
   { _id: false }
-);
-
-const debateOptionSchema = new Schema<DebateOptionData>(
-  {
-    title: { type: String, required: true, trim: true },
-    pros: { type: [String], default: [] },
-    cons: { type: [String], default: [] },
-    votes: { type: [{ type: Schema.Types.ObjectId, ref: 'User' }], default: [] },
-  },
-  { _id: true }
-);
-
-const debateCommentSchema = new Schema<DebateCommentData>(
-  {
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    userName: { type: String, required: true },
-    text: { type: String, required: true, trim: true },
-    createdAt: { type: Date, default: Date.now },
-  },
-  { _id: true }
-);
-
-const debateSchema = new Schema<DebateData>(
-  {
-    title: { type: String, required: true, trim: true },
-    day: { type: Number, required: true, min: 1 },
-    position: { type: Number, required: true, default: 0, min: 0 },
-    options: { type: [debateOptionSchema], default: [] },
-    comments: { type: [debateCommentSchema], default: [] },
-  },
-  { _id: true }
 );
 
 const itineraryItemSchema = new Schema<ItineraryItemData>(
@@ -362,7 +305,6 @@ const tripSchema = new Schema<TripDoc>(
     description: { type: String, trim: true },
     items: { type: [itineraryItemSchema], default: [] },
     groups: { type: [groupSchema], default: [] },
-    debates: { type: [debateSchema], default: [] },
     playlist: { type: [playlistTrackSchema], default: [] },
     budget: { type: Number, min: 0 },
     isCompleted: { type: Boolean, default: false },

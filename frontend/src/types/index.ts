@@ -30,30 +30,6 @@ export interface Group {
   position: number;
 }
 
-export interface DebateComment {
-  _id: string;
-  userId: string;
-  userName: string;
-  text: string;
-  createdAt: string;
-}
-
-export interface DebateOption {
-  _id: string;
-  title: string;
-  pros: string[];
-  cons: string[];
-  votes: string[];
-}
-
-export interface Debate {
-  _id: string;
-  title: string;
-  day: number;
-  position: number;
-  options: DebateOption[];
-  comments: DebateComment[];
-}
 
 export interface ItineraryItem {
   _id: string;
@@ -124,7 +100,6 @@ export interface Trip {
   description?: string;
   items: ItineraryItem[];
   groups: Group[];
-  debates: Debate[];
   playlist: PlaylistTrack[];
   budget?: number;
   isCompleted: boolean;
@@ -170,7 +145,6 @@ export type NewItemInput = {
 export type ReorderInput = {
   items: Array<{ itemId: string; day: number; position: number }>;
   groups?: Array<{ groupId: string; day: number; position: number }>;
-  debates?: Array<{ debateId: string; day: number; position: number }>;
 };
 
 export interface HotelBooking {

@@ -1,15 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { UserProfile } from "../types";
-import { getProfile, addBadge, removeBadge, updateProfile } from "../api/users";
+import { getProfile, updateProfile } from "../api/users";
 import { getLeaderboard } from "../api/publicSidequests";
 import { useAuth } from "../context/AuthContext";
 import { uploadToCloudinary } from "../utils/image";
 
-function getFlagEmoji(countryCode: string): string {
-    return [...countryCode.toUpperCase()].map(c =>
-        String.fromCodePoint(127397 + c.charCodeAt(0))
-    ).join('');
-}
 
 function getInitials(name: string): string {
     return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
@@ -35,14 +30,8 @@ function AvatarDisplay({ avatarUrl, name, size = 72 }: { avatarUrl?: string; nam
 
 export default function ProfilePage() {
     const [profile, setProfile] = useState<UserProfile | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [showForm, setShowForm] = useState(false);
-    const [form, setForm] = useState({ destination: '', countryCode: '' });
-    const [saving, setSaving] = useState(false);
-    const [flippedId, setFlippedId] = useState<string | null>(null);
-    const [removingId, setRemovingId] = useState<string | null>(null);
     const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null);
+    const [flippedId, setFlippedId] = useState<string | null>(null);
     const { user } = useAuth();
 
     // Profile edit state
@@ -58,40 +47,12 @@ export default function ProfilePage() {
 
     const loadUserProfile = async () => {
         try {
-            setLoading(true);
             const p = await getProfile();
             setProfile(p);
             setEditBio(p.bio ?? '');
             setEditWishlist(p.wishlist ?? []);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Something went wrong');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleAdd = async () => {
-        try {
-            setSaving(true);
-            const updated = await addBadge({ ...form, countryCode: form.countryCode || undefined });
-            setProfile(updated);
-            setShowForm(false);
-            setForm({ destination: '', countryCode: '' });
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Something went wrong');
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleRemove = async (badgeId: string) => {
-        try {
-            setRemovingId(badgeId);
-            setProfile(await removeBadge(badgeId));
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Something went wrong');
-        } finally {
-            setRemovingId(null);
+        } catch {
+            // silently fail
         }
     };
 
@@ -102,7 +63,7 @@ export default function ProfilePage() {
             const updated = await updateProfile({ avatarUrl: url });
             setProfile(updated);
         } catch {
-            setError('Failed to upload avatar');
+            // silently fail
         } finally {
             setUploadingAvatar(false);
         }
@@ -115,7 +76,7 @@ export default function ProfilePage() {
             setProfile(updated);
             setEditingBio(false);
         } catch {
-            setError('Failed to save bio');
+            // silently fail
         } finally {
             setSavingBio(false);
         }
@@ -128,7 +89,7 @@ export default function ProfilePage() {
             setProfile(updated);
             setEditingWishlist(false);
         } catch {
-            setError('Failed to save wishlist');
+            // silently fail
         } finally {
             setSavingWishlist(false);
         }
@@ -369,84 +330,6 @@ export default function ProfilePage() {
                 </section>
             )}
 
-            {/* Badges */}
-            <section className="card">
-                <div className="sidequest-header-row">
-                    <h2>Badges</h2>
-                    <button
-                        type="button"
-                        className="ghost small-btn"
-                        onClick={() => setShowForm(f => !f)}
-                    >
-                        {showForm ? 'Cancel' : '+ Add Badge'}
-                    </button>
-                </div>
-
-                {showForm && (
-                    <form
-                        onSubmit={(e) => { e.preventDefault(); handleAdd(); }}
-                        className="form grid-2"
-                        style={{ marginBottom: '20px' }}
-                    >
-                        <label>
-                            Destination
-                            <input
-                                id="destination"
-                                placeholder="e.g. New York City"
-                                value={form.destination}
-                                onChange={(e) => setForm({ ...form, destination: e.target.value })}
-                            />
-                        </label>
-                        <label>
-                            Country Code
-                            <input
-                                id="country-code"
-                                placeholder="e.g. US"
-                                maxLength={2}
-                                value={form.countryCode}
-                                onChange={(e) => setForm({ ...form, countryCode: e.target.value.toUpperCase() })}
-                            />
-                        </label>
-                        <button
-                            type="submit"
-                            className="full-width"
-                            disabled={!form.destination || saving}
-                        >
-                            {saving ? 'Saving…' : 'Add Badge'}
-                        </button>
-                    </form>
-                )}
-
-                {error && <div className="error">{error}</div>}
-
-                {loading ? (
-                    <p className="muted small">Loading…</p>
-                ) : profile?.badges && profile.badges.length > 0 ? (
-                    <div className="profile-badges-grid">
-                        {profile.badges.map(b => (
-                            <div key={b._id} className="profile-badge-card">
-                                <span className="profile-badge-flag">
-                                    {b.countryCode ? getFlagEmoji(b.countryCode) : '🌍'}
-                                </span>
-                                <p style={{ margin: '0', fontSize: '13px', fontWeight: 600 }}>{b.destination}</p>
-                                <span className="profile-badge-source">
-                                    {b.source === 'auto' ? 'Auto' : 'Manual'}
-                                </span>
-                                <button
-                                    type="button"
-                                    className="danger small-btn"
-                                    disabled={removingId === b._id}
-                                    onClick={() => handleRemove(b._id)}
-                                >
-                                    {removingId === b._id ? '…' : 'Remove'}
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="muted small">No badges yet — add destinations you've visited.</p>
-                )}
-            </section>
         </div>
     );
 }

@@ -16,11 +16,10 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import * as tripsApi from '../api/trips';
-import type { Trip, ItineraryItem, ItemCategory, NewItemInput, Group, Debate } from '../types';
+import type { Trip, ItineraryItem, ItemCategory, NewItemInput, Group } from '../types';
 import { ApiError, API_URL, getToken } from '../api/client';
 import SortableItineraryItem from '../components/SortableItineraryItem';
 import SortableGroupBlock from '../components/SortableGroupBlock';
-import SortableDebateCard from '../components/SortableDebateCard';
 import DayColumn from '../components/DayColumn';
 import CommuteWidget from '../components/CommuteWidget';
 import CollaboratorsPanel from '../components/CollaboratorsPanel';
@@ -85,8 +84,7 @@ const emptyItem: NewItemInput = {
 
 type TopLevelEntry =
   | { type: 'item'; item: ItineraryItem }
-  | { type: 'group'; group: Group; items: ItineraryItem[] }
-  | { type: 'debate'; debate: Debate };
+  | { type: 'group'; group: Group; items: ItineraryItem[] };
 
 export default function TripDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -108,10 +106,6 @@ export default function TripDetailPage() {
   const [selectedForGroup, setSelectedForGroup] = useState<string[]>([]);
   const [groupNameDraft, setGroupNameDraft] = useState('');
   const [creatingGroup, setCreatingGroup] = useState(false);
-  const [creatingDebateDay, setCreatingDebateDay] = useState<number | null>(null);
-  const [debateTitleDraft, setDebateTitleDraft] = useState('');
-  const [debateOptionDrafts, setDebateOptionDrafts] = useState<string[]>(['', '']);
-  const [submittingDebate, setSubmittingDebate] = useState(false);
   const [section, setSection] = useState('');
   const [visibleSections, setVisibleSections] = useState<Set<string>>(() => {
     const saved = id ? localStorage.getItem(`trip-sections-${id}`) : null;
@@ -256,16 +250,10 @@ export default function TripDetailPage() {
       map.set(group.day, arr);
     }
 
-    for (const debate of (trip.debates ?? [])) {
-      const arr = map.get(debate.day) ?? [];
-      arr.push({ type: 'debate', debate });
-      map.set(debate.day, arr);
-    }
-
     for (const arr of map.values()) {
       arr.sort((a, b) => {
-        const posA = a.type === 'item' ? a.item.position : a.type === 'group' ? a.group.position : a.debate.position;
-        const posB = b.type === 'item' ? b.item.position : b.type === 'group' ? b.group.position : b.debate.position;
+        const posA = a.type === 'item' ? a.item.position : a.group.position;
+        const posB = b.type === 'item' ? b.item.position : b.group.position;
         return posA - posB;
       });
     }
@@ -431,71 +419,6 @@ export default function TripDetailPage() {
     setTrip(updated);
   }
 
-  async function onCreateDebate(day: number) {
-    if (!id || !debateTitleDraft.trim() || debateOptionDrafts.filter((o) => o.trim()).length < 2) return;
-    setSubmittingDebate(true);
-    try {
-      const updated = await tripsApi.createDebate(id, {
-        title: debateTitleDraft.trim(),
-        day,
-        options: debateOptionDrafts.filter((o) => o.trim()).map((o) => ({ title: o.trim() })),
-      });
-      setTrip(updated);
-      setCreatingDebateDay(null);
-      setDebateTitleDraft('');
-      setDebateOptionDrafts(['', '']);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create debate');
-    } finally {
-      setSubmittingDebate(false);
-    }
-  }
-
-  async function onDeleteDebate(debateId: string) {
-    if (!id) return;
-    const updated = await tripsApi.deleteDebate(id, debateId);
-    setTrip(updated);
-  }
-
-  async function onAddDebateOption(debateId: string, title: string) {
-    if (!id) return;
-    const updated = await tripsApi.addDebateOption(id, debateId, title);
-    setTrip(updated);
-  }
-
-  async function onUpdateDebateOption(
-    debateId: string,
-    optionId: string,
-    patch: { pros?: string[]; cons?: string[] }
-  ) {
-    if (!id) return;
-    const updated = await tripsApi.updateDebateOption(id, debateId, optionId, patch);
-    setTrip(updated);
-  }
-
-  async function onDeleteDebateOption(debateId: string, optionId: string) {
-    if (!id) return;
-    const updated = await tripsApi.deleteDebateOption(id, debateId, optionId);
-    setTrip(updated);
-  }
-
-  async function onVoteDebateOption(debateId: string, optionId: string) {
-    if (!id) return;
-    const updated = await tripsApi.voteDebateOption(id, debateId, optionId);
-    setTrip(updated);
-  }
-
-  async function onAddDebateComment(debateId: string, text: string) {
-    if (!id) return;
-    const updated = await tripsApi.addDebateComment(id, debateId, text);
-    setTrip(updated);
-  }
-
-  async function onDeleteDebateComment(debateId: string, commentId: string) {
-    if (!id) return;
-    const updated = await tripsApi.deleteDebateComment(id, debateId, commentId);
-    setTrip(updated);
-  }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -505,10 +428,9 @@ export default function TripDetailPage() {
     const activeId = String(active.id);
     const overId = String(over.id);
     const isGroupDrag = activeId.startsWith('group-');
-    const isDebateDrag = activeId.startsWith('debate-');
 
     // --- Within-group item reorder ---
-    if (!isGroupDrag && !isDebateDrag) {
+    if (!isGroupDrag) {
       const activeItem = trip.items.find((i) => i._id === activeId);
       if (!activeItem) return;
 
@@ -539,9 +461,7 @@ export default function TripDetailPage() {
     // --- Top-level drag (standalone item or group) ---
     const activeDay = isGroupDrag
       ? trip.groups.find((g) => g._id === activeId.slice(6))?.day
-      : isDebateDrag
-        ? (trip.debates ?? []).find((d) => d._id === activeId.slice(7))?.day
-        : trip.items.find((i) => i._id === activeId)?.day;
+      : trip.items.find((i) => i._id === activeId)?.day;
     if (activeDay === undefined) return;
 
     let targetDay = activeDay;
@@ -549,15 +469,13 @@ export default function TripDetailPage() {
       targetDay = Number(overId.slice(4));
     } else if (overId.startsWith('group-')) {
       targetDay = trip.groups.find((g) => g._id === overId.slice(6))?.day ?? activeDay;
-    } else if (overId.startsWith('debate-')) {
-      targetDay = (trip.debates ?? []).find((d) => d._id === overId.slice(7))?.day ?? activeDay;
     } else {
       const overItem = trip.items.find((i) => i._id === overId);
       if (overItem) targetDay = overItem.day;
     }
 
-    // Groups and debates only move within their own day
-    if ((isGroupDrag || isDebateDrag) && targetDay !== activeDay) return;
+    // Groups only move within their own day
+    if (isGroupDrag && targetDay !== activeDay) return;
 
     const sourceTopLevel = topLevelByDay.get(activeDay) ?? [];
     const targetTopLevel = targetDay !== activeDay ? (topLevelByDay.get(targetDay) ?? []) : sourceTopLevel;
@@ -565,9 +483,7 @@ export default function TripDetailPage() {
     const fromIdx = sourceTopLevel.findIndex((e) =>
       isGroupDrag
         ? e.type === 'group' && e.group._id === activeId.slice(6)
-        : isDebateDrag
-          ? e.type === 'debate' && e.debate._id === activeId.slice(7)
-          : e.type === 'item' && e.item._id === activeId
+        : e.type === 'item' && e.item._id === activeId
     );
     if (fromIdx === -1) return;
 
@@ -577,9 +493,6 @@ export default function TripDetailPage() {
     } else if (overId.startsWith('group-')) {
       const refList = activeDay === targetDay ? sourceTopLevel : targetTopLevel;
       toIdx = refList.findIndex((e) => e.type === 'group' && e.group._id === overId.slice(6));
-    } else if (overId.startsWith('debate-')) {
-      const refList = activeDay === targetDay ? sourceTopLevel : targetTopLevel;
-      toIdx = refList.findIndex((e) => e.type === 'debate' && e.debate._id === overId.slice(7));
     } else {
       const refList = activeDay === targetDay ? sourceTopLevel : targetTopLevel;
       toIdx = refList.findIndex((e) => e.type === 'item' && e.item._id === overId);
@@ -597,7 +510,6 @@ export default function TripDetailPage() {
     const persistTopLevel = (
       updatedGroups: typeof trip.groups,
       updatedItems: typeof trip.items,
-      updatedDebates: typeof trip.debates
     ) => {
       tripsApi
         .reorderItems(id, {
@@ -607,7 +519,6 @@ export default function TripDetailPage() {
             position: i.position,
           })),
           groups: updatedGroups.map((g) => ({ groupId: g._id, day: g.day, position: g.position })),
-          debates: updatedDebates.map((d) => ({ debateId: d._id, day: d.day, position: d.position })),
         })
         .then(setTrip)
         .catch(() => refresh());
@@ -622,18 +533,13 @@ export default function TripDetailPage() {
         const idx = reordered.findIndex((e) => e.type === 'group' && e.group._id === g._id);
         return idx !== -1 ? { ...g, position: idx } : g;
       });
-      const newDebates = (trip.debates ?? []).map((d) => {
-        if (d.day !== activeDay) return d;
-        const idx = reordered.findIndex((e) => e.type === 'debate' && e.debate._id === d._id);
-        return idx !== -1 ? { ...d, position: idx } : d;
-      });
       const newItems = trip.items.map((item) => {
         if (item.day !== activeDay || item.groupId) return item;
         const idx = reordered.findIndex((e) => e.type === 'item' && e.item._id === item._id);
         return idx !== -1 ? { ...item, position: idx } : item;
       });
-      setTrip({ ...trip, groups: newGroups, items: newItems, debates: newDebates });
-      persistTopLevel(newGroups, newItems, newDebates);
+      setTrip({ ...trip, groups: newGroups, items: newItems });
+      persistTopLevel(newGroups, newItems);
       return;
     }
 
@@ -652,9 +558,7 @@ export default function TripDetailPage() {
     const buildPosMap = (list: TopLevelEntry[]) =>
       new Map(
         list.map((e, idx) => [
-          e.type === 'group' ? `g:${e.group._id}`
-            : e.type === 'debate' ? `d:${e.debate._id}`
-              : `i:${e.item._id}`,
+          e.type === 'group' ? `g:${e.group._id}` : `i:${e.item._id}`,
           idx,
         ])
       );
@@ -667,12 +571,6 @@ export default function TripDetailPage() {
       if (tgtMap.has(key)) return { ...g, position: tgtMap.get(key)! };
       return g;
     });
-    const newDebates = (trip.debates ?? []).map((d) => {
-      const key = `d:${d._id}`;
-      if (srcMap.has(key)) return { ...d, position: srcMap.get(key)! };
-      if (tgtMap.has(key)) return { ...d, position: tgtMap.get(key)! };
-      return d;
-    });
     const newItems = trip.items.map((item) => {
       if (item._id === movingEntry.item._id) {
         return { ...item, day: targetDay, position: tgtMap.get(`i:${item._id}`) ?? 0 };
@@ -682,8 +580,8 @@ export default function TripDetailPage() {
       if (tgtMap.has(key)) return { ...item, position: tgtMap.get(key)! };
       return item;
     });
-    setTrip({ ...trip, groups: newGroups, items: newItems, debates: newDebates });
-    persistTopLevel(newGroups, newItems, newDebates);
+    setTrip({ ...trip, groups: newGroups, items: newItems });
+    persistTopLevel(newGroups, newItems);
   }
 
   return (
@@ -1071,11 +969,8 @@ export default function TripDetailPage() {
               .filter((e): e is { type: 'item'; item: ItineraryItem } => e.type === 'item')
               .map((e) => e.item);
             const sortableIds = topLevel.map((e) =>
-              e.type === 'item' ? e.item._id
-                : e.type === 'group' ? `group-${e.group._id}`
-                  : `debate-${e.debate._id}`
+              e.type === 'item' ? e.item._id : `group-${e.group._id}`
             );
-            const isCreatingDebateThisDay = creatingDebateDay === day;
             const anchor = (trip.dayAnchors ?? []).find((a) => a.day === day);
 
             const firstEntry = topLevel[0];
@@ -1158,92 +1053,9 @@ export default function TripDetailPage() {
                           setGroupingDay(day);
                           setSelectedForGroup([]);
                           setGroupNameDraft('');
-                          setCreatingDebateDay(null);
                         }}
                       >
                         + Group items
-                      </button>
-                    )}
-                    {isCreatingDebateThisDay ? (
-                      <div className="debate-create-ui">
-                        <input
-                          placeholder="Debate title…"
-                          value={debateTitleDraft}
-                          onChange={(e) => setDebateTitleDraft(e.target.value)}
-                          className="debate-create-input"
-                        />
-                        {debateOptionDrafts.map((opt, i) => (
-                          <div key={i} className="debate-option-draft-row">
-                            <input
-                              placeholder={`Option ${i + 1}…`}
-                              value={opt}
-                              onChange={(e) =>
-                                setDebateOptionDrafts((prev) =>
-                                  prev.map((v, j) => (j === i ? e.target.value : v))
-                                )
-                              }
-                              className="debate-create-input"
-                            />
-                            {debateOptionDrafts.length > 2 && (
-                              <button
-                                type="button"
-                                className="ghost small-btn"
-                                onClick={() =>
-                                  setDebateOptionDrafts((prev) => prev.filter((_, j) => j !== i))
-                                }
-                              >
-                                ✕
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                        {debateOptionDrafts.length < 6 && (
-                          <button
-                            type="button"
-                            className="ghost small-btn"
-                            onClick={() => setDebateOptionDrafts((prev) => [...prev, ''])}
-                          >
-                            + Add option
-                          </button>
-                        )}
-                        <div className="debate-create-actions">
-                          <button
-                            type="button"
-                            className="small-btn"
-                            disabled={
-                              !debateTitleDraft.trim() ||
-                              debateOptionDrafts.filter((o) => o.trim()).length < 2 ||
-                              submittingDebate
-                            }
-                            onClick={() => onCreateDebate(day)}
-                          >
-                            {submittingDebate ? 'Creating…' : 'Create debate'}
-                          </button>
-                          <button
-                            type="button"
-                            className="ghost small-btn"
-                            onClick={() => {
-                              setCreatingDebateDay(null);
-                              setDebateTitleDraft('');
-                              setDebateOptionDrafts(['', '']);
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        className="ghost small-btn"
-                        onClick={() => {
-                          setCreatingDebateDay(day);
-                          setDebateTitleDraft('');
-                          setDebateOptionDrafts(['', '']);
-                          setGroupingDay(null);
-                        }}
-                      >
-                        + Debate
                       </button>
                     )}
                   </div>
@@ -1307,23 +1119,6 @@ export default function TripDetailPage() {
                               </li>
                             )}
                           </Fragment>
-                        );
-                      }
-                      if (entry.type === 'debate') {
-                        return (
-                          <li key={`debate-${entry.debate._id}`}>
-                            <SortableDebateCard
-                              debate={entry.debate}
-                              currentUserId={user?.id}
-                              onDelete={() => onDeleteDebate(entry.debate._id)}
-                              onAddOption={(title) => onAddDebateOption(entry.debate._id, title)}
-                              onUpdateOption={(optId, patch) => onUpdateDebateOption(entry.debate._id, optId, patch)}
-                              onDeleteOption={(optId) => onDeleteDebateOption(entry.debate._id, optId)}
-                              onVoteOption={(optId) => onVoteDebateOption(entry.debate._id, optId)}
-                              onAddComment={(text) => onAddDebateComment(entry.debate._id, text)}
-                              onDeleteComment={(cId) => onDeleteDebateComment(entry.debate._id, cId)}
-                            />
-                          </li>
                         );
                       }
                       const item = entry.item;
