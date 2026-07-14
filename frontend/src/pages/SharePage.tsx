@@ -18,9 +18,12 @@ function getDayCount(trip: Trip) {
 }
 
 function getDayLabel(trip: Trip, day: number) {
-  const date = new Date(trip.startDate);
-  date.setDate(date.getDate() + day - 1);
-  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  const date = new Date(Date.UTC(
+    new Date(trip.startDate).getUTCFullYear(),
+    new Date(trip.startDate).getUTCMonth(),
+    new Date(trip.startDate).getUTCDate() + day - 1,
+  ));
+  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 
 const CATEGORY_LABELS = { food: 'Food', activity: 'Activity', attraction: 'Attraction' };
@@ -89,9 +92,9 @@ export default function SharePage() {
         <div className="share-header-inner">
           <h1 className="share-title">{trip.title}</h1>
           <p className="share-meta">
-            {trip.destination} · {new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            {trip.destination} · {new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
             {' – '}
-            {new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            {new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
             {' · '}{totalDays} day{totalDays !== 1 ? 's' : ''}
           </p>
           {trip.description && <p className="share-description">{trip.description}</p>}

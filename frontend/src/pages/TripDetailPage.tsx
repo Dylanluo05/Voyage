@@ -92,6 +92,10 @@ export default function TripDetailPage() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingDates, setEditingDates] = useState(false);
+  const [draftStart, setDraftStart] = useState('');
+  const [draftEnd, setDraftEnd] = useState('');
+  const [savingDates, setSavingDates] = useState(false);
   const [draft, setDraft] = useState<NewItemInput>(emptyItem);
   const [adding, setAdding] = useState(false);
   const [compressing, setCompressing] = useState(false);
@@ -393,6 +397,21 @@ export default function TripDetailPage() {
     }
   }
 
+  async function onSaveDates() {
+    if (!id || !trip) return;
+    if (draftEnd < draftStart) { setError('End date must be on or after start date'); return; }
+    setSavingDates(true);
+    try {
+      const updated = await tripsApi.updateTrip(id, { startDate: draftStart, endDate: draftEnd });
+      setTrip(updated);
+      setEditingDates(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to update dates');
+    } finally {
+      setSavingDates(false);
+    }
+  }
+
   async function onRenameGroup(groupId: string, title: string) {
     if (!id) return;
     try {
@@ -626,11 +645,51 @@ export default function TripDetailPage() {
           </button>
         </div>
       </div>
-      <p className="muted">
-        {trip.destination} · {new Date(trip.startDate).toLocaleDateString()} –{' '}
-        {new Date(trip.endDate).toLocaleDateString()} · {totalDays} day
-        {totalDays === 1 ? '' : 's'}
-      </p>
+      <div className="trip-dates-row">
+        {editingDates ? (
+          <div className="trip-dates-edit">
+            <input
+              type="date"
+              value={draftStart}
+              onChange={e => setDraftStart(e.target.value)}
+              className="trip-date-input"
+            />
+            <span className="muted">–</span>
+            <input
+              type="date"
+              value={draftEnd}
+              min={draftStart}
+              onChange={e => setDraftEnd(e.target.value)}
+              className="trip-date-input"
+            />
+            <button type="button" className="small-btn" disabled={savingDates} onClick={onSaveDates}>
+              {savingDates ? 'Saving…' : 'Save'}
+            </button>
+            <button type="button" className="ghost small-btn" onClick={() => setEditingDates(false)}>
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <p className="muted" style={{ margin: 0 }}>
+            {trip.destination} · {new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })} –{' '}
+            {new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })} · {totalDays} day{totalDays === 1 ? '' : 's'}
+            {trip.owner._id === user?.id && (
+              <button
+                type="button"
+                className="ghost small-btn"
+                style={{ marginLeft: 10, fontSize: 11 }}
+                onClick={() => {
+                  setDraftStart(trip.startDate.split('T')[0]);
+                  setDraftEnd(trip.endDate.split('T')[0]);
+                  setEditingDates(true);
+                }}
+              >
+                Edit dates
+              </button>
+            )}
+          </p>
+        )}
+      </div>
       {trip.description && <p>{trip.description}</p>}
 
       <TripNavBar setSection={setSection} visibleSections={visibleSections} onToggleSection={onToggleSection} />

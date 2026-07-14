@@ -3614,6 +3614,28 @@ fieldset legend {
   margin-bottom: 4px;
 }
 
+.trip-dates-row {
+  margin-bottom: 8px;
+}
+
+.trip-dates-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 0;
+}
+
+.trip-date-input {
+  padding: 5px 10px;
+  font-size: 13px;
+  border: 1.5px solid var(--border-mid);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--fg);
+  width: auto;
+}
+
 .trip-title-actions {
   display: flex;
   gap: 8px;

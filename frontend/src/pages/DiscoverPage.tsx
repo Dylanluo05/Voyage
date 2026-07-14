@@ -5,7 +5,7 @@ import * as tripsApi from '../api/trips';
 import { Link } from 'react-router-dom';
 
 function formatDate(s: string): string {
-    return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 
 function tripDuration(start: string, end: string): string {

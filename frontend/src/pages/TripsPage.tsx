@@ -6,7 +6,7 @@ import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
 function formatDate(s: string): string {
-  return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 
 function tripDuration(start: string, end: string): string {
