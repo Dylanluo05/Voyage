@@ -8,7 +8,7 @@ import { Icon } from './Icon';
  * SplashHero: full-bleed video splash with a load-in sequence and a scroll exit.
  *
  * LOAD-IN (every page load or reload, skipped for reduced motion):
- *   intro  sky-tinted screen, one line rising word by word, a paper plane
+ *   intro  white screen, one line rising word by word, a paper plane
  *          flying across trailing a line                        (~2.1s)
  *   reveal the panel lifts (text stays put) to uncover the video,
  *          the headline rises word by word                      (~1.2s)
