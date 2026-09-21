@@ -7798,11 +7798,7 @@ html.splash-locked, html.splash-locked body { overflow: hidden; }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scale(1.12);
-  transition: transform 2.6s var(--ease-expo);
 }
-.splash[data-phase="reveal"] .splash__video,
-.splash[data-phase="done"] .splash__video { transform: scale(1); }
 
 /* Light tint: colour stays. Only a soft top scrim for the nav and a bottom
    gradient under the text block. */
@@ -7822,18 +7818,19 @@ html.splash-locked, html.splash-locked body { overflow: hidden; }
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 2rem;
-  padding: 0 clamp(1.25rem, 4.2vw, 4.5rem) clamp(2.5rem, 9vh, 6rem);
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  text-align: center;
+  padding: 0 1.25rem clamp(2.5rem, 9vh, 6rem);
   color: #fff;
   opacity: max(0, calc(1 - var(--p, 0) * 2.4));
   transform: translate3d(0, calc(var(--p, 0) * -64px), 0);
 }
-.splash__copy { min-width: 0; text-align: left; }
+.splash__copy { display: flex; flex-direction: column; align-items: center; min-width: 0; text-align: center; }
 .splash__title {
   margin: 0;
-  font-size: clamp(3rem, 11.5vw, 10rem);
+  font-size: clamp(3rem, 12vw, 10rem);
   font-weight: 600;
   letter-spacing: -0.05em;
   line-height: 0.92;
@@ -7842,7 +7839,7 @@ html.splash-locked, html.splash-locked body { overflow: hidden; }
 }
 .splash__line { display: block; }
 .splash__sub {
-  max-width: 30rem;
+  max-width: 32rem;
   margin: 1.75rem 0 0;
   font-size: clamp(1rem, 1.25vw, 1.2rem);
   line-height: 1.5;
@@ -7853,7 +7850,7 @@ html.splash-locked, html.splash-locked body { overflow: hidden; }
 .splash__actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 0.75rem;
   margin-top: 1.75rem;
 }
@@ -7893,61 +7890,116 @@ html.splash-locked, html.splash-locked body { overflow: hidden; }
 .splash[data-phase="done"] .splash__actions,
 .splash[data-phase="done"] .splash__title .w > span { transition: none; }
 
-/* ── intro screen: sky-tinted, one line + a route arc; the horizon lifts to reveal the video ── */
+/* ── intro screen: sky-tinted, one line, a paper plane flies across; the panel lifts away ──
+   Only transforms and opacity animate. The panel (.__bg) slides up while the text stays put,
+   which reads as the video wiping up from the bottom edge. */
 .splash-intro {
   position: fixed;
   inset: 0;
   z-index: 90; /* under the nav pill (100) so the pill stays visible */
   display: grid;
   place-items: center;
-  background: linear-gradient(180deg, #eef5fd 0%, #d9e9fb 100%);
+  overflow: hidden;
   color: #151515;
-  /* a wide ellipse: its bottom edge is a shallow arc, like the curve of the horizon */
-  clip-path: ellipse(95% 100% at 50% 0%);
-  transition: clip-path 1.15s var(--ease-curtain);
 }
-.splash-intro[data-phase="reveal"] { clip-path: ellipse(95% 0% at 50% 0%); }
-.splash-intro__stack { display: flex; flex-direction: column; align-items: center; gap: 0.9rem; }
+.splash-intro__bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #eef5fd 0%, #d9e9fb 100%);
+  transition: transform 1.05s var(--ease-curtain);
+  will-change: transform;
+}
+.splash-intro[data-phase="reveal"] .splash-intro__bg { transform: translate3d(0, -100%, 0); }
 .splash-intro__line {
+  position: relative;
   margin: 0;
   font-size: clamp(1.9rem, 3.8vw, 3.6rem);
   font-weight: 500;
   letter-spacing: -0.045em;
   line-height: 1;
   color: #151515;
-  transition: opacity 0.3s ease;
 }
 .splash-intro .dot { font-style: normal; color: var(--accent); }
-.splash-intro[data-phase="reveal"] .splash-intro__stack { opacity: 0; transition: opacity 0.3s ease; }
+.splash-intro__line,
+.splash-intro__trail,
+.splash-intro__plane { transition: opacity 0.3s ease 0.05s; }
+.splash-intro[data-phase="reveal"] .splash-intro__line,
+.splash-intro[data-phase="reveal"] .splash-intro__trail,
+.splash-intro[data-phase="reveal"] .splash-intro__plane { opacity: 0; }
 .splash-intro .w > span {
   transform: translateY(112%);
   animation: word-rise 1s var(--ease-expo) calc(0.25s + var(--i, 0) * 110ms) forwards;
 }
-/* route arc: draws itself left to right, then the destination dot lands */
-.splash-intro__route { width: clamp(9rem, 20vw, 16rem); height: auto; overflow: visible; }
-.splash-intro__route path {
+
+/* the flight: the plane and the dashed contrail follow the SAME path, both linear over 1.7s */
+.splash-intro__trail {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.splash-intro__trail path {
   stroke: #151515;
-  stroke-width: 1.6;
+  stroke-width: 1.4;
   stroke-linecap: round;
-  stroke-dasharray: 0.02 0.035; /* dashed, in pathLength units */
-  stroke-dashoffset: 1;
-  opacity: 0.55;
-  animation: route-draw 1.3s var(--ease-expo) 0.55s forwards;
+  stroke-dasharray: 5 7;
+  opacity: 0.4;
+  vector-effect: non-scaling-stroke;
 }
-.splash-intro__route circle {
-  fill: var(--accent);
-  opacity: 0;
-  transform-box: fill-box;
-  transform-origin: center;
-  transform: scale(0.2);
-  animation: route-dot 0.5s var(--ease-expo) 1.6s forwards;
+/* the contrail is revealed left to right in step with the plane's x position */
+.splash-intro__trail { animation: trail-reveal 1.7s linear 0.35s both; clip-path: inset(0 100% 0 0); }
+.splash-intro__plane {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  line-height: 0;
+  color: #151515;
+  will-change: transform;
+  animation: plane-fly 1.7s linear 0.35s both;
 }
-@keyframes route-draw { to { stroke-dashoffset: 0; } }
-@keyframes route-dot { to { opacity: 1; transform: none; } }
+@keyframes trail-reveal {
+  0.0% { clip-path: inset(0 100.00% 0 0); }
+  7.1% { clip-path: inset(0 100.00% 0 0); }
+  14.3% { clip-path: inset(0 92.63% 0 0); }
+  21.4% { clip-path: inset(0 83.49% 0 0); }
+  28.6% { clip-path: inset(0 74.32% 0 0); }
+  35.7% { clip-path: inset(0 65.15% 0 0); }
+  42.9% { clip-path: inset(0 56.07% 0 0); }
+  50.0% { clip-path: inset(0 47.69% 0 0); }
+  57.1% { clip-path: inset(0 39.73% 0 0); }
+  64.3% { clip-path: inset(0 31.51% 0 0); }
+  71.4% { clip-path: inset(0 23.20% 0 0); }
+  78.6% { clip-path: inset(0 15.01% 0 0); }
+  85.7% { clip-path: inset(0 7.19% 0 0); }
+  92.9% { clip-path: inset(0 0.00% 0 0); }
+  100.0% { clip-path: inset(0 0.00% 0 0); }
+}
+@keyframes plane-fly {
+  0.0% { transform: translate(-8.00vw, 86.00vh) translate(-50%, -50%) rotate(13.4deg); }
+  7.1% { transform: translate(0.16vw, 79.29vh) translate(-50%, -50%) rotate(23.2deg); }
+  14.3% { transform: translate(8.97vw, 75.26vh) translate(-50%, -50%) rotate(35.4deg); }
+  21.4% { transform: translate(18.11vw, 74.16vh) translate(-50%, -50%) rotate(45.8deg); }
+  28.6% { transform: translate(27.28vw, 75.02vh) translate(-50%, -50%) rotate(49.8deg); }
+  35.7% { transform: translate(36.45vw, 75.80vh) translate(-50%, -50%) rotate(44.3deg); }
+  42.9% { transform: translate(45.53vw, 73.97vh) translate(-50%, -50%) rotate(29.4deg); }
+  50.0% { transform: translate(53.91vw, 68.09vh) translate(-50%, -50%) rotate(13.2deg); }
+  57.1% { transform: translate(61.87vw, 60.77vh) translate(-50%, -50%) rotate(17.2deg); }
+  64.3% { transform: translate(70.09vw, 54.22vh) translate(-50%, -50%) rotate(19.6deg); }
+  71.4% { transform: translate(78.40vw, 47.96vh) translate(-50%, -50%) rotate(19.5deg); }
+  78.6% { transform: translate(86.59vw, 41.32vh) translate(-50%, -50%) rotate(16.2deg); }
+  85.7% { transform: translate(94.41vw, 33.65vh) translate(-50%, -50%) rotate(10.2deg); }
+  92.9% { transform: translate(101.61vw, 24.54vh) translate(-50%, -50%) rotate(2.8deg); }
+  100.0% { transform: translate(108.00vw, 14.00vh) translate(-50%, -50%) rotate(-4.4deg); }
+}
 @keyframes word-rise { to { transform: none; } }
 
 /* ── quest card: the current cut, presented as a sidequest playing card ── */
-.splash__quest { flex-shrink: 0; align-self: flex-end; }
+.splash__quest {
+  position: absolute;
+  right: clamp(1.25rem, 4.2vw, 4.5rem);
+  bottom: clamp(2.5rem, 9vh, 6rem);
+}
 .quest-card {
   --_suit: #151515;
   position: relative;
@@ -8011,9 +8063,8 @@ html.splash-locked, html.splash-locked body { overflow: hidden; }
 }
 
 @media (max-width: 720px) {
-  .splash__content { flex-direction: column; align-items: flex-start; justify-content: flex-end; }
   /* card moves under the nav pill, top right, and shrinks */
-  .splash__quest { position: absolute; top: 5.4rem; right: 1rem; }
+  .splash__quest { top: 5.4rem; right: 1rem; bottom: auto; }
   .quest-card { width: 8.4rem; padding: 0.65rem 0.7rem; }
   .quest-card__top { font-size: 1.05rem; }
   .quest-card__title { font-size: 0.86rem; }

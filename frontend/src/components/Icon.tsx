@@ -83,6 +83,7 @@ import {
   Flag,
   LinkSimple,
   ChatText,
+  PaperPlaneTilt,
 } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
 
@@ -98,6 +99,7 @@ export const icons = {
   compass: Compass,
   music: MusicNotes,
   plane: AirplaneTilt,
+  paperPlane: PaperPlaneTilt,
   weather: SunHorizon,
   arrowUpRight: ArrowUpRight,
   arrowRight: ArrowRight,

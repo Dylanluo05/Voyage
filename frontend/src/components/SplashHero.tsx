@@ -2,14 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useLenis } from 'lenis/react';
+import { Icon } from './Icon';
 
 /* ─────────────────────────────────────────────────────────────────────────
  * SplashHero: full-bleed video splash with a load-in sequence and a scroll exit.
  *
  * LOAD-IN (every page load or reload, skipped for reduced motion):
- *   intro  sky-tinted screen, one line rising word by word, a route arc
- *          drawing itself underneath                            (~2.1s)
- *   reveal the horizon lifts (curved wipe) to uncover the video,
+ *   intro  sky-tinted screen, one line rising word by word, a paper plane
+ *          flying across trailing a line                        (~2.1s)
+ *   reveal the panel lifts (text stays put) to uncover the video,
  *          the headline rises word by word                      (~1.2s)
  *   done   scroll unlocked, intro unmounted
  * Navigating back to Home inside the app skips the intro but still rises the
@@ -64,7 +65,7 @@ const MONTAGE = { src: '/video/montage.mp4', poster: '/video/montage-poster.jpg'
 
 const SCENE_HEIGHT = '220svh';
 const INTRO_HOLD_MS = 2100; // intro screen stays up this long
-const REVEAL_MS = 1250; // horizon lift + headline entrance
+const REVEAL_MS = 1250; // panel lift + headline entrance
 
 type Phase = 'intro' | 'reveal' | 'done';
 type WordSpec = { t: string; em?: boolean; dot?: boolean };
@@ -147,14 +148,16 @@ export default function SplashHero({ children }: Props) {
     };
   }, [reduced, showIntro]);
 
-  // ── Video: reduced motion shows the poster only ────────────────────────
+  // ── Video: reduced motion shows the poster only. Playback waits for the reveal
+  //    so decoding does not compete with the intro animation (the poster is frame 1).
+  const canPlay = !reduced && (!showIntro || phase !== 'intro');
   useEffect(() => {
     const v = videoRef.current;
-    if (!v || reduced) return;
+    if (!v || !canPlay) return;
     v.play().catch(() => {
       /* autoplay blocked: poster stays */
     });
-  }, [reduced]);
+  }, [canPlay]);
 
   // ── Quest card follows the current cut ─────────────────────────────────
   useEffect(() => {
@@ -243,17 +246,18 @@ export default function SplashHero({ children }: Props) {
         phase !== 'done' &&
         createPortal(
           <div className="splash-intro" data-phase={phase} aria-hidden="true">
-            <div className="splash-intro__stack">
-              <p className="splash-intro__line">
-                {INTRO_LINE.map((w) => (
-                  <Word key={w.t} {...w} i={introIndex++} />
-                ))}
-              </p>
-              <svg className="splash-intro__route" viewBox="0 0 320 64" fill="none">
-                <path d="M6 56 Q160 -22 314 56" pathLength="1" />
-                <circle cx="314" cy="56" r="5" />
-              </svg>
-            </div>
+            <div className="splash-intro__bg" />
+            <svg className="splash-intro__trail" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none">
+              <path d="M -8 86 C 18 60, 34 88, 54 68 C 74 48, 92 44, 108 14" pathLength="1" />
+            </svg>
+            <span className="splash-intro__plane">
+              <Icon name="paperPlane" size={34} weight="fill" />
+            </span>
+            <p className="splash-intro__line">
+              {INTRO_LINE.map((w) => (
+                <Word key={w.t} {...w} i={introIndex++} />
+              ))}
+            </p>
           </div>,
           document.body,
         )}
