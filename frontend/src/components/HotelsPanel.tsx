@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Trip, HotelBooking } from '../types';
 import { addHotel, removeHotel, parseHotelText } from '../api/trips';
+import { Icon } from './Icon';
+import Reveal from './Reveal';
 
 interface HotelsPanelProps {
     trip: Trip;
@@ -117,7 +119,7 @@ export default function HotelsPanel({ trip, onUpdate }: HotelsPanelProps) {
     }
 
     return (
-        <section id="hotels-section" className="card">
+        <Reveal as="section" id="hotels-section" className="card" variant="up">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <h2 style={{ margin: 0 }}>Hotels</h2>
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -153,11 +155,11 @@ export default function HotelsPanel({ trip, onUpdate }: HotelsPanelProps) {
                         </button>
                     </div>
                     <div className="booking-card-details">
-                        <span>📍 {hotel.location}</span>
-                        <span>📅 {hotel.checkIn} → {hotel.checkOut}</span>
-                        <span>💰 ${hotel.pricePerNight}/night</span>
-                        <span>👥 {hotel.guests} guest{hotel.guests !== 1 ? 's' : ''}</span>
-                        {hotel.confirmationNumber && <span>🔖 #{hotel.confirmationNumber}</span>}
+                        <span><Icon name="pin" size={13} /> {hotel.location}</span>
+                        <span><Icon name="calendar" size={13} /> {hotel.checkIn} → {hotel.checkOut}</span>
+                        <span><Icon name="dollar" size={13} /> ${hotel.pricePerNight}/night</span>
+                        <span><Icon name="collab" size={13} /> {hotel.guests} guest{hotel.guests !== 1 ? 's' : ''}</span>
+                        {hotel.confirmationNumber && <span><Icon name="tag" size={13} /> #{hotel.confirmationNumber}</span>}
                     </div>
                     {hotel.notes && <p className="booking-notes muted small">{hotel.notes}</p>}
                 </div>
@@ -166,7 +168,7 @@ export default function HotelsPanel({ trip, onUpdate }: HotelsPanelProps) {
             {importMode && (
                 <div className="import-box">
                     <p className="small muted" style={{ margin: '0 0 8px' }}>
-                        Paste your hotel confirmation email below — any format works.
+                        Paste your hotel confirmation email below. Any format works.
                     </p>
                     <textarea
                         className="import-textarea"
@@ -236,6 +238,6 @@ export default function HotelsPanel({ trip, onUpdate }: HotelsPanelProps) {
                     </button>
                 </form>
             )}
-        </section>
+        </Reveal>
     );
 }

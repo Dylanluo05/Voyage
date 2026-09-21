@@ -1,5 +1,7 @@
 import { Fragment, FormEvent, useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useLenis } from 'lenis/react';
+import { Icon } from '../components/Icon';
 import {
   DndContext,
   DragEndEvent,
@@ -173,6 +175,12 @@ export default function TripDetailPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  // Pause momentum scroll while a drag is active so Lenis and @dnd-kit
+  // autoscroll don't fight each other.
+  const lenis = useLenis();
+  const handleDragStart = useCallback(() => { lenis?.stop(); }, [lenis]);
+  const resumeScroll = useCallback(() => { lenis?.start(); }, [lenis]);
 
   async function refresh() {
     if (!id) return;
@@ -440,6 +448,7 @@ export default function TripDetailPage() {
 
 
   function handleDragEnd(event: DragEndEvent) {
+    resumeScroll();
     const { active, over } = event;
     if (!over || !trip || !id) return;
     if (active.id === over.id) return;
@@ -611,7 +620,8 @@ export default function TripDetailPage() {
         <div>Trip not found. <Link to="/">Back</Link></div>
       ) : (
         <>
-      <Link to="/trips" className="muted">
+      <div className="trip-hero">
+      <Link to="/trips" className="muted trip-hero-back">
         &larr; All trips
       </Link>
       <div className="trip-title-row">
@@ -634,14 +644,14 @@ export default function TripDetailPage() {
               tripsApi.markCompleted(trip._id, !trip.isCompleted).then(setTrip)
             }
           >
-            {trip.isCompleted ? '✓ Completed' : 'Mark complete'}
+            {trip.isCompleted ? <><Icon name="check" size={13} /> Completed</> : 'Mark complete'}
           </button>
           <button
             type="button"
             className={trip.isPublic ? 'ghost small-btn' : 'small-btn'}
             onClick={() => onPublish()}
           >
-            {trip.isPublic ? '✓ Published' : 'Publish'}
+            {trip.isPublic ? <><Icon name="check" size={13} /> Published</> : 'Publish'}
           </button>
         </div>
       </div>
@@ -654,7 +664,7 @@ export default function TripDetailPage() {
               onChange={e => setDraftStart(e.target.value)}
               className="trip-date-input"
             />
-            <span className="muted">–</span>
+            <span className="muted">-</span>
             <input
               type="date"
               value={draftEnd}
@@ -671,7 +681,7 @@ export default function TripDetailPage() {
           </div>
         ) : (
           <p className="muted" style={{ margin: 0 }}>
-            {trip.destination} · {new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })} –{' '}
+            {trip.destination} · {new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })} -{' '}
             {new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })} · {totalDays} day{totalDays === 1 ? '' : 's'}
             {trip.owner._id === user?.id && (
               <button
@@ -691,6 +701,7 @@ export default function TripDetailPage() {
         )}
       </div>
       {trip.description && <p>{trip.description}</p>}
+      </div>
 
       <TripNavBar setSection={setSection} visibleSections={visibleSections} onToggleSection={onToggleSection} />
 
@@ -969,7 +980,7 @@ export default function TripDetailPage() {
                     }
                   }}
                 >
-                  {suggestingPhotos ? 'Loading…' : '✨ Suggest Photos'}
+                  {suggestingPhotos ? 'Loading…' : <><Icon name="ai" size={13} /> Suggest Photos</>}
                 </button>
                 {addSuggestedPhotos.length > 0 && (
                   <div className="photo-suggestions-wrap">
@@ -1020,7 +1031,7 @@ export default function TripDetailPage() {
           Drag the <span className="kbd">⋮⋮</span> handle to reorder within a day or move
           items to another day. Click <em>Edit</em> to modify any field.
         </p>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={resumeScroll}>
           {Array.from({ length: totalDays }, (_, i) => i + 1).map((day) => {
             const topLevel = topLevelByDay.get(day) ?? [];
             const isGroupingThisDay = groupingDay === day;

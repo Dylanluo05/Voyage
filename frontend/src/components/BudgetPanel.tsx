@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { Trip } from "../types";
 import { updateBudget } from "../api/trips";
 import CircularProgress from './CircularProgress';
+import { Icon, type IconName } from './Icon';
+import Reveal from './Reveal';
 
 interface BudgetPanelProps {
     trip: Trip;
@@ -9,10 +11,10 @@ interface BudgetPanelProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-    food: '#D4943A',
-    activity: '#2C7A7B',
-    attraction: '#0F4C5C',
-    misc: '#FF6B6B',
+    food: '#f59e0b',
+    activity: '#6366f1',
+    attraction: '#8b5cf6',
+    misc: '#ec4899',
 };
 
 function nightsBetween(checkIn: string, checkOut: string): number {
@@ -78,14 +80,15 @@ export default function BudgetPanel({ trip, onUpdate }: BudgetPanelProps) {
     const overBudget = remaining !== null && remaining < 0;
     const spentPct = budget ? Math.min(100, (totalSpent / budget) * 100) : 0;
 
-    const sources = [
-        { label: 'Itinerary', icon: '📍', cost: itineraryCost, color: '#0F4C5C' },
-        { label: 'Hotels', icon: '🏨', cost: hotelCost, color: '#2C7A7B' },
-        { label: 'Flights', icon: '✈️', cost: flightCost, color: '#D4943A' },
-    ].filter(s => s.cost > 0);
+    const allSources: { label: string; icon: IconName; cost: number; color: string }[] = [
+        { label: 'Itinerary', icon: 'pin', cost: itineraryCost, color: '#6366f1' },
+        { label: 'Hotels', icon: 'bed', cost: hotelCost, color: '#8b5cf6' },
+        { label: 'Flights', icon: 'plane', cost: flightCost, color: '#22d3ee' },
+    ];
+    const sources = allSources.filter(s => s.cost > 0);
 
     return (
-        <section id="budget-section" className="card">
+        <Reveal as="section" id="budget-section" className="card" variant="up">
             <div className="budget-header-row">
                 <h2 style={{ margin: 0 }}>Budget</h2>
                 <div className="budget-set-row">
@@ -107,7 +110,7 @@ export default function BudgetPanel({ trip, onUpdate }: BudgetPanelProps) {
             <div className="budget-stats-row">
                 <div className="budget-stat">
                     <span className="budget-stat-label">Budget</span>
-                    <span className="budget-stat-value">${budget ? budget.toLocaleString() : '—'}</span>
+                    <span className="budget-stat-value">${budget ? budget.toLocaleString() : '-'}</span>
                 </div>
                 <div className="budget-stat">
                     <span className="budget-stat-label">Spent</span>
@@ -116,7 +119,7 @@ export default function BudgetPanel({ trip, onUpdate }: BudgetPanelProps) {
                 <div className="budget-stat">
                     <span className="budget-stat-label">Remaining</span>
                     <span className="budget-stat-value" style={{ color: overBudget ? 'var(--coral)' : 'var(--teal)' }}>
-                        {remaining === null ? '—' : overBudget
+                        {remaining === null ? '-' : overBudget
                             ? `-$${Math.abs(remaining).toLocaleString()}`
                             : `$${remaining.toLocaleString()}`}
                     </span>
@@ -132,7 +135,7 @@ export default function BudgetPanel({ trip, onUpdate }: BudgetPanelProps) {
                                 width: `${spentPct}%`,
                                 background: overBudget
                                     ? 'var(--coral)'
-                                    : 'linear-gradient(90deg, #0F4C5C, #2C7A7B)',
+                                    : 'linear-gradient(90deg, var(--accent-strong), var(--accent))',
                             }}
                         />
                     </div>
@@ -154,7 +157,7 @@ export default function BudgetPanel({ trip, onUpdate }: BudgetPanelProps) {
                             return (
                                 <div key={label} className="budget-source-row">
                                     <div className="budget-source-left">
-                                        <span className="budget-source-icon">{icon}</span>
+                                        <span className="budget-source-icon"><Icon name={icon} size={15} /></span>
                                         <span className="budget-source-label">{label}</span>
                                     </div>
                                     <div className="budget-source-bar-wrap">
@@ -185,7 +188,7 @@ export default function BudgetPanel({ trip, onUpdate }: BudgetPanelProps) {
                                     max={itineraryCost || 1}
                                     label={`Day ${day}\n$${cost.toLocaleString()}`}
                                     size={120}
-                                    color="#2C7A7B"
+                                    color="var(--accent)"
                                 />
                             </div>
                         ))}
@@ -204,13 +207,13 @@ export default function BudgetPanel({ trip, onUpdate }: BudgetPanelProps) {
                                     max={itineraryCost || 1}
                                     label={`${category.charAt(0).toUpperCase() + category.slice(1)}\n$${cost.toLocaleString()}`}
                                     size={120}
-                                    color={CATEGORY_COLORS[category] ?? '#2C7A7B'}
+                                    color={CATEGORY_COLORS[category] ?? 'var(--accent)'}
                                 />
                             </div>
                         ))}
                     </div>
                 </div>
             )}
-        </section>
+        </Reveal>
     );
 }

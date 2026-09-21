@@ -1,6 +1,8 @@
 import { useMemo, useState, useEffect } from "react";
 import { Trip } from "../types";
 import { addExpense, removeExpense, settleSplit } from "../api/trips";
+import { Icon } from "./Icon";
+import Reveal from "./Reveal";
 
 interface ExpenseSplitPanelProps {
     trip: Trip;
@@ -140,7 +142,7 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
     );
 
     return (
-        <section id="expenses-section" className="card expense-panel">
+        <Reveal as="section" id="expenses-section" className="card expense-panel" variant="up">
             <div className="expense-header-row">
                 <div>
                     <h2>Expense Split</h2>
@@ -349,7 +351,7 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                                             disabled={removingId === expense._id}
                                             onClick={() => handleRemove(expense._id)}
                                         >
-                                            {removingId === expense._id ? '…' : '✕'}
+                                            {removingId === expense._id ? '…' : <Icon name="close" size={13} />}
                                         </button>
                                     </div>
                                 </div>
@@ -383,6 +385,6 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                     !showForm && <p className="small muted">No expenses yet. Add one to start splitting costs.</p>
                 )
             }
-        </section >
+        </Reveal>
     );
 }

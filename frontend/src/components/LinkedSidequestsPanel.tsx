@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { PublicSidequest } from '../types';
 import { getSidequestsByTrip, unassignClaimFromTrip } from '../api/publicSidequests';
 import { useAuth } from '../context/AuthContext';
+import { Icon } from './Icon';
+import Reveal from './Reveal';
 
 const SUIT_SYMBOL: Record<string, string> = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' };
 const SUIT_LABEL: Record<string, string> = { spades: 'Physical', hearts: 'Social', diamonds: 'Intellectual', clubs: 'Teamwork' };
@@ -44,7 +46,7 @@ export default function LinkedSidequestsPanel({ tripId }: Props) {
     if (loading) return <p className="muted small">Loading sidequests…</p>;
 
     return (
-        <section className="card linked-sq-panel">
+        <Reveal as="section" className="card linked-sq-panel" variant="up">
             <div className="sidequest-header-row">
                 <h2>Sidequests</h2>
                 <a href="/sidequests" className="ghost small-btn" style={{ textDecoration: 'none' }}>Browse & Add</a>
@@ -72,7 +74,7 @@ export default function LinkedSidequestsPanel({ tripId }: Props) {
                                         <span className="flip-card-rank">{s.cardRank}</span>
                                         <span className="past-sidequest-title">{s.title}</span>
                                         {isCompleted && (
-                                            <span className="completed-badge" style={{ fontSize: 10, marginTop: 4 }}>✓ Done</span>
+                                            <span className="completed-badge" style={{ fontSize: 10, marginTop: 4 }}><Icon name="check" size={10} /> Done</span>
                                         )}
                                     </div>
                                     <div
@@ -82,7 +84,7 @@ export default function LinkedSidequestsPanel({ tripId }: Props) {
                                         <span style={{ fontWeight: 600, fontSize: 12, textAlign: 'center' }}>{s.title}</span>
                                         <span className="muted small">{SUIT_LABEL[s.cardSuit]}</span>
                                         {isCompleted ? (
-                                            <span className="completed-badge">✓ Completed</span>
+                                            <span className="completed-badge"><Icon name="check" size={12} /> Completed</span>
                                         ) : (
                                             <span className="muted small">In progress</span>
                                         )}
@@ -108,6 +110,6 @@ export default function LinkedSidequestsPanel({ tripId }: Props) {
                     })}
                 </div>
             )}
-        </section>
+        </Reveal>
     );
 }

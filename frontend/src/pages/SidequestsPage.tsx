@@ -7,6 +7,9 @@ import * as sidequestsApi from '../api/publicSidequests';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { uploadToCloudinary } from '../utils/image';
+import Reveal from '../components/Reveal';
+import CountUp from '../components/CountUp';
+import { Icon } from '../components/Icon';
 
 type CardSuitFilter = 'all' | 'spades' | 'hearts' | 'diamonds' | 'clubs' | 'claims';
 
@@ -369,21 +372,27 @@ export default function SidequestsPage() {
             )}
 
             {/* Page Hero */}
-            <div className="sq-page-hero">
-                <h1>Public Sidequests</h1>
-                <p>Community travel challenges. Complete them. Earn XP. Build your legend.</p>
-                <div className="sq-page-stats">
-                    <span className="sq-page-stat-pill sq-page-stat-pill--spades">♠ {counts.spades} Spades</span>
-                    <span className="sq-page-stat-pill sq-page-stat-pill--hearts">♥ {counts.hearts} Hearts</span>
-                    <span className="sq-page-stat-pill sq-page-stat-pill--diamonds">♦ {counts.diamonds} Diamonds</span>
-                    <span className="sq-page-stat-pill sq-page-stat-pill--clubs">♣ {counts.clubs} Clubs</span>
+            <div className="page-head">
+                <div className="page-head__lead">
+                    <h1>Public Sidequests</h1>
+                    <span className="page-head__sub">Community travel challenges. Complete them, earn XP.</span>
+                </div>
+                <div className="page-head__actions">
+                    <Link to="/how-to-play" className="btn btn--glass"><Icon name="info" size={15} /> How to play</Link>
                 </div>
             </div>
 
+            <Reveal className="sq-page-stats" variant="fade" stagger>
+                <span className="sq-page-stat-pill sq-page-stat-pill--spades">♠ {counts.spades} Spades</span>
+                <span className="sq-page-stat-pill sq-page-stat-pill--hearts">♥ {counts.hearts} Hearts</span>
+                <span className="sq-page-stat-pill sq-page-stat-pill--diamonds">♦ {counts.diamonds} Diamonds</span>
+                <span className="sq-page-stat-pill sq-page-stat-pill--clubs">♣ {counts.clubs} Clubs</span>
+            </Reveal>
+
             {/* Create Form */}
-            <section className="card">
-                <button type="button" onClick={() => setShowCreateForm(s => !s)}>
-                    {showCreateForm ? '✕ Cancel' : '+ Create Sidequest'}
+            <section className="glass-card" style={{ padding: 'clamp(1.25rem, 2.6vw, 1.9rem)' }}>
+                <button type="button" className="btn btn--primary" onClick={() => setShowCreateForm(s => !s)}>
+                    {showCreateForm ? <><Icon name="close" size={15} /> Cancel</> : <><Icon name="plus" size={15} /> Create Sidequest</>}
                 </button>
                 {showCreateForm && (
                     <form onSubmit={onCreateSidequest} className="sq-create-form">
@@ -392,26 +401,26 @@ export default function SidequestsPage() {
                         <input type="text" value={createForm.location} onChange={(e) => setCreateForm(prev => ({ ...prev, location: e.target.value }))} placeholder="Location..." />
                         <div className="sq-create-form-row">
                             <div>
-                                <label>Card Suit — Category</label>
+                                <label>Card suit (category)</label>
                                 <select value={createForm.cardSuit} onChange={(e) => setCreateForm(prev => ({ ...prev, cardSuit: e.target.value as CreateFormState['cardSuit'] }))} required>
-                                    <option value="spades">♠ Spades — Physical</option>
-                                    <option value="hearts">♥ Hearts — Social</option>
-                                    <option value="diamonds">♦ Diamonds — Intellectual</option>
-                                    <option value="clubs">♣ Clubs — Teamwork</option>
+                                    <option value="spades">♠ Spades: Physical</option>
+                                    <option value="hearts">♥ Hearts: Social</option>
+                                    <option value="diamonds">♦ Diamonds: Intellectual</option>
+                                    <option value="clubs">♣ Clubs: Teamwork</option>
                                 </select>
                             </div>
                             <div>
-                                <label>Card Rank — Difficulty</label>
+                                <label>Card rank (difficulty)</label>
                                 <select value={createForm.cardRank} onChange={(e) => setCreateForm(prev => ({ ...prev, cardRank: e.target.value as CreateFormState['cardRank'] }))} required>
-                                    <option value="J">J — Beginner</option>
-                                    <option value="Q">Q — Novice</option>
-                                    <option value="K">K — Intermediate</option>
-                                    <option value="A">A — Advanced</option>
+                                    <option value="J">J: Beginner</option>
+                                    <option value="Q">Q: Novice</option>
+                                    <option value="K">K: Intermediate</option>
+                                    <option value="A">A: Advanced</option>
                                 </select>
                             </div>
                         </div>
                         <div className="sq-xp-preview">
-                            ⚡ {computeXp(createForm.cardSuit, createForm.cardRank)} XP Reward
+                            <Icon name="lightning" size={14} weight="fill" /> {computeXp(createForm.cardSuit, createForm.cardRank)} XP Reward
                         </div>
                         <button type="submit">Create Sidequest</button>
                     </form>
@@ -419,7 +428,7 @@ export default function SidequestsPage() {
             </section>
 
             {/* Search */}
-            <section className="card" style={{ marginBottom: 0 }}>
+            <section className="glass-card" style={{ marginBottom: 0, padding: 'clamp(1rem, 2vw, 1.4rem)' }}>
                 <div className="search-row">
                     <input
                         type="text"
@@ -434,7 +443,7 @@ export default function SidequestsPage() {
 
             {/* Top-level mode tabs */}
             {user && (
-                <div className="sq-mode-tabs">
+                <div className="sq-mode-tabs glass-tabs">
                     <button
                         type="button"
                         className={`sq-mode-tab${activeTab !== 'claims' ? ' active' : ''}`}
@@ -469,20 +478,20 @@ export default function SidequestsPage() {
             )}
 
             {activeTab === 'claims' && myClaims.length > 0 && (
-                <div className="claims-stats-row">
+                <Reveal className="claims-stats-row" variant="up" stagger>
                     <div className="claims-stat">
-                        <span className="claims-stat-value">{myClaims.length}</span>
+                        <span className="claims-stat-value"><CountUp value={myClaims.length} /></span>
                         <span className="claims-stat-label">Claimed</span>
                     </div>
                     <div className="claims-stat">
-                        <span className="claims-stat-value">{claimsCompletedCount}</span>
+                        <span className="claims-stat-value"><CountUp value={claimsCompletedCount} /></span>
                         <span className="claims-stat-label">Completed</span>
                     </div>
                     <div className="claims-stat">
-                        <span className="claims-stat-value claims-stat-xp">+{claimsTotalXp}</span>
+                        <span className="claims-stat-value claims-stat-xp"><CountUp value={claimsTotalXp} prefix="+" /></span>
                         <span className="claims-stat-label">XP Earned</span>
                     </div>
-                </div>
+                </Reveal>
             )}
 
             {error && <p className="error" style={{ marginTop: 8 }}>{error}</p>}
@@ -496,7 +505,7 @@ export default function SidequestsPage() {
 
             {/* Grid */}
             {filtered.length > 0 && (
-                <ul className="sq-grid" style={{ marginTop: 20, listStyle: 'none', padding: 0 }}>
+                <Reveal as="ul" className="sq-grid" variant="up" stagger style={{ marginTop: 20, listStyle: 'none', padding: 0 }}>
                     {filtered.map(s => {
                         const isClaimed = s.claims.some(c => c.userId === user?.id);
                         const isCompleted = s.completions.some(c => c.userId === user?.id);
@@ -527,7 +536,7 @@ export default function SidequestsPage() {
                                 )}
 
                                 <div className="claims-card-footer-meta">
-                                    {s.location && <span className="muted small">📍 {s.location}</span>}
+                                    {s.location && <span className="muted small"><Icon name="pin" size={12} /> {s.location}</span>}
                                     <span className="muted small">By {s.createdBy.userName}</span>
                                 </div>
 
@@ -535,7 +544,7 @@ export default function SidequestsPage() {
                                     <div className="sq-event-info">
                                         <div className="sq-event-info-header">
                                             <span className="sq-event-date">
-                                                📅 {new Date(s.event.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                                                <Icon name="calendar" size={12} /> {new Date(s.event.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                                             </span>
                                             {s.event.maxParticipants && (
                                                 <span className="sq-event-spots">
@@ -579,7 +588,7 @@ export default function SidequestsPage() {
                                         </div>
                                     ) : (
                                         <button type="button" className="ghost small-btn sq-schedule-event-btn" onClick={() => setSchedulingEventId(s._id)}>
-                                            📅 Schedule Event
+                                            <Icon name="calendar" size={13} /> Schedule Event
                                         </button>
                                     )
                                 )}
@@ -599,7 +608,7 @@ export default function SidequestsPage() {
 
                                 <div className="sidequest-card-actions">
                                     {isCompleted ? (
-                                        <span className="completed-badge">✓ Completed</span>
+                                        <span className="completed-badge"><Icon name="check" size={13} /> Completed</span>
                                     ) : isClaimed ? (
                                         <>
                                             <button
@@ -624,7 +633,7 @@ export default function SidequestsPage() {
                                             disabled={claimingId === s._id}
                                             onClick={() => onClaim(s._id)}
                                         >
-                                            {claimingId === s._id ? 'Claiming…' : '⚑ Claim'}
+                                            {claimingId === s._id ? 'Claiming…' : <><Icon name="flag" size={13} /> Claim</>}
                                         </button>
                                     )}
                                     {trips.length > 0 && isClaimed && !linkedTrip && (
@@ -639,7 +648,7 @@ export default function SidequestsPage() {
                                 </div>
                                 {linkedTrip && (
                                     <div className="sq-linked-trip-badge">
-                                        <span>📎 Linked to <Link to={`/trips/${linkedTrip._id}`} onClick={e => e.stopPropagation()} style={{ fontWeight: 600 }}>{linkedTrip.title}</Link></span>
+                                        <span><Icon name="link" size={12} /> Linked to <Link to={`/trips/${linkedTrip._id}`} onClick={e => e.stopPropagation()} style={{ fontWeight: 600 }}>{linkedTrip.title}</Link></span>
                                         <div style={{ display: 'flex', gap: 6 }}>
                                             <button
                                                 type="button"
@@ -754,7 +763,7 @@ export default function SidequestsPage() {
                                                 src={c.photoUrl}
                                                 alt={`${c.userName} completion`}
                                                 className="sq-public-photo-thumb"
-                                                title={`${c.userName} — ${new Date(c.completedAt).toLocaleDateString()}`}
+                                                title={`${c.userName}, ${new Date(c.completedAt).toLocaleDateString()}`}
                                                 onClick={() => setLightboxUrl(c.photoUrl)}
                                             />
                                         ))}
@@ -769,7 +778,7 @@ export default function SidequestsPage() {
                                         style={{ fontSize: 12 }}
                                         onClick={() => setExpandedCommentsId(prev => prev === s._id ? null : s._id)}
                                     >
-                                        💬 {s.comments.length} comment{s.comments.length !== 1 ? 's' : ''}
+                                        <Icon name="comment" size={13} /> {s.comments.length} comment{s.comments.length !== 1 ? 's' : ''}
                                     </button>
 
                                     {expandedCommentsId === s._id && (
@@ -797,7 +806,7 @@ export default function SidequestsPage() {
                                                             style={{ fontSize: 11, alignSelf: 'flex-start' }}
                                                             onClick={() => onRemoveComment(s._id, c._id)}
                                                         >
-                                                            ✕
+                                                            <Icon name="close" size={11} />
                                                         </button>
                                                     )}
                                                 </div>
@@ -829,14 +838,14 @@ export default function SidequestsPage() {
                             </li>
                         );
                     })}
-                </ul>
+                </Reveal>
             )}
 
             {/* Lightbox */}
             {lightboxUrl && createPortal(
                 <div className="sq-lightbox-overlay" onClick={() => setLightboxUrl(null)}>
                     <div className="sq-lightbox-content" onClick={e => e.stopPropagation()}>
-                        <button type="button" className="sq-lightbox-close" onClick={() => setLightboxUrl(null)}>✕</button>
+                        <button type="button" className="sq-lightbox-close" onClick={() => setLightboxUrl(null)}><Icon name="close" size={16} /></button>
                         <img src={lightboxUrl} alt="Completion proof" className="sq-lightbox-img" />
                     </div>
                 </div>,

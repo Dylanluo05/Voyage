@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getPublicTrip } from '../api/trips';
 import type { Trip, ItineraryItem } from '../types';
+import { Icon } from '../components/Icon';
 
 function formatTime(time: string | undefined) {
   if (!time) return '';
@@ -93,7 +94,7 @@ export default function SharePage() {
           <h1 className="share-title">{trip.title}</h1>
           <p className="share-meta">
             {trip.destination} · {new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
-            {' – '}
+            {' - '}
             {new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
             {' · '}{totalDays} day{totalDays !== 1 ? 's' : ''}
           </p>
@@ -140,7 +141,7 @@ export default function SharePage() {
                         {(item.startTime || item.endTime) && (
                           <strong>
                             {item.startTime && item.endTime
-                              ? `${formatTime(item.startTime)} – ${formatTime(item.endTime)}`
+                              ? `${formatTime(item.startTime)} - ${formatTime(item.endTime)}`
                               : formatTime(item.startTime)}
                             {' '}
                           </strong>
@@ -149,11 +150,11 @@ export default function SharePage() {
                       </div>
                       {item.location?.name && (
                         <div className="share-item-location">
-                          📍 {item.location.name}{item.location.address ? ` · ${item.location.address}` : ''}
+                          <Icon name="pin" size={12} /> {item.location.name}{item.location.address ? ` · ${item.location.address}` : ''}
                         </div>
                       )}
                       {item.cost !== undefined && (
-                        <div className="share-item-cost">💰 ${item.cost.toFixed(2)}</div>
+                        <div className="share-item-cost"><Icon name="dollar" size={12} /> ${item.cost.toFixed(2)}</div>
                       )}
                       {item.notes && <p className="share-item-notes">{item.notes}</p>}
                     </div>

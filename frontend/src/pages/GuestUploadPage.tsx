@@ -4,6 +4,7 @@ import { Trip } from '../types';
 import { addGuestPhoto, getPublicTrip } from '../api/trips';
 import { compressImage } from '../utils/image';
 import exifr from 'exifr';
+import { Icon } from '../components/Icon';
 
 export default function GuestUploadPage() {
     const [trip, setTrip] = useState<Trip | null>(null);
@@ -92,13 +93,13 @@ export default function GuestUploadPage() {
                     <p className="muted small" style={{ marginBottom: 4 }}>You're contributing to</p>
                     <h1 style={{ margin: 0, fontSize: '1.5rem' }}>{trip!.title}</h1>
                     {trip!.destination && (
-                        <p className="muted small" style={{ marginTop: 4 }}>📍 {trip!.destination}</p>
+                        <p className="muted small" style={{ marginTop: 4 }}><Icon name="pin" size={12} /> {trip!.destination}</p>
                     )}
                 </div>
 
                 {done ? (
                     <div style={{ textAlign: 'center', padding: '32px 0' }}>
-                        <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🎉</div>
+                        <div style={{ marginBottom: 12, color: 'var(--accent)' }}><Icon name="confetti" size={40} /></div>
                         <h2 style={{ marginBottom: 8 }}>Photos uploaded!</h2>
                         <p className="muted">Your photos have been added to the trip. Thank you!</p>
                         <button
@@ -131,7 +132,7 @@ export default function GuestUploadPage() {
                                 </span>
                             ) : (
                                 <span className="proof-upload-hint">
-                                    {files.length} photo{files.length !== 1 ? 's' : ''} selected — click to change
+                                    {files.length} photo{files.length !== 1 ? 's' : ''} selected. Click to change
                                 </span>
                             )}
                         </div>

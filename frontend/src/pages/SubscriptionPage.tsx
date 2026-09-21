@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getBillingStatus, startCheckout, openPortal, BillingStatus, Plan } from '../api/billing';
+import Reveal from '../components/Reveal';
+import { Icon } from '../components/Icon';
 
 const TIER_ORDER: Plan[] = ['free', 'explorer', 'pro', 'globetrotter'];
 
@@ -113,7 +115,7 @@ export default function SubscriptionPage() {
         <p className="muted" style={{ textAlign: 'center' }}>Loading…</p>
       ) : (
         <>
-          <div className="sub-grid">
+          <Reveal className="sub-grid" variant="up" stagger>
             {TIER_ORDER.map((tier) => {
               const config = tierConfig?.[tier];
               const isCurrent = tier === currentPlan;
@@ -146,7 +148,7 @@ export default function SubscriptionPage() {
                   <ul className="sub-features">
                     {TIER_FEATURES[tier].map((f) => (
                       <li key={f} className="sub-feature">
-                        <span className="sub-check">✓</span>
+                        <span className="sub-check"><Icon name="check" size={13} /></span>
                         {f}
                       </li>
                     ))}
@@ -175,7 +177,7 @@ export default function SubscriptionPage() {
                 </div>
               );
             })}
-          </div>
+          </Reveal>
 
           {status?.hasSubscription && (
             <div className="sub-manage-row">

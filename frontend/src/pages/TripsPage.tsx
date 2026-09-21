@@ -4,6 +4,8 @@ import * as tripsApi from '../api/trips';
 import type { Trip } from '../types';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import Reveal from '../components/Reveal';
+import { Icon } from '../components/Icon';
 
 function formatDate(s: string): string {
   return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
@@ -103,24 +105,26 @@ export default function TripsPage() {
 
   return (
     <div className="page">
-      <div className="trips-page-header">
-        <div>
+      <div className="page-head">
+        <div className="page-head__lead">
           <h1 className="trips-page-title">Your Trips</h1>
           {!loading && trips.length > 0 && (
-            <p className="muted small" style={{ margin: '2px 0 0' }}>
+            <span className="page-head__sub">
               {ongoing.length > 0 && <span className="trips-live-dot" />}
               {trips.length} trip{trips.length !== 1 ? 's' : ''}
               {ongoing.length > 0 && ` · ${ongoing.length} ongoing`}
-            </p>
+            </span>
           )}
         </div>
-        <button type="button" onClick={() => setShowForm(f => !f)} className={showForm ? 'ghost' : ''}>
-          {showForm ? '✕ Cancel' : '+ New Trip'}
-        </button>
+        <div className="page-head__actions">
+          <button type="button" className={showForm ? 'btn btn--glass' : 'btn btn--primary'} onClick={() => setShowForm(f => !f)}>
+            {showForm ? <><Icon name="close" size={15} /> Cancel</> : <><Icon name="plus" size={15} /> New Trip</>}
+          </button>
+        </div>
       </div>
 
       {showForm && (
-        <section className="card trips-create-form" style={{ marginBottom: 28 }}>
+        <section className="glass--heavy trips-create-form" style={{ marginBottom: 28, padding: 'clamp(1.5rem, 3vw, 2.25rem)' }}>
           <h2 style={{ marginTop: 0, marginBottom: 20 }}>New Trip</h2>
           <form onSubmit={onCreate} className="form grid-2">
             <label>Title<input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Tokyo Summer 2025" required /></label>
@@ -140,11 +144,11 @@ export default function TripsPage() {
       {error && !showForm && <p className="error">{error}</p>}
 
       {!loading && trips.length === 0 && (
-        <div className="trips-empty">
-          <div className="trips-empty-icon">✈️</div>
+        <div className="trips-empty glass-card">
+          <div className="trips-empty-icon" style={{ color: 'var(--accent)' }}><Icon name="plane" size={44} /></div>
           <h3>No trips yet</h3>
           <p className="muted">Create your first trip and start planning your next adventure.</p>
-          <button type="button" onClick={() => setShowForm(true)}>+ Create Trip</button>
+          <button type="button" className="btn btn--primary" onClick={() => setShowForm(true)}><Icon name="plus" size={15} /> Create Trip</button>
         </div>
       )}
 
@@ -153,7 +157,7 @@ export default function TripsPage() {
         .map(group => (
           <section key={group.label} className="trips-group">
             <h2 className="trips-group-label">{group.label}</h2>
-            <ul className="trips-grid">
+            <Reveal as="ul" className="trips-grid" variant="up" stagger>
               {group.items.map(trip => {
                 const isOwner = trip.owner._id === user?.id;
                 const duration = tripDuration(trip.startDate, trip.endDate);
@@ -186,10 +190,10 @@ export default function TripsPage() {
                       </div>
 
                       <div className="trip-card-chips">
-                        <span className="trip-chip">📅 {formatDate(trip.startDate)} – {formatDate(trip.endDate)}</span>
-                        <span className="trip-chip">⏱ {duration}</span>
-                        <span className="trip-chip">📋 {trip.items.length} item{trip.items.length !== 1 ? 's' : ''}</span>
-                        {collabCount > 0 && <span className="trip-chip">👥 {collabCount + 1} people</span>}
+                        <span className="trip-chip"><Icon name="calendar" size={13} /> {formatDate(trip.startDate)} - {formatDate(trip.endDate)}</span>
+                        <span className="trip-chip"><Icon name="clock" size={13} /> {duration}</span>
+                        <span className="trip-chip"><Icon name="list" size={13} /> {trip.items.length} item{trip.items.length !== 1 ? 's' : ''}</span>
+                        {collabCount > 0 && <span className="trip-chip"><Icon name="collab" size={13} /> {collabCount + 1} people</span>}
                       </div>
 
                       <div className="trip-card-actions">
@@ -201,7 +205,7 @@ export default function TripsPage() {
                   </li>
                 );
               })}
-            </ul>
+            </Reveal>
           </section>
         ))}
     </div>

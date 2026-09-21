@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { Icon } from './Icon';
 
 interface Props {
   src: string;
@@ -26,7 +27,7 @@ export default function Lightbox({ src, alt, onClose }: Props) {
 
   return (
     <div className="lightbox-overlay" onClick={onClose}>
-      <button className="lightbox-close" onClick={onClose} aria-label="Close">✕</button>
+      <button className="lightbox-close" onClick={onClose} aria-label="Close"><Icon name="close" size={18} /></button>
       <img
         src={src}
         alt={alt}

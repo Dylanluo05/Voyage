@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import Reveal from '../components/Reveal';
+import { Icon } from '../components/Icon';
 
 const SUITS = [
     { symbol: '♠', name: 'Spades', label: 'Physical', color: '#1e293b', bg: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.3)', desc: 'Endurance, movement, and outdoor challenges that test your body.' },
@@ -49,12 +51,12 @@ export default function HowToPlayPage() {
                 <div className="htp-divider" />
 
                 {/* How it works */}
-                <section className="htp-section">
+                <Reveal as="section" className="htp-section" variant="up">
                     <h2 className="htp-section-title">How It Works</h2>
                     <div className="htp-steps">
                         {[
                             { n: '1', title: 'Browse', body: 'Explore sidequests posted by the Voyage community. Filter by suit to find the type of challenge that fits your trip.' },
-                            { n: '2', title: 'Claim', body: 'Lock in a sidequest. This commits you to completing it — think of it as drawing the card.' },
+                            { n: '2', title: 'Claim', body: 'Lock in a sidequest. This commits you to completing it. Think of it as drawing the card.' },
                             { n: '3', title: 'Complete', body: 'Do the challenge and submit a photo as proof. Our AI judge verifies that your photo matches the sidequest.' },
                             { n: '4', title: 'Earn XP', body: 'Pass verification and the XP is yours. It stacks on your profile and moves you up the leaderboard.' },
                         ].map(step => (
@@ -67,16 +69,16 @@ export default function HowToPlayPage() {
                             </div>
                         ))}
                     </div>
-                </section>
+                </Reveal>
 
                 <div className="htp-divider" />
 
                 {/* The Card System */}
-                <section className="htp-section">
+                <Reveal as="section" className="htp-section" variant="up">
                     <h2 className="htp-section-title">The Card System</h2>
                     <p className="htp-section-desc">Every sidequest has a <strong>suit</strong> (its category) and a <strong>rank</strong> (its difficulty). Together they determine how much XP you earn.</p>
 
-                    <h3 className="htp-subsection-title">Suits — What Kind of Challenge</h3>
+                    <h3 className="htp-subsection-title">Suits: what kind of challenge</h3>
                     <div className="htp-suits-grid">
                         {SUITS.map(s => (
                             <div key={s.name} className="htp-suit-card" style={{ background: s.bg, borderColor: s.border }}>
@@ -90,7 +92,7 @@ export default function HowToPlayPage() {
                         ))}
                     </div>
 
-                    <h3 className="htp-subsection-title">Ranks — How Hard</h3>
+                    <h3 className="htp-subsection-title">Ranks: how hard</h3>
                     <div className="htp-ranks-row">
                         {RANKS.map(r => (
                             <div key={r.rank} className="htp-rank-pill">
@@ -125,24 +127,24 @@ export default function HowToPlayPage() {
                             </div>
                         ))}
                     </div>
-                </section>
+                </Reveal>
 
                 <div className="htp-divider" />
 
                 {/* Events */}
-                <section className="htp-section">
+                <Reveal as="section" className="htp-section" variant="up">
                     <h2 className="htp-section-title">Events</h2>
-                    <p className="htp-section-desc">Some sidequests have a set date and a participant cap. When you enroll in an event, you're automatically claiming the sidequest — you're committing to show up and complete it together with others.</p>
+                    <p className="htp-section-desc">Some sidequests have a set date and a participant cap. When you enroll in an event, you're automatically claiming the sidequest. You're committing to show up and complete it together with others.</p>
                     <div className="htp-info-box">
-                        <span className="htp-info-icon">📅</span>
+                        <span className="htp-info-icon"><Icon name="calendar" size={18} /></span>
                         <p>You can leave an event before the date and it will unclaim the sidequest. You cannot unclaim a sidequest you've already completed.</p>
                     </div>
-                </section>
+                </Reveal>
 
                 <div className="htp-divider" />
 
                 {/* Player Ranks */}
-                <section className="htp-section">
+                <Reveal as="section" className="htp-section" variant="up">
                     <h2 className="htp-section-title">Player Ranks</h2>
                     <p className="htp-section-desc">As your XP grows, so does your rank. The leaderboard tracks the top adventurers across all of Voyage.</p>
                     <div className="htp-player-ranks">
@@ -154,7 +156,7 @@ export default function HowToPlayPage() {
                             </div>
                         ))}
                     </div>
-                </section>
+                </Reveal>
 
                 <div className="htp-divider" />
 

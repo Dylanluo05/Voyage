@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import * as tripsApi from '../api/trips';
 import type { Trip, LogPhoto } from '../types';
 import { compressImage } from '../utils/image';
+import { Icon } from './Icon';
+import Reveal from './Reveal';
 
 interface Props {
   trip: Trip;
@@ -31,7 +33,7 @@ function StarRating({
           onClick={() => onChange(s)}
           aria-label={`${s} star`}
         >
-          ★
+          <Icon name="star" size={18} weight={s <= (hovered || value || 0) ? 'fill' : 'regular'} />
         </button>
       ))}
     </div>
@@ -106,7 +108,7 @@ export default function TripLogPanel({ trip, currentUserId, onUpdate }: Props) {
   }, {});
 
   return (
-    <div className="trip-log-panel">
+    <Reveal className="trip-log-panel" variant="up">
 
       {/* Stats */}
       <div className="log-stats-row">
@@ -138,7 +140,7 @@ export default function TripLogPanel({ trip, currentUserId, onUpdate }: Props) {
 
       {/* Photo album */}
       <section className="log-section">
-        <h3 className="log-section-heading">📸 Photo Album</h3>
+        <h3 className="log-section-heading"><Icon name="camera" size={17} /> Photo Album</h3>
         <div className="log-upload-row">
           <select
             value={selectedDay}
@@ -168,7 +170,7 @@ export default function TripLogPanel({ trip, currentUserId, onUpdate }: Props) {
         </div>
 
         {trip.log.photos.length === 0 ? (
-          <p className="muted small">No photos yet — add memories from your trip.</p>
+          <p className="muted small">No photos yet. Add memories from your trip.</p>
         ) : (
           Object.entries(photosByDay).map(([label, photos]) => (
             <div key={label} className="log-album-group">
@@ -189,7 +191,7 @@ export default function TripLogPanel({ trip, currentUserId, onUpdate }: Props) {
                         disabled={removingId === photo._id}
                         onClick={() => handleRemovePhoto(photo._id)}
                       >
-                        {removingId === photo._id ? '…' : '✕'}
+                        {removingId === photo._id ? '…' : <Icon name="close" size={13} />}
                       </button>
                     )}
                   </div>
@@ -203,7 +205,7 @@ export default function TripLogPanel({ trip, currentUserId, onUpdate }: Props) {
       {/* Ratings */}
       {itemsWithCost > 0 || trip.items.length > 0 ? (
         <section className="log-section">
-          <h3 className="log-section-heading">⭐ Rate Your Experiences</h3>
+          <h3 className="log-section-heading"><Icon name="star" size={17} weight="fill" /> Rate Your Experiences</h3>
           <div className="log-ratings-list">
             {trip.items
               .slice()
@@ -225,6 +227,6 @@ export default function TripLogPanel({ trip, currentUserId, onUpdate }: Props) {
           </div>
         </section>
       ) : null}
-    </div>
+    </Reveal>
   );
 }

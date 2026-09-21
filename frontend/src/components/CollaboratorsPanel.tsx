@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import type { Trip } from '../types';
 import * as tripsApi from '../api/trips';
 import { ApiError } from '../api/client';
+import Reveal from './Reveal';
 
 interface Props {
   trip: Trip;
@@ -44,7 +45,7 @@ export default function CollaboratorsPanel({ trip, isOwner, onUpdate }: Props) {
   }
 
   return (
-    <section id="collaborators-section" className="card">
+    <Reveal as="section" id="collaborators-section" className="card" variant="up">
       <h2 style={{ marginBottom: 12 }}>Collaborators</h2>
 
       {trip.collaborators.length === 0 ? (
@@ -90,6 +91,6 @@ export default function CollaboratorsPanel({ trip, isOwner, onUpdate }: Props) {
       )}
 
       {error && <div className="error" style={{ marginTop: 10 }}>{error}</div>}
-    </section>
+    </Reveal>
   );
 }

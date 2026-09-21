@@ -4,6 +4,9 @@ import { getProfile, updateProfile } from "../api/users";
 import { getLeaderboard } from "../api/publicSidequests";
 import { useAuth } from "../context/AuthContext";
 import { uploadToCloudinary } from "../utils/image";
+import Reveal from "../components/Reveal";
+import CountUp from "../components/CountUp";
+import { Icon } from "../components/Icon";
 
 
 function getInitials(name: string): string {
@@ -162,10 +165,15 @@ export default function ProfilePage() {
 
     return (
         <div className="page">
-            <h1>Profile</h1>
+            <div className="page-head">
+                <div className="page-head__lead">
+                    <h1>Profile</h1>
+                    <span className="page-head__sub">{displayName}</span>
+                </div>
+            </div>
 
             {/* Identity card */}
-            <section className="card">
+            <Reveal as="section" className="glass-card" variant="up">
                 <div className="profile-identity-row">
                     {/* Avatar */}
                     <div className="profile-avatar-wrap">
@@ -177,7 +185,7 @@ export default function ProfilePage() {
                             disabled={uploadingAvatar}
                             onClick={() => avatarInputRef.current?.click()}
                         >
-                            {uploadingAvatar ? '…' : '✎'}
+                            {uploadingAvatar ? '…' : <Icon name="pencil" size={13} />}
                         </button>
                         <input
                             ref={avatarInputRef}
@@ -234,10 +242,10 @@ export default function ProfilePage() {
                         </button>
                     </div>
                 )}
-            </section>
+            </Reveal>
 
             {/* Wishlist */}
-            <section className="card">
+            <Reveal as="section" className="glass-card" variant="up">
                 <div className="sidequest-header-row">
                     <h2>Travel Wishlist</h2>
                     <button type="button" className="ghost small-btn" onClick={() => { setEditWishlist(profile?.wishlist ?? []); setEditingWishlist(e => !e); }}>
@@ -249,7 +257,7 @@ export default function ProfilePage() {
                     <div className="profile-wishlist">
                         {(editingWishlist ? editWishlist : profile.wishlist).map((place, i) => (
                             <div key={i} className="profile-wishlist-item">
-                                <span>✈ {place}</span>
+                                <span><Icon name="pin" size={13} /> {place}</span>
                                 {editingWishlist && (
                                     <button
                                         type="button"
@@ -257,7 +265,7 @@ export default function ProfilePage() {
                                         style={{ padding: '2px 8px', fontSize: 11 }}
                                         onClick={() => setEditWishlist(prev => prev.filter((_, idx) => idx !== i))}
                                     >
-                                        ✕
+                                        <Icon name="close" size={12} />
                                     </button>
                                 )}
                             </div>
@@ -284,14 +292,14 @@ export default function ProfilePage() {
                         </button>
                     </div>
                 )}
-            </section>
+            </Reveal>
 
             {/* XP & Rank */}
             {profile && (
-                <section className="card">
-                    <h2>Total XP:</h2>
+                <Reveal as="section" className="glass-card" variant="up">
+                    <h2>Total XP</h2>
                     <div className="profile-xp-row">
-                        <span className="gradient-text"><strong>{profile.xp}</strong> xp</span>
+                        <span className="gradient-text"><strong><CountUp value={profile.xp} /></strong> xp</span>
                         {rank !== '' && <span className="gradient-text">Current rank: {rank}</span>}
                         {nextRank !== '' && <span className="gradient-text">{xpBeforeNextRank} xp before next rank: {nextRank}</span>}
                         <span className="gradient-text">Current rank percentage: {percentageBeforeNextRank}%</span>
@@ -301,12 +309,12 @@ export default function ProfilePage() {
                     <div className="budget-progress-bar">
                         <div className="budget-progress-fill" style={{ width: percentageBeforeNextRank + '%', backgroundColor: 'var(--violet)' }}></div>
                     </div>
-                </section>
+                </Reveal>
             )}
 
             {/* Past Sidequests */}
             {profile && (
-                <section className="card">
+                <Reveal as="section" className="glass-card" variant="up">
                     <h2>Past Sidequests</h2>
                     <div className="flip-cards-grid">
                         {profile.sidequestHistory.length > 0 ? profile.sidequestHistory.map((s) => (
@@ -327,7 +335,7 @@ export default function ProfilePage() {
                             </div>
                         )) : <p>No sidequests completed yet...</p>}
                     </div>
-                </section>
+                </Reveal>
             )}
 
         </div>
