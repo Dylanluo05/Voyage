@@ -112,6 +112,8 @@ export default function SplashHero({ children }: Props) {
   const [showIntro] = useState(() => !reduced && !introPlayed);
   const [phase, setPhase] = useState<Phase>('intro');
   const [cut, setCut] = useState(0);
+  const phaseRef = useRef<Phase>('intro');
+  phaseRef.current = phase;
 
   // ── Load-in timeline ───────────────────────────────────────────────────
   useEffect(() => {
@@ -121,6 +123,10 @@ export default function SplashHero({ children }: Props) {
     }
     const html = document.documentElement;
     const timers: number[] = [];
+    const toTop = () => {
+      window.scrollTo(0, 0);
+      lenisRef.current?.scrollTo(0, { immediate: true, force: true });
+    };
     const finish = () => {
       setPhase('done');
       html.classList.remove('splash-locked');
@@ -128,10 +134,15 @@ export default function SplashHero({ children }: Props) {
     };
 
     if (showIntro) {
+      // A reload makes the browser restore the previous scroll offset (possibly after this
+      // runs). That would start the hero half-way through its scroll exit, so pin to the top
+      // now and again the moment the reveal starts.
+      toTop();
       html.classList.add('splash-locked');
       lenisRef.current?.stop();
       timers.push(
         window.setTimeout(() => {
+          toTop();
           setPhase('reveal');
           introPlayed = true;
         }, INTRO_HOLD_MS),
@@ -207,7 +218,8 @@ export default function SplashHero({ children }: Props) {
       const rect = root.getBoundingClientRect();
       const top = rect.top + window.scrollY; // layout position, scroll-independent
       const range = Math.max(1, rect.height - window.innerHeight);
-      const p = clamp01((scroll - top) / range);
+      // Held at 0 while the intro is up: scroll is locked and may hold a restored offset.
+      const p = phaseRef.current === 'intro' ? 0 : clamp01((scroll - top) / range);
       if (p === last) return;
       last = p;
       root.style.setProperty('--p', p.toFixed(4));
