@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Icon, type IconName } from './Icon';
+import Reveal from './Reveal';
 
 interface WeatherDay {
   date: string;
@@ -8,18 +10,18 @@ interface WeatherDay {
   precipitation: number;
 }
 
-function weatherEmoji(code: number): string {
-  if (code === 0) return '☀️';
-  if (code <= 2) return '⛅';
-  if (code === 3) return '☁️';
-  if (code <= 49) return '🌫️';
-  if (code <= 57) return '🌦️';
-  if (code <= 67) return '🌧️';
-  if (code <= 77) return '❄️';
-  if (code <= 82) return '🌦️';
-  if (code <= 86) return '🌨️';
-  if (code <= 99) return '⛈️';
-  return '🌡️';
+function weatherIcon(code: number): IconName {
+  if (code === 0) return 'sun';
+  if (code <= 2) return 'cloudSun';
+  if (code === 3) return 'cloud';
+  if (code <= 49) return 'cloudFog';
+  if (code <= 57) return 'cloudRain';
+  if (code <= 67) return 'cloudRain';
+  if (code <= 77) return 'cloudSnow';
+  if (code <= 82) return 'cloudRain';
+  if (code <= 86) return 'cloudSnow';
+  if (code <= 99) return 'cloudLightning';
+  return 'thermometer';
 }
 
 function weatherDescription(code: number): string {
@@ -132,7 +134,7 @@ export default function WeatherWidget({ destination, startDate, endDate }: Props
   if (loading || days.length === 0) return null;
 
   return (
-    <section id="weather-section" className="card">
+    <Reveal as="section" className="card weather-widget" variant="up">
       <h2 style={{ marginBottom: 12 }}>Weather</h2>
       <div className="weather-scroll">
         {days.map((day) => (
@@ -144,18 +146,18 @@ export default function WeatherWidget({ destination, startDate, endDate }: Props
                 day: 'numeric',
               })}
             </div>
-            <div className="weather-emoji">{weatherEmoji(day.weatherCode)}</div>
+            <div className="weather-emoji"><Icon name={weatherIcon(day.weatherCode)} size={26} /></div>
             <div className="weather-desc">{weatherDescription(day.weatherCode)}</div>
             <div className="weather-temps">
               <span className="weather-max">{day.maxTemp}°</span>
               <span className="muted"> / {day.minTemp}°</span>
             </div>
             {day.precipitation > 0 && (
-              <div className="muted small weather-precip">💧 {day.precipitation}mm</div>
+              <div className="muted small weather-precip"><Icon name="drop" size={12} /> {day.precipitation}mm</div>
             )}
           </div>
         ))}
       </div>
-    </section>
+    </Reveal>
   );
 }

@@ -9,6 +9,7 @@ const CATEGORY_LABELS: Record<ItemCategory, string> = {
 };
 import { compressImage } from '../utils/image';
 import Lightbox from './Lightbox';
+import { Icon } from './Icon';
 
 interface Props {
   item: ItineraryItem;
@@ -488,14 +489,14 @@ export default function ItineraryItemCard({
           <div>
             <strong>
               {item.startTime && item.endTime
-                ? `${formatTime(item.startTime)} – ${formatTime(item.endTime)}`
+                ? `${formatTime(item.startTime)} - ${formatTime(item.endTime)}`
                 : item.startTime ?? ''}
             </strong>{' '}
             {item.title}
           </div>
           {item.location?.name && (
             <div className="muted small">
-              📍 {item.location.name}
+              <Icon name="pin" size={12} /> {item.location.name}
               {item.location.address ? ` · ${item.location.address}` : ''}
             </div>
           )}
@@ -503,7 +504,7 @@ export default function ItineraryItemCard({
             <a target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${item.location?.lat},${item.location?.lng}`} className="directions-link">Get Directions →</a>
           )}
           {item.cost !== undefined && (
-            <div className="muted small">💰 ${item.cost.toFixed(2)}</div>
+            <div className="muted small"><Icon name="dollar" size={12} /> ${item.cost.toFixed(2)}</div>
           )}
           {item.notes && <p className="small" style={{ margin: '4px 0 0' }}>{item.notes}</p>}
           {error && <div className="error">{error}</div>}

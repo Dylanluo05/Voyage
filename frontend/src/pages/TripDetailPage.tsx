@@ -1,5 +1,7 @@
 import { Fragment, FormEvent, useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useLenis } from 'lenis/react';
+import { Icon } from '../components/Icon';
 import {
   DndContext,
   DragEndEvent,
@@ -35,7 +37,8 @@ import { useAuth } from '../context/AuthContext';
 import BudgetPanel from '../components/BudgetPanel';
 import ExpenseSplitPanel from '../components/ExpenseSplitPanel';
 import LinkedSidequestsPanel from '../components/LinkedSidequestsPanel';
-import TripNavBar, { ALL_SECTIONS } from '../components/TripNavBar';
+import TripWorkspace, { ALL_SECTIONS, TripPane, isSectionKey, type SectionKey } from '../components/TripWorkspace';
+import TripOverview from '../components/TripOverview';
 import DayAnchorEditor from '../components/DayAnchorEditor';
 import TripChatPanel from '../components/TripChatPanel';
 
@@ -98,6 +101,7 @@ export default function TripDetailPage() {
   const [savingDates, setSavingDates] = useState(false);
   const [draft, setDraft] = useState<NewItemInput>(emptyItem);
   const [adding, setAdding] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [compressing, setCompressing] = useState(false);
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [addSuggestedPhotos, setAddSuggestedPhotos] = useState<string[]>([]);
@@ -110,7 +114,9 @@ export default function TripDetailPage() {
   const [selectedForGroup, setSelectedForGroup] = useState<string[]>([]);
   const [groupNameDraft, setGroupNameDraft] = useState('');
   const [creatingGroup, setCreatingGroup] = useState(false);
-  const [section, setSection] = useState('');
+  // Workspace navigation: the active section lives in the URL hash so it is linkable and survives reloads.
+  const [active, setActive] = useState<string>(() => window.location.hash.slice(1) || 'overview');
+  const [visited, setVisited] = useState<Set<string>>(() => new Set(['overview', window.location.hash.slice(1)]));
   const [visibleSections, setVisibleSections] = useState<Set<string>>(() => {
     const saved = id ? localStorage.getItem(`trip-sections-${id}`) : null;
     if (saved) {
@@ -129,16 +135,26 @@ export default function TripDetailPage() {
     });
   }
 
-  useEffect(() => {
-    if (!section) return;
-    const el = document.getElementById(`${section}-section`);
-    if (!el) return;
-    const navbar = document.querySelector('.navbar') as HTMLElement | null;
-    const tripNavbar = document.querySelector('.trip-navbar') as HTMLElement | null;
-    const offset = (navbar?.offsetHeight ?? 0) + (tripNavbar?.offsetHeight ?? 0) + 16;
-    const top = el.getBoundingClientRect().top + window.scrollY - offset;
-    window.scrollTo({ top, behavior: 'smooth' });
-  }, [section]);
+  function goTo(key: SectionKey) {
+    setActive(key);
+    setVisited((v) => (v.has(key) ? v : new Set(v).add(key)));
+    window.history.replaceState(window.history.state, '', `#${key}`);
+    // If the workspace top is scrolled out of view (e.g. a jump from a deep itinerary), bring it back.
+    requestAnimationFrame(() => {
+      const el = document.querySelector('.tw');
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      if (top < 0) window.scrollTo({ top: top + window.scrollY - 96, behavior: 'smooth' });
+    });
+  }
+
+  const activeKey: SectionKey = !isSectionKey(active)
+    ? 'overview'
+    : active === 'overview'
+      ? 'overview'
+      : active === 'log'
+        ? trip?.isCompleted ? 'log' : 'overview'
+        : visibleSections.has(active) ? active : 'overview';
 
   const titleRefCallback = useCallback((el: HTMLInputElement | null) => {
     if (titleAutoRef.current) {
@@ -173,6 +189,12 @@ export default function TripDetailPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  // Pause momentum scroll while a drag is active so Lenis and @dnd-kit
+  // autoscroll don't fight each other.
+  const lenis = useLenis();
+  const handleDragStart = useCallback(() => { lenis?.stop(); }, [lenis]);
+  const resumeScroll = useCallback(() => { lenis?.start(); }, [lenis]);
 
   async function refresh() {
     if (!id) return;
@@ -329,6 +351,7 @@ export default function TripDetailPage() {
       const updated = await tripsApi.addItem(id, payload);
       setTrip(updated);
       setDraft({ ...emptyItem, day: payload.day });
+      setShowAddForm(false);
       setAddSuggestedPhotos([]);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to add item');
@@ -440,6 +463,7 @@ export default function TripDetailPage() {
 
 
   function handleDragEnd(event: DragEndEvent) {
+    resumeScroll();
     const { active, over } = event;
     if (!over || !trip || !id) return;
     if (active.id === over.id) return;
@@ -611,7 +635,8 @@ export default function TripDetailPage() {
         <div>Trip not found. <Link to="/">Back</Link></div>
       ) : (
         <>
-      <Link to="/trips" className="muted">
+      <div className="trip-hero">
+      <Link to="/trips" className="muted trip-hero-back">
         &larr; All trips
       </Link>
       <div className="trip-title-row">
@@ -634,14 +659,14 @@ export default function TripDetailPage() {
               tripsApi.markCompleted(trip._id, !trip.isCompleted).then(setTrip)
             }
           >
-            {trip.isCompleted ? '✓ Completed' : 'Mark complete'}
+            {trip.isCompleted ? <><Icon name="check" size={13} /> Completed</> : 'Mark complete'}
           </button>
           <button
             type="button"
             className={trip.isPublic ? 'ghost small-btn' : 'small-btn'}
             onClick={() => onPublish()}
           >
-            {trip.isPublic ? '✓ Published' : 'Publish'}
+            {trip.isPublic ? <><Icon name="check" size={13} /> Published</> : 'Publish'}
           </button>
         </div>
       </div>
@@ -654,7 +679,7 @@ export default function TripDetailPage() {
               onChange={e => setDraftStart(e.target.value)}
               className="trip-date-input"
             />
-            <span className="muted">–</span>
+            <span className="muted">-</span>
             <input
               type="date"
               value={draftEnd}
@@ -671,7 +696,7 @@ export default function TripDetailPage() {
           </div>
         ) : (
           <p className="muted" style={{ margin: 0 }}>
-            {trip.destination} · {new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })} –{' '}
+            {trip.destination} · {new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })} -{' '}
             {new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })} · {totalDays} day{totalDays === 1 ? '' : 's'}
             {trip.owner._id === user?.id && (
               <button
@@ -691,92 +716,101 @@ export default function TripDetailPage() {
         )}
       </div>
       {trip.description && <p>{trip.description}</p>}
+      </div>
 
-      <TripNavBar setSection={setSection} visibleSections={visibleSections} onToggleSection={onToggleSection} />
+      <TripWorkspace
+        active={activeKey}
+        onChange={goTo}
+        visibleSections={visibleSections}
+        onToggleSection={onToggleSection}
+        logAvailable={trip.isCompleted}
+        meta={{
+          itinerary: `${trip.items.length} ${trip.items.length === 1 ? 'stop' : 'stops'}`,
+          flights: trip.flights.length ? String(trip.flights.length) : undefined,
+          hotels: trip.hotels.length ? String(trip.hotels.length) : undefined,
+          budget: trip.budget ? `$${Math.round(trip.budget).toLocaleString()}` : undefined,
+          expenses: trip.expenses.length ? String(trip.expenses.length) : undefined,
+          collaborators: String(1 + (trip.collaborators?.length ?? 0)),
+          'trip-playlist': trip.playlist.length ? `${trip.playlist.length} songs` : undefined,
+        }}
+      >
+      <TripPane k="overview" active={activeKey} visited={visited}>
+        <TripOverview trip={trip} totalDays={totalDays} onGo={goTo} />
+      </TripPane>
 
-      {visibleSections.has('map') && isLoaded && (
-        <div id="map-section">
-          <TripMap items={orderedMapItems} />
-        </div>
-      )}
+      <TripPane k="map" active={activeKey} visited={visited} keepAlive={false}>
+        {isLoaded && <TripMap items={orderedMapItems} />}
+      </TripPane>
 
-      {visibleSections.has('budget') && (
-        <div id="budget-section">
-          <BudgetPanel trip={trip} onUpdate={setTrip} />
-        </div>
-      )}
+      <TripPane k="budget" active={activeKey} visited={visited}>
+        <BudgetPanel trip={trip} onUpdate={setTrip} />
+      </TripPane>
 
-      {visibleSections.has('hotels') && (
-        <div id="hotels-section">
-          <HotelsPanel trip={trip} onUpdate={setTrip} />
-        </div>
-      )}
+      <TripPane k="hotels" active={activeKey} visited={visited}>
+        <HotelsPanel trip={trip} onUpdate={setTrip} />
+      </TripPane>
 
-      {visibleSections.has('flights') && (
-        <div id="flights-section">
-          <FlightsPanel trip={trip} onUpdate={setTrip} />
-        </div>
-      )}
+      <TripPane k="flights" active={activeKey} visited={visited}>
+        <FlightsPanel trip={trip} onUpdate={setTrip} />
+      </TripPane>
 
-      {visibleSections.has('sidequests') && (
-        <div id="sidequests-section">
-          <LinkedSidequestsPanel tripId={trip._id} />
-        </div>
-      )}
+      <TripPane k="sidequests" active={activeKey} visited={visited}>
+        <LinkedSidequestsPanel tripId={trip._id} />
+      </TripPane>
 
-      {visibleSections.has('expenses') && (
-        <div id="expenses-section">
-          <ExpenseSplitPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
-        </div>
-      )}
+      <TripPane k="expenses" active={activeKey} visited={visited}>
+        <ExpenseSplitPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+      </TripPane>
 
-      {visibleSections.has('weather') && isLoaded && (
-        <div id="weather-section">
+      <TripPane k="weather" active={activeKey} visited={visited}>
+        {isLoaded && (
           <WeatherWidget
             destination={trip.destination}
             startDate={trip.startDate.split('T')[0]}
             endDate={trip.endDate.split('T')[0]}
           />
-        </div>
-      )}
+        )}
+      </TripPane>
 
-      {visibleSections.has('collaborators') && (
-        <div id="collaborators-section">
-          <CollaboratorsPanel
+      <TripPane k="collaborators" active={activeKey} visited={visited}>
+        <CollaboratorsPanel
+          trip={trip}
+          isOwner={trip.owner._id === user?.id}
+          onUpdate={setTrip}
+        />
+      </TripPane>
+
+      <TripPane k="trip-playlist" active={activeKey} visited={visited}>
+        <PlaylistPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
+      </TripPane>
+
+      <TripPane k="chat" active={activeKey} visited={visited}>
+        <section className="card">
+          <TripChatPanel
             trip={trip}
-            isOwner={trip.owner._id === user?.id}
-            onUpdate={setTrip}
+            onTripRefresh={() => id && tripsApi.getTrip(id).then(setTrip).catch(() => { })}
           />
-        </div>
-      )}
+        </section>
+      </TripPane>
 
-      {visibleSections.has('trip-playlist') && (
-        <div id="trip-playlist-section">
-          <PlaylistPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
-        </div>
-      )}
-
-      {visibleSections.has('chat') && (
-        <div id="chat-section">
-          <section className="card">
-            <TripChatPanel
-              trip={trip}
-              onTripRefresh={() => id && tripsApi.getTrip(id).then(setTrip).catch(() => { })}
-            />
-          </section>
-        </div>
-      )}
-
-      {trip.isCompleted && (
+      <TripPane k="log" active={activeKey} visited={visited}>
         <section className="card">
           <h2>Trip Log</h2>
           <TripLogPanel trip={trip} currentUserId={user?.id} onUpdate={setTrip} />
         </section>
-      )}
+      </TripPane>
 
-      {visibleSections.has('itinerary') && <>
-      <section id="itinerary-section" className="card">
-        <h2>Add itinerary item</h2>
+      <TripPane k="itinerary" active={activeKey} visited={visited}>
+
+      <section id="itinerary-section">
+        <div className="it-head">
+          <h2>Itinerary</h2>
+          <button type="button" className="small-btn" onClick={() => setShowAddForm((v) => !v)}>
+            {showAddForm ? 'Close' : '+ Add item'}
+          </button>
+        </div>
+        <div className="card it-add" hidden={!showAddForm}>
+          <h3>New itinerary item</h3>
         <form onSubmit={onAddItem} className="form grid-2">
           <label>
             Day
@@ -969,7 +1003,7 @@ export default function TripDetailPage() {
                     }
                   }}
                 >
-                  {suggestingPhotos ? 'Loading…' : '✨ Suggest Photos'}
+                  {suggestingPhotos ? 'Loading…' : <><Icon name="ai" size={13} /> Suggest Photos</>}
                 </button>
                 {addSuggestedPhotos.length > 0 && (
                   <div className="photo-suggestions-wrap">
@@ -1012,15 +1046,12 @@ export default function TripDetailPage() {
             {adding ? 'Adding…' : 'Add item'}
           </button>
         </form>
-      </section>
-
-      <section>
-        <h2>Itinerary</h2>
+        </div>
         <p className="muted small">
           Drag the <span className="kbd">⋮⋮</span> handle to reorder within a day or move
           items to another day. Click <em>Edit</em> to modify any field.
         </p>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={resumeScroll}>
           {Array.from({ length: totalDays }, (_, i) => i + 1).map((day) => {
             const topLevel = topLevelByDay.get(day) ?? [];
             const isGroupingThisDay = groupingDay === day;
@@ -1237,7 +1268,8 @@ export default function TripDetailPage() {
           })}
         </DndContext>
       </section>
-      </>}
+      </TripPane>
+      </TripWorkspace>
         </>
       )}
     </div>

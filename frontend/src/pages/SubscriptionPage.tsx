@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getBillingStatus, startCheckout, openPortal, BillingStatus, Plan } from '../api/billing';
+import Reveal from '../components/Reveal';
+import { Icon } from '../components/Icon';
 
 const TIER_ORDER: Plan[] = ['free', 'explorer', 'pro', 'globetrotter'];
 
@@ -40,16 +42,16 @@ const TIER_FEATURES: Record<Plan, string[]> = {
 };
 
 const TIER_ACCENT: Record<Plan, string> = {
-  free:         'var(--muted)',
-  explorer:     '#60a5fa',
-  pro:          'var(--teal)',
-  globetrotter: 'var(--gold)',
+  free:         'var(--ink-faint)',
+  explorer:     'var(--ink)',
+  pro:          'var(--accent)',
+  globetrotter: 'var(--ink)',
 };
 
 const TIER_BADGE: Record<Plan, string | null> = {
   free:         null,
   explorer:     null,
-  pro:          'Most Popular',
+  pro:          'Most popular',
   globetrotter: null,
 };
 
@@ -113,7 +115,7 @@ export default function SubscriptionPage() {
         <p className="muted" style={{ textAlign: 'center' }}>Loading…</p>
       ) : (
         <>
-          <div className="sub-grid">
+          <Reveal className="sub-grid" variant="up" stagger>
             {TIER_ORDER.map((tier) => {
               const config = tierConfig?.[tier];
               const isCurrent = tier === currentPlan;
@@ -146,7 +148,7 @@ export default function SubscriptionPage() {
                   <ul className="sub-features">
                     {TIER_FEATURES[tier].map((f) => (
                       <li key={f} className="sub-feature">
-                        <span className="sub-check">✓</span>
+                        <span className="sub-check"><Icon name="check" size={13} /></span>
                         {f}
                       </li>
                     ))}
@@ -164,7 +166,7 @@ export default function SubscriptionPage() {
                     ) : (
                       <button
                         className="sub-cta-btn"
-                        style={{ background: accent, color: tier === 'explorer' ? '#08090e' : tier === 'pro' ? '#08090e' : '#08090e' }}
+                        style={tier === 'pro' ? { background: 'var(--accent)', color: '#fff' } : undefined}
                         disabled={checkoutLoading !== null}
                         onClick={() => handleUpgrade(tier)}
                       >
@@ -175,7 +177,7 @@ export default function SubscriptionPage() {
                 </div>
               );
             })}
-          </div>
+          </Reveal>
 
           {status?.hasSubscription && (
             <div className="sub-manage-row">

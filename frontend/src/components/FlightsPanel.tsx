@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { fmtWhen } from '../utils/dates';
 import { Trip, FlightBooking } from '../types';
 import { addFlight, removeFlight, parseFlightText } from '../api/trips';
+import { Icon } from './Icon';
+import Reveal from './Reveal';
 
 interface FlightsPanelProps {
     trip: Trip;
@@ -131,7 +134,7 @@ export default function FlightsPanel({ trip, onUpdate }: FlightsPanelProps) {
     }
 
     return (
-        <section id="flights-section" className="card">
+        <Reveal as="section" id="flights-section" className="card" variant="up">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <h2 style={{ margin: 0 }}>Flights</h2>
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -168,15 +171,15 @@ export default function FlightsPanel({ trip, onUpdate }: FlightsPanelProps) {
                         </button>
                     </div>
                     <div className="booking-card-details">
-                        <span>✈️ {flight.departureAirport} → {flight.arrivalAirport}</span>
-                        <span>🛫 Departs: {flight.departureTime}</span>
-                        <span>🛬 Arrives: {flight.arrivalTime}</span>
+                        <span><Icon name="plane" size={13} /> {flight.departureAirport} → {flight.arrivalAirport}</span>
+                        <span><Icon name="planeTakeoff" size={13} /> Departs {fmtWhen(flight.departureTime)}</span>
+                        <span><Icon name="planeLanding" size={13} /> Arrives {fmtWhen(flight.arrivalTime)}</span>
                         {flight.tripType === 'round-trip' && flight.returnDepartureTime && (
-                            <span>🔄 Return: {flight.returnDepartureTime} → {flight.returnArrivalTime}</span>
+                            <span><Icon name="refresh" size={13} /> Return {fmtWhen(flight.returnDepartureTime)} → {fmtWhen(flight.returnArrivalTime)}</span>
                         )}
-                        <span>👥 {flight.passengers} passenger{flight.passengers !== 1 ? 's' : ''}</span>
-                        <span>💰 ${flight.price}</span>
-                        <span>🔖 #{flight.confirmationNumber}</span>
+                        <span><Icon name="collab" size={13} /> {flight.passengers} passenger{flight.passengers !== 1 ? 's' : ''}</span>
+                        <span><Icon name="dollar" size={13} /> ${flight.price}</span>
+                        <span><Icon name="tag" size={13} /> #{flight.confirmationNumber}</span>
                     </div>
                     {flight.notes && <p className="booking-notes muted small">{flight.notes}</p>}
                 </div>
@@ -185,7 +188,7 @@ export default function FlightsPanel({ trip, onUpdate }: FlightsPanelProps) {
             {importMode && (
                 <div className="import-box">
                     <p className="small muted" style={{ margin: '0 0 8px' }}>
-                        Paste your flight confirmation email below — any format works.
+                        Paste your flight confirmation email below. Any format works.
                     </p>
                     <textarea
                         className="import-textarea"
@@ -282,6 +285,6 @@ export default function FlightsPanel({ trip, onUpdate }: FlightsPanelProps) {
                     </button>
                 </form>
             )}
-        </section>
+        </Reveal>
     );
 }

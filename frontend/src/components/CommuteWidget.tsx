@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Location } from '../types';
+import { Icon, type IconName } from './Icon';
 
 interface Props {
   origin: Location;
@@ -8,11 +9,11 @@ interface Props {
 
 type TravelMode = 'DRIVING' | 'WALKING' | 'TRANSIT' | 'BICYCLING';
 
-const MODES: { mode: TravelMode; icon: string; label: string }[] = [
-  { mode: 'DRIVING',   icon: '🚗', label: 'Drive'   },
-  { mode: 'WALKING',   icon: '🚶', label: 'Walk'    },
-  { mode: 'TRANSIT',   icon: '🚌', label: 'Transit' },
-  { mode: 'BICYCLING', icon: '🚴', label: 'Bike'    },
+const MODES: { mode: TravelMode; icon: IconName; label: string }[] = [
+  { mode: 'DRIVING',   icon: 'car',  label: 'Drive'   },
+  { mode: 'WALKING',   icon: 'walk', label: 'Walk'    },
+  { mode: 'TRANSIT',   icon: 'bus',  label: 'Transit' },
+  { mode: 'BICYCLING', icon: 'bike', label: 'Bike'    },
 ];
 
 export default function CommuteWidget({ origin, destination }: Props) {
@@ -107,14 +108,15 @@ export default function CommuteWidget({ origin, destination }: Props) {
               className={`commute-mode-btn${mode === m ? ' active' : ''}`}
               onClick={() => setMode(m)}
               title={label}
+              aria-label={label}
             >
-              {icon}
+              <Icon name={icon} size={16} />
             </button>
           ))}
         </div>
         <span className="commute-duration">
           {loading ? '…' : error ? 'unavailable' : (
-            duration ? `${duration}${distance ? ` · ${distance}` : ''}` : '–'
+            duration ? `${duration}${distance ? ` · ${distance}` : ''}` : '-'
           )}
         </span>
       </div>

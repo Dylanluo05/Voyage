@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../hooks/useTheme';
+import { Icon } from './Icon';
 
 export default function NavBar() {
   const { user, logout } = useAuth();
@@ -38,10 +39,16 @@ export default function NavBar() {
   const sqActive = ['/sidequests', '/leaderboard', '/how-to-play'].includes(location.pathname);
   const userActive = ['/profile', '/subscription'].includes(location.pathname);
 
+  let mobileIndex = 0;
+  const stagger = (): CSSProperties => ({ '--stagger': mobileIndex++ } as CSSProperties);
+
   return (
     <>
       <nav className="navbar">
-        <Link to="/" className="brand">Voyage</Link>
+        <Link to="/" className="brand">
+          <Icon name="compass" size={20} weight="fill" />
+          Voyage
+        </Link>
 
         {/* Desktop nav */}
         <div className="nav-actions">
@@ -83,7 +90,7 @@ export default function NavBar() {
                 {userOpen && (
                   <div className="nav-dropdown-menu nav-dropdown-menu--right">
                     <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>Profile</NavLink>
-                    <NavLink to="/subscription" className={({ isActive }) => isActive ? 'active' : ''}>Upgrade ✦</NavLink>
+                    <NavLink to="/subscription" className={({ isActive }) => isActive ? 'active' : ''}>Upgrade</NavLink>
                     <div className="nav-dropdown-divider" />
                     <button
                       type="button"
@@ -101,7 +108,7 @@ export default function NavBar() {
               <NavLink to="/login" className={({ isActive }) => isActive ? 'active' : ''}>
                 Log in
               </NavLink>
-              <NavLink to="/register" className={({ isActive }) => isActive ? 'active' : ''}>
+              <NavLink to="/register" className="nav-cta">
                 Sign up
               </NavLink>
             </>
@@ -111,9 +118,9 @@ export default function NavBar() {
             type="button"
             className="theme-toggle"
             onClick={toggleTheme}
-            aria-label="Toggle theme"
+            aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
           >
-            {theme === 'light' ? '🌙' : '☀️'}
+            <Icon name={theme === 'light' ? 'moon' : 'sun'} size={16} />
           </button>
         </div>
 
@@ -132,21 +139,22 @@ export default function NavBar() {
 
       {mobileOpen && createPortal(
         <div className="nav-mobile-drawer">
-          <NavLink to="/discover">Discover</NavLink>
+          <NavLink to="/discover" style={stagger()}>Discover</NavLink>
           {user ? (
             <>
-              <NavLink to="/trips">Trips</NavLink>
-              <div className="nav-mobile-section-label">Sidequests</div>
-              <NavLink to="/sidequests">Sidequests</NavLink>
-              <NavLink to="/leaderboard">Leaderboard</NavLink>
-              <NavLink to="/how-to-play">How to Play</NavLink>
-              <div className="nav-mobile-divider" />
-              <NavLink to="/profile">Profile</NavLink>
-              <NavLink to="/subscription">Upgrade ✦</NavLink>
-              <div className="nav-mobile-divider" />
+              <NavLink to="/trips" style={stagger()}>Trips</NavLink>
+              <div className="nav-mobile-section-label" style={stagger()}>Sidequests</div>
+              <NavLink to="/sidequests" style={stagger()}>Sidequests</NavLink>
+              <NavLink to="/leaderboard" style={stagger()}>Leaderboard</NavLink>
+              <NavLink to="/how-to-play" style={stagger()}>How to Play</NavLink>
+              <div className="nav-mobile-divider" style={stagger()} />
+              <NavLink to="/profile" style={stagger()}>Profile</NavLink>
+              <NavLink to="/subscription" style={stagger()}>Upgrade</NavLink>
+              <div className="nav-mobile-divider" style={stagger()} />
               <button
                 type="button"
                 className="nav-mobile-logout"
+                style={stagger()}
                 onClick={() => { logout(); navigate('/login'); }}
               >
                 Log out
@@ -154,13 +162,13 @@ export default function NavBar() {
             </>
           ) : (
             <>
-              <NavLink to="/login">Log in</NavLink>
-              <NavLink to="/register">Sign up</NavLink>
+              <NavLink to="/login" style={stagger()}>Log in</NavLink>
+              <NavLink to="/register" style={stagger()}>Sign up</NavLink>
             </>
           )}
-          <div className="nav-mobile-divider" />
-          <button type="button" className="nav-mobile-theme" onClick={toggleTheme}>
-            {theme === 'light' ? '🌙 Dark mode' : '☀️ Light mode'}
+          <div className="nav-mobile-divider" style={stagger()} />
+          <button type="button" className="nav-mobile-theme" style={stagger()} onClick={toggleTheme}>
+            {theme === 'light' ? 'Dark mode' : 'Light mode'}
           </button>
         </div>,
         document.body

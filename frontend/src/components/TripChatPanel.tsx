@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Trip } from '../types';
+import { Icon } from './Icon';
 import { API_URL, getToken } from '../api/client';
 import { getBillingStatus, BillingStatus } from '../api/billing';
 import { useNavigate } from 'react-router-dom';
@@ -154,7 +155,7 @@ export default function TripChatPanel({ trip, onTripRefresh }: Props) {
         <span className="chat-panel-title">Trip Assistant</span>
         <div className="chat-quota">
           {isPro ? (
-            <span className="chat-quota-pro">Pro — unlimited</span>
+            <span className="chat-quota-pro">Pro: unlimited</span>
           ) : quota ? (
             <span className={`chat-quota-count${outOfQuota ? ' chat-quota-empty' : ''}`}>
               {quota.remaining}/{quota.aiRequestsPerDay} requests today
@@ -169,7 +170,7 @@ export default function TripChatPanel({ trip, onTripRefresh }: Props) {
       <div className="chat-messages" ref={messagesRef}>
         {messages.length === 0 && (
           <p className="chat-empty">
-            Ask me anything about {trip.destination} — or say "Plan Day 1" and I'll fill it in.
+            Ask me anything about {trip.destination}, or say "Plan Day 1" and I'll fill it in.
           </p>
         )}
         {messages.map((msg, i) => (
@@ -180,7 +181,7 @@ export default function TripChatPanel({ trip, onTripRefresh }: Props) {
             )}
             {msg.toolResult && (
               <div className="chat-tool-result">
-                ✓ {toolResultLabel(msg.toolResult)}
+                <Icon name="check" size={13} /> {toolResultLabel(msg.toolResult)}
               </div>
             )}
           </div>

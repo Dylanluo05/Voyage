@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { DayAnchor, HotelBooking, Trip } from '../types';
 import * as tripsApi from '../api/trips';
+import { Icon } from './Icon';
 
 interface Props {
   trip: Trip;
@@ -54,7 +55,7 @@ export default function DayAnchorEditor({ trip, day, anchor, onUpdate }: Props) 
         className="day-anchor-toggle"
         onClick={() => setOpen((o) => !o)}
       >
-        {hasAnchor ? '📍 Base location set' : '+ Set base location'}
+        {hasAnchor ? <><Icon name="pin" size={13} /> Base location set</> : '+ Set base location'}
       </button>
 
       {open && (

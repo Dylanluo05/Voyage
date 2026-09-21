@@ -1,108 +1,103 @@
-import { useState, useEffect } from 'react';
-import { Trip } from '../types';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import type { Trip } from '../types';
 import { ApiError } from '../api/client';
 import * as tripsApi from '../api/trips';
-import { Link } from 'react-router-dom';
-
-function formatDate(s: string): string {
-    return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-}
-
-function tripDuration(start: string, end: string): string {
-    const days = Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86_400_000) + 1;
-    return `${days}d`;
-}
+import { useAuth } from '../context/AuthContext';
+import Reveal from '../components/Reveal';
+import { Icon } from '../components/Icon';
+import TripTile, { mosaicSizes } from '../components/trips/TripTile';
 
 export default function DiscoverPage() {
-    const [trips, setTrips] = useState<Trip[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [destination, setDestination] = useState('');
+  const { user } = useAuth();
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [destination, setDestination] = useState('');
+  const [searched, setSearched] = useState('');
 
-    useEffect(() => {
-        const fetchPublicTrips = async () => {
-            try {
-                setLoading(true);
-                setTrips(await tripsApi.getPublicTrips());
-            } catch (err) {
-                setError(err instanceof ApiError ? err.message : 'Failed to load public trips');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchPublicTrips();
-    }, []);
+  useEffect(() => {
+    tripsApi
+      .getPublicTrips()
+      .then(setTrips)
+      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load public trips'))
+      .finally(() => setLoading(false));
+  }, []);
 
-    async function onSearch() {
-        try {
-            setLoading(true);
-            setTrips(await tripsApi.getPublicTrips(destination));
-        } catch (err) {
-            setError(err instanceof ApiError ? err.message : 'Failed to search');
-        } finally {
-            setLoading(false);
-        }
+  async function onSearch() {
+    setLoading(true);
+    setError('');
+    try {
+      const q = destination.trim();
+      setTrips(await tripsApi.getPublicTrips(q || undefined));
+      setSearched(q);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to search');
+    } finally {
+      setLoading(false);
     }
+  }
 
-    return (
-        <div className="page">
-            <div style={{ marginBottom: 24 }}>
-                <h1 style={{ margin: '0 0 4px' }}>Discover</h1>
-                <p className="muted" style={{ margin: 0 }}>Browse real itineraries shared by travelers.</p>
-            </div>
-
-            <section className="card" style={{ marginBottom: 24 }}>
-                <div className="search-row">
-                    <input
-                        type="text"
-                        value={destination}
-                        onChange={e => setDestination(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && onSearch()}
-                        placeholder="Search by destination…"
-                    />
-                    <button type="button" onClick={onSearch}>Search</button>
-                </div>
-            </section>
-
-            {loading && <p className="muted">Loading…</p>}
-            {error && <p className="error">{error}</p>}
-            {!loading && trips.length === 0 && (
-                <div className="card" style={{ textAlign: 'center', padding: '48px 24px' }}>
-                    <div style={{ fontSize: 40, marginBottom: 12 }}>🌍</div>
-                    <h3 style={{ marginBottom: 8 }}>No public itineraries yet</h3>
-                    <p className="muted">Be the first to share a trip with the community.</p>
-                </div>
-            )}
-
-            {trips.length > 0 && (
-                <ul className="trip-list">
-                    {trips.map(t => (
-                        <li key={t._id} className="card">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div className="trip-destination-pill">📍 {t.destination}</div>
-                                    <h3 style={{ margin: '4px 0 0', fontSize: '1.05rem' }}>{t.title}</h3>
-                                    {t.description && (
-                                        <p className="muted small" style={{ margin: '4px 0 0' }}>{t.description}</p>
-                                    )}
-                                </div>
-                                <Link to={`/share/${t.shareToken}`} className="ghost small-btn" style={{ flexShrink: 0 }}>
-                                    View →
-                                </Link>
-                            </div>
-                            <div className="trip-card-footer">
-                                <div className="trip-card-meta">
-                                    <span className="trip-card-meta-item">
-                                        📅 {formatDate(t.startDate)} – {formatDate(t.endDate)}
-                                    </span>
-                                    <span className="trip-card-meta-item">⏱ {tripDuration(t.startDate, t.endDate)}</span>
-                                    <span className="trip-card-meta-item">📋 {t.items.length} stops</span>
-                                </div>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
-            )}
+  return (
+    <div className="qb dc">
+      <header className="dc-hero">
+        <h1 className="qb-title">
+          <span>Trips worth</span>
+          <span><em className="punch">stealing.</em></span>
+        </h1>
+        <p className="qb-lede">
+          Real itineraries, shared by travelers. Find one that fits, see every stop, and plan your own.
+        </p>
+        <div className="dc-search">
+          <div className="qb-search">
+            <Icon name="search" size={16} />
+            <input
+              type="text"
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && onSearch()}
+              placeholder="Search by destination"
+              aria-label="Search by destination"
+            />
+            <button type="button" onClick={onSearch}>Search</button>
+          </div>
+          {!user && (
+            <Link to="/register" className="qb-textlink">
+              Start your own <Icon name="arrowRight" size={14} />
+            </Link>
+          )}
         </div>
-    );
+      </header>
+
+      {error && <p className="error qb-error">{error}</p>}
+      {loading && <p className="muted qb-empty">Finding trips…</p>}
+
+      {!loading && trips.length === 0 && !error && (
+        <div className="qb-emptycard">
+          <Icon name="compass" size={34} />
+          <h3>{searched ? `No trips found for "${searched}"` : 'No public itineraries yet'}</h3>
+          <p>{searched ? 'Try a different destination.' : 'Be the first to share a trip with the community.'}</p>
+          {searched && (
+            <button type="button" className="qb-btn qb-btn--solid" onClick={() => { setDestination(''); setSearched(''); setLoading(true); tripsApi.getPublicTrips().then(setTrips).finally(() => setLoading(false)); }}>
+              Show all trips
+            </button>
+          )}
+        </div>
+      )}
+
+      {trips.length > 0 && (
+        <>
+          <div className="qb-section-head">
+            <h2>{searched ? `Trips to ${searched}` : 'Fresh itineraries'}</h2>
+            <span>{trips.length} {trips.length === 1 ? 'itinerary' : 'itineraries'}</span>
+          </div>
+          <Reveal as="div" className="qb-mosaic" variant="up" stagger>
+            {(() => { const sizes = mosaicSizes(trips.length); return trips.map((t, i) => (
+              <TripTile key={t._id} trip={t} href={`/share/${t.shareToken}`} size={sizes[i]} showAuthor />
+            )); })()}
+          </Reveal>
+        </>
+      )}
+    </div>
+  );
 }

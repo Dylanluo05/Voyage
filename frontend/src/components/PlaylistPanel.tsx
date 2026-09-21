@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import * as tripsApi from '../api/trips';
 import type { Trip, PlaylistTrack, SpotifySearchResult } from '../types';
+import { Icon } from './Icon';
+import Reveal from './Reveal';
 
 interface Props {
   trip: Trip;
@@ -67,7 +69,7 @@ export default function PlaylistPanel({ trip, currentUserId, onUpdate }: Props) 
       const { results: tracks } = await tripsApi.recommendByVibe(trip._id, vibeInput.trim());
       setVibeResults(tracks);
     } catch {
-      setVibeError('Could not get recommendations — try different keywords.');
+      setVibeError('Could not get recommendations. Try different keywords.');
     } finally {
       setVibeLoading(false);
     }
@@ -124,8 +126,8 @@ export default function PlaylistPanel({ trip, currentUserId, onUpdate }: Props) 
   }
 
   return (
-    <div id="trip-playlist-section" className="playlist-panel">
-      <h3 className="playlist-heading">🎵 Trip Playlist</h3>
+    <Reveal id="trip-playlist-section" className="playlist-panel" variant="up">
+      <h2 className="playlist-heading">Trip playlist</h2>
 
       {/* Manual search */}
       <div className="playlist-search-wrap">
@@ -146,7 +148,7 @@ export default function PlaylistPanel({ trip, currentUserId, onUpdate }: Props) 
 
       {/* Vibe recommender */}
       <div className="vibe-recommender">
-        <p className="vibe-label">✨ Recommend by vibe</p>
+        <p className="vibe-label"><Icon name="ai" size={14} /> Recommend by vibe</p>
         <div className="vibe-input-row">
           <input
             className="playlist-search-input"
@@ -186,7 +188,7 @@ export default function PlaylistPanel({ trip, currentUserId, onUpdate }: Props) 
 
       {/* Current playlist */}
       {trip.playlist.length === 0 ? (
-        <p className="muted small playlist-empty">No songs yet — search or use vibe recommendations above.</p>
+        <p className="muted small playlist-empty">No songs yet. Search or use vibe recommendations above.</p>
       ) : (
         <ul className="playlist-tracks">
           {trip.playlist.map((track: PlaylistTrack) => (
@@ -220,13 +222,13 @@ export default function PlaylistPanel({ trip, currentUserId, onUpdate }: Props) 
                   disabled={removingId === track._id}
                   onClick={() => handleRemove(track._id)}
                 >
-                  {removingId === track._id ? '…' : '✕'}
+                  {removingId === track._id ? '…' : <Icon name="close" size={13} />}
                 </button>
               )}
             </li>
           ))}
         </ul>
       )}
-    </div>
+    </Reveal>
   );
 }
