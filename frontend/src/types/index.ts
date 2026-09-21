@@ -89,6 +89,11 @@ export interface TripLog {
   ratings: ItemRating[];
 }
 
+export interface TripBudget {
+  userId: string;
+  amount: number;
+}
+
 export interface Trip {
   _id: string;
   owner: CollaboratorUser;
@@ -101,7 +106,7 @@ export interface Trip {
   items: ItineraryItem[];
   groups: Group[];
   playlist: PlaylistTrack[];
-  budget?: number;
+  budgets: TripBudget[];
   isCompleted: boolean;
   log: TripLog;
   shareToken: string;

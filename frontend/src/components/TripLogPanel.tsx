@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import * as tripsApi from '../api/trips';
 import type { Trip, LogPhoto } from '../types';
 import { compressImage } from '../utils/image';
+import { getMyBudget, getMySpending } from '../utils/budget';
 import { Icon } from './Icon';
 import Reveal from './Reveal';
 
@@ -52,7 +53,8 @@ export default function TripLogPanel({ trip, currentUserId, onUpdate }: Props) {
     (new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / 86400000
   ) + 1;
 
-  const totalSpent = trip.items.reduce((s, i) => s + (i.cost ?? 0), 0);
+  const totalSpent = getMySpending(trip, currentUserId).total;
+  const myBudget = getMyBudget(trip, currentUserId);
   const itemsWithCost = trip.items.filter((i) => i.cost !== undefined).length;
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -126,10 +128,10 @@ export default function TripLogPanel({ trip, currentUserId, onUpdate }: Props) {
             <span className="log-stat-label">spent</span>
           </div>
         )}
-        {trip.budget && (
+        {myBudget != null && myBudget > 0 && (
           <div className="log-stat">
-            <span className="log-stat-value">${Math.max(0, trip.budget - totalSpent).toFixed(0)}</span>
-            <span className="log-stat-label">{totalSpent <= trip.budget ? 'under budget' : 'over budget'}</span>
+            <span className="log-stat-value">${Math.abs(myBudget - totalSpent).toFixed(0)}</span>
+            <span className="log-stat-label">{totalSpent <= myBudget ? 'under budget' : 'over budget'}</span>
           </div>
         )}
         <div className="log-stat">

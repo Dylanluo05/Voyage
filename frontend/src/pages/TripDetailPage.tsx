@@ -34,6 +34,7 @@ import HotelsPanel from '../components/HotelsPanel';
 import FlightsPanel from '../components/FlightsPanel';
 import { compressImage, compressImageFromUrl } from '../utils/image';
 import { useAuth } from '../context/AuthContext';
+import { getMyBudget } from '../utils/budget';
 import BudgetPanel from '../components/BudgetPanel';
 import ExpenseSplitPanel from '../components/ExpenseSplitPanel';
 import LinkedSidequestsPanel from '../components/LinkedSidequestsPanel';
@@ -627,6 +628,8 @@ export default function TripDetailPage() {
     persistTopLevel(newGroups, newItems);
   }
 
+  const myBudget = trip ? getMyBudget(trip, user?.id) : undefined;
+
   return (
     <div className="page">
       {loading ? (
@@ -728,7 +731,7 @@ export default function TripDetailPage() {
           itinerary: `${trip.items.length} ${trip.items.length === 1 ? 'stop' : 'stops'}`,
           flights: trip.flights.length ? String(trip.flights.length) : undefined,
           hotels: trip.hotels.length ? String(trip.hotels.length) : undefined,
-          budget: trip.budget ? `$${Math.round(trip.budget).toLocaleString()}` : undefined,
+          budget: myBudget ? `$${Math.round(myBudget).toLocaleString()}` : undefined,
           expenses: trip.expenses.length ? String(trip.expenses.length) : undefined,
           collaborators: String(1 + (trip.collaborators?.length ?? 0)),
           'trip-playlist': trip.playlist.length ? `${trip.playlist.length} songs` : undefined,

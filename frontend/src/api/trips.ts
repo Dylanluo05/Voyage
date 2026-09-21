@@ -108,6 +108,7 @@ export function dissolveGroup(tripId: string, groupId: string): Promise<Trip> {
 }
 
 
+// Sets the current user's own budget for the trip
 export function updateBudget(tripId: string, budget: number): Promise<Trip> {
   return apiFetch<Trip>(`/api/trips/${tripId}/budget`, {
     method: 'PUT',

@@ -1,6 +1,8 @@
 import { Icon } from './Icon';
 import type { Trip, ItineraryItem } from '../types';
 import type { SectionKey } from './TripWorkspace';
+import { useAuth } from '../context/AuthContext';
+import { getMyBudget, getMySpending } from '../utils/budget';
 
 /* Trip dashboard: where the trip stands, what is next, and what is still missing. */
 
@@ -34,6 +36,8 @@ type Props = {
 };
 
 export default function TripOverview({ trip, totalDays, onGo }: Props) {
+  const { user } = useAuth();
+  const myBudget = getMyBudget(trip, user?.id);
   const start = utcDay(trip.startDate);
   const end = utcDay(trip.endDate);
   const today = localToday();
@@ -49,7 +53,7 @@ export default function TripOverview({ trip, totalDays, onGo }: Props) {
         ? { pre: 'Day', big: String(dayNow), post: `of ${totalDays}` }
         : { pre: trip.isCompleted ? 'Trip' : 'Ended', big: trip.isCompleted ? 'complete' : String(Math.round((today - end) / DAY_MS)), post: trip.isCompleted ? '' : 'days ago' };
 
-  const spent = trip.items.reduce((s, i) => s + (i.cost ?? 0), 0);
+  const spent = getMySpending(trip, user?.id).total;
   const money = (n: number) => `$${Math.round(n).toLocaleString()}`;
   const travelers = 1 + (trip.collaborators?.length ?? 0);
 
@@ -63,7 +67,7 @@ export default function TripOverview({ trip, totalDays, onGo }: Props) {
     { label: 'Plan at least one stop', done: trip.items.length > 0, go: 'itinerary', cta: 'Add a stop' },
     { label: 'Book flights', done: trip.flights.length > 0, go: 'flights', cta: 'Add flight' },
     { label: 'Book a place to stay', done: trip.hotels.length > 0, go: 'hotels', cta: 'Add hotel' },
-    { label: 'Set a budget', done: !!trip.budget, go: 'budget', cta: 'Set budget' },
+    { label: 'Set your budget', done: !!myBudget, go: 'budget', cta: 'Set budget' },
     { label: 'Invite your crew', done: (trip.collaborators?.length ?? 0) > 0, go: 'collaborators', cta: 'Invite' },
     { label: 'Build the playlist', done: trip.playlist.length > 0, go: 'trip-playlist', cta: 'Add songs' },
   ];
@@ -106,7 +110,7 @@ export default function TripOverview({ trip, totalDays, onGo }: Props) {
         </div>
         <div>
           <span className="ov-stat-n">{money(spent)}</span>
-          <span className="ov-stat-l">{trip.budget ? `planned of ${money(trip.budget)}` : 'planned, no budget set'}</span>
+          <span className="ov-stat-l">{myBudget ? `your share of ${money(myBudget)}` : 'your share, no budget set'}</span>
         </div>
       </section>
 
