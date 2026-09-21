@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { UserProfile } from "../types";
 import { getProfile, updateProfile } from "../api/users";
 import { getLeaderboard } from "../api/publicSidequests";
@@ -7,6 +8,8 @@ import { uploadToCloudinary } from "../utils/image";
 import Reveal from "../components/Reveal";
 import CountUp from "../components/CountUp";
 import { Icon } from "../components/Icon";
+import { RANKS, rankFor } from "../utils/ranks";
+import { SUITS, SUIT_ORDER } from "../components/quests/questMeta";
 
 
 function getInitials(name: string): string {
@@ -34,7 +37,6 @@ function AvatarDisplay({ avatarUrl, name, size = 72 }: { avatarUrl?: string; nam
 export default function ProfilePage() {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null);
-    const [flippedId, setFlippedId] = useState<string | null>(null);
     const { user } = useAuth();
 
     // Profile edit state
@@ -115,69 +117,24 @@ export default function ProfilePage() {
         }).catch(() => {});
     }, [user]);
 
-    const determineRank = (xp: number): [string, string, number, number] => {
-        const thresholds = [{ name: 'Recruit', value: 0 }, { name: 'Wanderer', value: 1000 }, { name: 'Adventurer', value: 2000 }, { name: 'Explorer', value: 4000 }, { name: 'Veteran', value: 7000 }, { name: 'Champion', value: 10000 }, { name: 'Legend', value: 15000 }, { name: 'Voyager', value: 20000 }];
-        let index;
-
-        if (xp >= thresholds[7].value) {
-            index = 7;
-        } else if (xp >= thresholds[6].value) {
-            index = 6;
-        } else if (xp >= thresholds[5].value) {
-            index = 5;
-        } else if (xp >= thresholds[4].value) {
-            index = 4;
-        } else if (xp >= thresholds[3].value) {
-            index = 3;
-        } else if (xp >= thresholds[2].value) {
-            index = 2;
-        } else if (xp >= thresholds[1].value) {
-            index = 1;
-        } else {
-            index = 0;
-        }
-
-        const rank = thresholds[index].name;
-        const nextRank = index < 7 ? thresholds[index + 1].name : '';
-        const xpBeforeNextRank = index < 7 ? thresholds[index + 1].value - xp : 0;
-        const percentageBeforeNextRank = index < 7 ? Math.round((xp - thresholds[index].value) / (thresholds[index + 1].value - thresholds[index].value) * 100) : 100;
-
-        return [rank, nextRank, xpBeforeNextRank, percentageBeforeNextRank];
-    };
-
-    const getSuitSymbol = (suit: 'spades' | 'hearts' | 'diamonds' | 'clubs'): string => {
-        const SUIT_SYMBOL_MAPPINGS = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' }
-        return SUIT_SYMBOL_MAPPINGS[suit];
-    };
-
-    const getSuitLabel = (suit: 'spades' | 'hearts' | 'diamonds' | 'clubs'): string => {
-        const SUIT_LABEL_MAPPINGS = { spades: 'Physical', hearts: 'Social', diamonds: 'Intellectual', clubs: 'Teamwork' };
-        return SUIT_LABEL_MAPPINGS[suit];
-    };
-
-    const getSuitColor = (suit: 'spades' | 'hearts' | 'diamonds' | 'clubs'): string => {
-        const SUIT_COLOR_MAPPINGS = { spades: '#33415533', hearts: '#ef444433', diamonds: '#3b82f633', clubs: '#10b98133' };
-        return SUIT_COLOR_MAPPINGS[suit];
-    };
-
-    const [rank, nextRank, xpBeforeNextRank, percentageBeforeNextRank] = profile ? determineRank(profile.xp) : ['', '', 1000, 0];
     const displayName = profile?.name ?? user?.name ?? '';
+    const xp = profile?.xp ?? 0;
+    const r = rankFor(xp);
+    const history = [...(profile?.sidequestHistory ?? [])].sort(
+        (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
+    );
+    const bySuit = SUIT_ORDER.map(suit => {
+        const items = history.filter(h => h.cardSuit === suit);
+        return { suit, count: items.length, xp: items.reduce((sum, h) => sum + h.xpEarned, 0) };
+    });
 
     return (
-        <div className="page">
-            <div className="page-head">
-                <div className="page-head__lead">
-                    <h1>Profile</h1>
-                    <span className="page-head__sub">{displayName}</span>
-                </div>
-            </div>
-
-            {/* Identity card */}
-            <Reveal as="section" className="glass-card" variant="up">
-                <div className="profile-identity-row">
-                    {/* Avatar */}
-                    <div className="profile-avatar-wrap">
-                        <AvatarDisplay avatarUrl={profile?.avatarUrl} name={displayName} size={80} />
+        <div className="pf">
+            {/* Hero: who you are and how far you have come */}
+            <Reveal as="header" className="pf-hero" variant="up">
+                <div className="pf-id">
+                    <div className="profile-avatar-wrap pf-avatar">
+                        <AvatarDisplay avatarUrl={profile?.avatarUrl} name={displayName} size={132} />
                         <button
                             type="button"
                             className="profile-avatar-edit-btn"
@@ -185,7 +142,7 @@ export default function ProfilePage() {
                             disabled={uploadingAvatar}
                             onClick={() => avatarInputRef.current?.click()}
                         >
-                            {uploadingAvatar ? '…' : <Icon name="pencil" size={13} />}
+                            {uploadingAvatar ? '…' : <Icon name="camera" size={16} />}
                         </button>
                         <input
                             ref={avatarInputRef}
@@ -196,148 +153,170 @@ export default function ProfilePage() {
                         />
                     </div>
 
-                    {/* Name, email, bio */}
-                    <div className="profile-identity-info">
-                        <h2 style={{ margin: 0 }}>{displayName}</h2>
+                    <div className="pf-id-text">
+                        <p className="pf-rankchip"><Icon name="crown" size={15} weight="fill" /> {r.name} · level {r.index + 1}</p>
+                        <h1 className="pf-name">{displayName}</h1>
                         {profile && (
+                            <p className="pf-meta">
+                                {profile.email}
+                                <span>Member since {new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                            </p>
+                        )}
+                    </div>
+                </div>
+
+                {profile && (
+                    <div className="pf-bio">
+                        {editingBio ? (
+                            <div className="profile-edit-form">
+                                <textarea
+                                    value={editBio}
+                                    onChange={e => setEditBio(e.target.value)}
+                                    maxLength={300}
+                                    rows={3}
+                                    placeholder="Tell other travellers about yourself…"
+                                    autoFocus
+                                />
+                                <div className="pf-bio-actions">
+                                    <span className="muted small">{editBio.length}/300</span>
+                                    <button type="button" className="pf-btn pf-btn--ghost" onClick={() => setEditingBio(false)}>Cancel</button>
+                                    <button type="button" className="pf-btn" disabled={savingBio} onClick={handleSaveBio}>
+                                        {savingBio ? 'Saving…' : 'Save bio'}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
                             <>
-                                <p className="muted small" style={{ margin: '2px 0 0' }}>{profile.email}</p>
-                                <p className="muted small" style={{ margin: '2px 0 0' }}>Member since: {new Date(profile.createdAt).toLocaleDateString()}</p>
-                                {!editingBio && (
-                                    profile.bio
-                                        ? <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5 }}>{profile.bio}</p>
-                                        : <button type="button" className="profile-add-bio-prompt" onClick={() => { setEditBio(''); setEditingBio(true); }}>+ Add a bio</button>
-                                )}
+                                {profile.bio
+                                    ? <p className="pf-bio-text">{profile.bio}</p>
+                                    : <p className="pf-bio-text pf-bio-text--empty">No bio yet. Tell people what you are about.</p>}
+                                <button type="button" className="pf-link" onClick={() => { setEditBio(profile.bio ?? ''); setEditingBio(true); }}>
+                                    <Icon name="pencil" size={14} /> {profile.bio ? 'Edit bio' : 'Add a bio'}
+                                </button>
                             </>
                         )}
                     </div>
-
-                    <button
-                        type="button"
-                        className="ghost small-btn"
-                        style={{ alignSelf: 'flex-start', marginLeft: 'auto' }}
-                        onClick={() => { setEditBio(profile?.bio ?? ''); setEditingBio(e => !e); }}
-                    >
-                        {editingBio ? 'Cancel' : 'Edit bio'}
-                    </button>
-                </div>
-
-                {editingBio && (
-                    <div className="profile-edit-form" style={{ marginTop: 16 }}>
-                        <label style={{ display: 'block', marginBottom: 12 }}>
-                            <span className="muted small" style={{ display: 'block', marginBottom: 4 }}>Bio (max 300 chars)</span>
-                            <textarea
-                                value={editBio}
-                                onChange={e => setEditBio(e.target.value)}
-                                maxLength={300}
-                                rows={3}
-                                placeholder="Tell other travellers about yourself…"
-                                style={{ width: '100%', resize: 'vertical' }}
-                                autoFocus
-                            />
-                            <span className="muted small">{editBio.length}/300</span>
-                        </label>
-                        <button type="button" disabled={savingBio} onClick={handleSaveBio}>
-                            {savingBio ? 'Saving…' : 'Save'}
-                        </button>
-                    </div>
                 )}
             </Reveal>
 
-            {/* Wishlist */}
-            <Reveal as="section" className="glass-card" variant="up">
-                <div className="sidequest-header-row">
-                    <h2>Travel Wishlist</h2>
-                    <button type="button" className="ghost small-btn" onClick={() => { setEditWishlist(profile?.wishlist ?? []); setEditingWishlist(e => !e); }}>
-                        {editingWishlist ? 'Cancel' : 'Edit'}
-                    </button>
-                </div>
-
-                {profile && profile.wishlist.length > 0 ? (
-                    <div className="profile-wishlist">
-                        {(editingWishlist ? editWishlist : profile.wishlist).map((place, i) => (
-                            <div key={i} className="profile-wishlist-item">
-                                <span><Icon name="pin" size={13} /> {place}</span>
-                                {editingWishlist && (
-                                    <button
-                                        type="button"
-                                        className="danger small-btn"
-                                        style={{ padding: '2px 8px', fontSize: 11 }}
-                                        onClick={() => setEditWishlist(prev => prev.filter((_, idx) => idx !== i))}
-                                    >
-                                        <Icon name="close" size={12} />
-                                    </button>
-                                )}
+            {profile && (
+                <>
+                    {/* Progress */}
+                    <Reveal as="section" className="pf-progress" variant="up">
+                        <div className="pf-xp">
+                            <p className="pf-xp-n"><CountUp value={xp} /> <span className="pf-xp-unit">XP</span></p>
+                            <p className="pf-xp-note">
+                                {r.next ? `${r.toNext.toLocaleString()} XP until ${r.next}` : 'Top rank reached. You are a Voyager.'}
+                            </p>
+                            <div className="pf-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(r.pct)}>
+                                <span style={{ width: `${r.pct}%` }} />
                             </div>
-                        ))}
-                    </div>
-                ) : (
-                    !editingWishlist && <p className="muted small">No destinations on your wishlist yet.</p>
-                )}
-
-                {editingWishlist && (
-                    <div style={{ marginTop: 12 }}>
-                        <div className="search-row">
-                            <input
-                                placeholder="Add a destination…"
-                                value={newWishlistItem}
-                                onChange={e => setNewWishlistItem(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && addWishlistItem()}
-                                autoFocus
-                            />
-                            <button type="button" onClick={addWishlistItem} disabled={!newWishlistItem.trim()}>Add</button>
                         </div>
-                        <button type="button" style={{ marginTop: 10 }} disabled={savingWishlist} onClick={handleSaveWishlist}>
-                            {savingWishlist ? 'Saving…' : 'Save Wishlist'}
-                        </button>
-                    </div>
-                )}
-            </Reveal>
 
-            {/* XP & Rank */}
-            {profile && (
-                <Reveal as="section" className="glass-card" variant="up">
-                    <h2>Total XP</h2>
-                    <div className="profile-xp-row">
-                        <span className="gradient-text"><strong><CountUp value={profile.xp} /></strong> xp</span>
-                        {rank !== '' && <span className="gradient-text">Current rank: {rank}</span>}
-                        {nextRank !== '' && <span className="gradient-text">{xpBeforeNextRank} xp before next rank: {nextRank}</span>}
-                        <span className="gradient-text">Current rank percentage: {percentageBeforeNextRank}%</span>
-                        {leaderboardRank !== null && <span className="gradient-text">Global rank: #{leaderboardRank}</span>}
-                    </div>
-                    <br />
-                    <div className="budget-progress-bar">
-                        <div className="budget-progress-fill" style={{ width: percentageBeforeNextRank + '%', backgroundColor: 'var(--violet)' }}></div>
-                    </div>
-                </Reveal>
-            )}
+                        <dl className="pf-stats">
+                            <div><dt>Global rank</dt><dd>{leaderboardRank !== null ? `#${leaderboardRank}` : 'Unranked'}</dd></div>
+                            <div><dt>Quests completed</dt><dd><CountUp value={history.length} /></dd></div>
+                            <div><dt>Next rank</dt><dd>{r.next ?? 'None'}</dd></div>
+                        </dl>
 
-            {/* Past Sidequests */}
-            {profile && (
-                <Reveal as="section" className="glass-card" variant="up">
-                    <h2>Past Sidequests</h2>
-                    <div className="flip-cards-grid">
-                        {profile.sidequestHistory.length > 0 ? profile.sidequestHistory.map((s) => (
-                            <div key={s._id} onClick={() => setFlippedId(prev => prev === s._id ? null : s._id)} className="flip-card">
-                                <div className={`flip-card-inner${s._id === flippedId ? ' flipped' : ''}`}>
-                                    <div className="flip-card-front" style={{ background: `linear-gradient(135deg, var(--card-bg) 40%, ${getSuitColor(s.cardSuit)})` }}>
-                                        <span className={`flip-card-suit suit-${s.cardSuit}`}>{getSuitSymbol(s.cardSuit)}</span>
-                                        <span className="flip-card-rank">{s.cardRank}</span>
-                                        <span className="past-sidequest-title">{s.title}</span>
+                        <ol className="pf-ladder" aria-label="Rank ladder">
+                            {RANKS.map((rk, i) => (
+                                <li key={rk.name} className={i < r.index ? 'is-done' : i === r.index ? 'is-now' : ''}>
+                                    <span className="pf-ladder-dot">{i < r.index ? <Icon name="check" size={12} weight="bold" /> : i + 1}</span>
+                                    <b>{rk.name}</b>
+                                    <em>{rk.xp.toLocaleString()}</em>
+                                </li>
+                            ))}
+                        </ol>
+                    </Reveal>
+
+                    {/* Trophy cards */}
+                    <section className="pf-section">
+                        <div className="qb-section-head">
+                            <h2>Completed quests</h2>
+                            <span>{history.length} completed</span>
+                        </div>
+
+                        {history.length > 0 && (
+                            <div className="pf-suits">
+                                {bySuit.map(b => (
+                                    <div key={b.suit} className={`pf-suit suit-${b.suit}`}>
+                                        <span className="pf-suit-pip">{SUITS[b.suit].pip}</span>
+                                        <b>{b.count}</b>
+                                        <em>{SUITS[b.suit].category}, {b.xp.toLocaleString()} XP</em>
                                     </div>
-                                    <div className="flip-card-back" style={{ border: `1px solid ${getSuitColor(s.cardSuit)}` }}>
-                                        <span style={{ fontWeight: 600, fontSize: 12, textAlign: 'center' }}>{s.title}</span>
-                                        <span className="muted small">{getSuitLabel(s.cardSuit)}</span>
-                                        <span className="muted small">{new Date(s.completedAt).toLocaleDateString()}</span>
-                                        <span className="xp-badge">+{s.xpEarned} xp</span>
-                                    </div>
-                                </div>
+                                ))}
                             </div>
-                        )) : <p>No sidequests completed yet...</p>}
-                    </div>
-                </Reveal>
-            )}
+                        )}
 
+                        {history.length > 0 ? (
+                            <Reveal as="div" className="pf-wall" variant="up" stagger>
+                                {history.map(h => (
+                                    <article key={h._id} className={`pf-trophy suit-${h.cardSuit}`}>
+                                        <span className="pf-trophy-corner">{h.cardRank} {SUITS[h.cardSuit].pip}</span>
+                                        <span className="pf-trophy-pip" aria-hidden="true">{SUITS[h.cardSuit].pip}</span>
+                                        <span className="pf-trophy-xp"><Icon name="lightning" size={12} weight="fill" />+{h.xpEarned} XP</span>
+                                        <h3>{h.title}</h3>
+                                        <p>{new Date(h.completedAt).toLocaleDateString()}</p>
+                                    </article>
+                                ))}
+                            </Reveal>
+                        ) : (
+                            <div className="qb-emptycard">
+                                <Icon name="cards" size={34} />
+                                <h3>No quests completed yet</h3>
+                                <p>Your first one is worth up to 1,500 XP.</p>
+                                <Link to="/sidequests" className="qb-btn qb-btn--solid"><Icon name="cards" size={16} /> Draw a card</Link>
+                            </div>
+                        )}
+                    </section>
+
+                    {/* Wishlist */}
+                    <Reveal as="section" className="pf-section pf-wish" variant="up">
+                        <div className="qb-section-head">
+                            <h2>Travel wishlist</h2>
+                            <button type="button" className="pf-link" onClick={() => { setEditWishlist(profile.wishlist ?? []); setEditingWishlist(e => !e); }}>
+                                <Icon name={editingWishlist ? 'close' : 'pencil'} size={14} /> {editingWishlist ? 'Cancel' : 'Edit'}
+                            </button>
+                        </div>
+
+                        <ul className="pf-chips">
+                            {(editingWishlist ? editWishlist : profile.wishlist).map((place, i) => (
+                                <li key={place + i} className="pf-chip">
+                                    <Icon name="pin" size={15} /> {place}
+                                    {editingWishlist && (
+                                        <button type="button" aria-label={`Remove ${place}`} onClick={() => setEditWishlist(prev => prev.filter((_, idx) => idx !== i))}>
+                                            <Icon name="close" size={12} />
+                                        </button>
+                                    )}
+                                </li>
+                            ))}
+                            {!editingWishlist && profile.wishlist.length === 0 && (
+                                <li className="pf-chips-empty">No destinations yet. Where do you want to go?</li>
+                            )}
+                        </ul>
+
+                        {editingWishlist && (
+                            <div className="pf-wish-add">
+                                <div className="qb-search">
+                                    <Icon name="search" size={16} />
+                                    <input
+                                        placeholder="Add a destination"
+                                        value={newWishlistItem}
+                                        onChange={e => setNewWishlistItem(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && addWishlistItem()}
+                                        autoFocus
+                                    />
+                                    <button type="button" onClick={addWishlistItem} disabled={!newWishlistItem.trim()}>Add</button>
+                                </div>
+                                <button type="button" className="pf-btn" disabled={savingWishlist} onClick={handleSaveWishlist}>
+                                    {savingWishlist ? 'Saving…' : 'Save wishlist'}
+                                </button>
+                            </div>
+                        )}
+                    </Reveal>
+                </>
+            )}
         </div>
     );
 }
