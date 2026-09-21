@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import NavBar from './components/NavBar';
@@ -8,18 +8,18 @@ import ProtectedRoute from './components/ProtectedRoute';
 import SmoothScroll from './components/SmoothScroll';
 import RouteTransition from './components/RouteTransition';
 import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import TripsPage from './pages/TripsPage';
-import TripDetailPage from './pages/TripDetailPage';
-import SharePage from './pages/SharePage';
-import GuestUploadPage from './pages/GuestUploadPage';
-import ProfilePage from './pages/ProfilePage';
-import SubscriptionPage from './pages/SubscriptionPage';
-import DiscoverPage from './pages/DiscoverPage';
-import SidequestsPage from './pages/SidequestsPage';
-import HowToPlayPage from './pages/HowToPlayPage';
-import LeaderboardPage from './pages/LeaderboardPage';
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const TripsPage = lazy(() => import('./pages/TripsPage'));
+const TripDetailPage = lazy(() => import('./pages/TripDetailPage'));
+const SharePage = lazy(() => import('./pages/SharePage'));
+const GuestUploadPage = lazy(() => import('./pages/GuestUploadPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const SubscriptionPage = lazy(() => import('./pages/SubscriptionPage'));
+const DiscoverPage = lazy(() => import('./pages/DiscoverPage'));
+const SidequestsPage = lazy(() => import('./pages/SidequestsPage'));
+const HowToPlayPage = lazy(() => import('./pages/HowToPlayPage'));
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 
 /** Route family → drives `<body data-route>` so the atmosphere shifts hue per section. */
 function routeFamily(pathname: string): string {
@@ -46,6 +46,7 @@ function Shell() {
     <>
       <NavBar />
       <RouteTransition>
+        <Suspense fallback={<div className="route-loading" aria-busy="true" />}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<main><LoginPage /></main>} />
@@ -117,6 +118,7 @@ function Shell() {
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </RouteTransition>
       <Footer />
     </>

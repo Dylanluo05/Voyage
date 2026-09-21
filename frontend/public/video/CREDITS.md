@@ -1,7 +1,7 @@
 # Placeholder splash montage
 
 `montage.mp4` is 17 short cuts (about 1.2s each, sped up 1.2x, colour-boosted) of
-free-licence Pexels stock footage, joined into one looping ~21s file with no audio,
+free-licence Pexels stock footage, joined into one looping ~21s file (4 MB: 1280x720, 24 fps, H.264 crf 32) with no audio,
 until the real Voyage montage is shot. Replace `montage.mp4` and `montage-poster.jpg`
 (first frame) to swap it; `SplashHero.tsx` reads them via `MONTAGE`.
 

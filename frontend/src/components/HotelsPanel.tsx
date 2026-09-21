@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { fmtWhen } from '../utils/dates';
 import { Trip, HotelBooking } from '../types';
 import { addHotel, removeHotel, parseHotelText } from '../api/trips';
 import { Icon } from './Icon';
@@ -156,7 +157,7 @@ export default function HotelsPanel({ trip, onUpdate }: HotelsPanelProps) {
                     </div>
                     <div className="booking-card-details">
                         <span><Icon name="pin" size={13} /> {hotel.location}</span>
-                        <span><Icon name="calendar" size={13} /> {hotel.checkIn} → {hotel.checkOut}</span>
+                        <span><Icon name="calendar" size={13} /> {fmtWhen(hotel.checkIn)} → {fmtWhen(hotel.checkOut)}</span>
                         <span><Icon name="dollar" size={13} /> ${hotel.pricePerNight}/night</span>
                         <span><Icon name="collab" size={13} /> {hotel.guests} guest{hotel.guests !== 1 ? 's' : ''}</span>
                         {hotel.confirmationNumber && <span><Icon name="tag" size={13} /> #{hotel.confirmationNumber}</span>}

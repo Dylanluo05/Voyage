@@ -127,7 +127,7 @@ export default function PlaylistPanel({ trip, currentUserId, onUpdate }: Props) 
 
   return (
     <Reveal id="trip-playlist-section" className="playlist-panel" variant="up">
-      <h3 className="playlist-heading"><Icon name="playlist" size={17} /> Trip Playlist</h3>
+      <h2 className="playlist-heading">Trip playlist</h2>
 
       {/* Manual search */}
       <div className="playlist-search-wrap">

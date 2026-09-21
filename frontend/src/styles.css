@@ -7807,3 +7807,134 @@ main:has(> .au) { max-width: 1240px; padding-top: clamp(1rem, 3vw, 2rem); }
 .au-side-line { bottom: clamp(4.4rem, 7vw, 5.4rem); }
 .nav-actions a.nav-cta.active { color: var(--surface); }
 .nav-actions a.nav-cta.active::after { display: none; }
+
+
+/* ═══════════════ TRIP WORKSPACE PANELS: interiors match the rest of the site ═══════════════
+   The workspace rail already frames each section, so the panel root is flattened (no card in a
+   card), headings become display type, and buttons become the site's pills. Scoped to .tw-panes
+   so nothing else changes. */
+.tw-panes .tw-pane > .card:not(:has(.chat-panel)),
+.tw-panes .tw-pane > .playlist-panel,
+.tw-panes .tw-pane > .trip-log-panel,
+.tw-panes .tw-pane > section.card:not(:has(.chat-panel)) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+.tw-panes .tw-pane > .card:not(:has(.chat-panel))::before,
+.tw-panes .tw-pane > section.card::before { display: none; }
+.tw-panes .tw-pane > .card:hover { border-color: transparent !important; transform: none; }
+
+.tw-panes .tw-pane > section > h2,
+.tw-panes .tw-pane > .card > h2,
+.tw-panes h2.panel-title,
+.tw-panes .budget-header-row h2,
+.tw-panes .expense-header-row h2,
+.tw-panes .sidequest-header-row h2 {
+  font-size: clamp(2.2rem, 4.2vw, 3.4rem);
+  font-weight: 600;
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+  margin: 0 0 1rem;
+}
+.tw-panes .expense-header-row h2 { margin-bottom: 0.2rem; }
+
+/* buttons */
+.tw-panes .small-btn,
+.tw-panes button.ghost {
+  padding: 0.55rem 1.05rem;
+  border-radius: var(--r-pill);
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  background: var(--ink);
+  color: var(--surface);
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+.tw-panes .small-btn:hover,
+.tw-panes button.ghost:hover { background: var(--accent); color: #fff; border-color: transparent; box-shadow: none; transform: none; }
+.tw-panes .small-btn.ghost,
+.tw-panes button.ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--hairline-strong);
+}
+.tw-panes .small-btn.ghost:hover,
+.tw-panes button.ghost:hover { background: var(--hover-bg); color: var(--ink); border-color: var(--hairline-strong); }
+.tw-panes .small-btn.danger,
+.tw-panes button.danger { background: transparent; color: var(--ink-faint); border-color: var(--hairline); }
+.tw-panes .small-btn.danger:hover,
+.tw-panes button.danger:hover { background: transparent; color: var(--coral); border-color: var(--coral); }
+
+/* bookings (flights + hotels) */
+.tw-panes .booking-card {
+  padding: 1.25rem 1.4rem;
+  margin-bottom: 0.9rem;
+  border-radius: var(--r-lg);
+  background: var(--surface) !important;
+  border: 1px solid var(--hairline);
+  box-shadow: none;
+}
+.tw-panes .booking-card:hover { border-color: var(--hairline-strong); }
+.tw-panes .booking-card-header { margin-bottom: 0.75rem; }
+.tw-panes .booking-card-header strong,
+.tw-panes .booking-card-header h3 { font-size: 1.35rem; font-weight: 600; letter-spacing: -0.04em; }
+.tw-panes .booking-type-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--r-pill);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  border: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+}
+.tw-panes .booking-card-details { gap: 0.6rem 1.5rem; font-size: 0.95rem; color: var(--ink-soft); }
+
+/* budget */
+.tw-panes .budget-stats-row {
+  border: 0;
+  border-radius: var(--r-xl);
+  background: var(--ink) !important;
+  color: var(--surface);
+  margin-bottom: 1.5rem;
+}
+.tw-panes .budget-stat { border-right-color: color-mix(in srgb, var(--surface) 18%, transparent); padding: 1.5rem 1rem; }
+.tw-panes .budget-stat-label { color: color-mix(in srgb, var(--surface) 62%, transparent); font-size: 0.78rem; letter-spacing: 0.04em; }
+.tw-panes .budget-stat-value { color: var(--surface); font-size: clamp(1.7rem, 3.4vw, 2.8rem); font-weight: 600; letter-spacing: -0.05em; }
+.tw-panes .budget-stat-value.over,
+.tw-panes .budget-stat-value.budget-over { color: #ff8a80; }
+.tw-panes .budget-input { border-radius: var(--r-pill); padding: 0.6rem 1.1rem; }
+.tw-panes .budget-save-btn { padding: 0.65rem 1.3rem; border-radius: var(--r-pill); font-size: 0.92rem; text-transform: none; letter-spacing: 0; }
+
+/* expenses */
+.tw-panes .expense-card {
+  padding: 1.1rem 1.3rem;
+  border-radius: var(--r-lg);
+  background: var(--surface) !important;
+  border: 1px solid var(--hairline);
+  box-shadow: none;
+}
+.tw-panes .expense-balances { border-radius: var(--r-lg); background: var(--surface-sunk) !important; border: 0; }
+
+/* trip header actions */
+.trip-title-actions .small-btn { padding: 0.6rem 1.15rem; border-radius: var(--r-pill); font-size: 0.9rem; font-weight: 600; letter-spacing: 0; background: var(--ink); color: var(--surface); border: 1px solid transparent; box-shadow: none; }
+.trip-title-actions .small-btn:hover { background: var(--accent); color: #fff; transform: none; }
+.trip-title-actions .small-btn.ghost { background: transparent; color: var(--ink); border-color: var(--hairline-strong); }
+.trip-title-actions .small-btn.ghost:hover { background: var(--hover-bg); color: var(--ink); }
+.trip-dates-row .small-btn { border-radius: var(--r-pill); font-size: 0.82rem; }
+.trip-title-row h1 { font-size: clamp(2.6rem, 6.5vw, 5.6rem); font-weight: 600; letter-spacing: -0.058em; line-height: 0.95; margin: 0; }
+
+/* panel polish */
+.tw-panes .budget-stat:last-child .budget-stat-value { filter: brightness(1.45) saturate(0.9); }
+.tw-panes .expense-total, .tw-panes .expense-card .muted + span { color: var(--ink); }
+.tw-panes .expense-card [class*="amount"], .tw-panes .expense-split-row span:nth-child(2) { color: var(--ink); }
+.tw-panes .playlist-heading { font-size: clamp(2.2rem, 4.2vw, 3.4rem); font-weight: 600; letter-spacing: -0.055em; line-height: 0.98; margin: 0 0 1rem; }
+.tw-panes .playlist-search, .tw-panes .playlist-panel input { border-radius: var(--r-pill); }
+.tw-panes .playlist-panel [class*="track"], .tw-panes .playlist-track { background: var(--surface) !important; border: 1px solid var(--hairline); border-radius: var(--r-lg); }
+
+.route-loading { min-height: 60vh; }

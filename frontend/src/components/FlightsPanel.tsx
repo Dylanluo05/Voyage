@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { fmtWhen } from '../utils/dates';
 import { Trip, FlightBooking } from '../types';
 import { addFlight, removeFlight, parseFlightText } from '../api/trips';
 import { Icon } from './Icon';
@@ -171,10 +172,10 @@ export default function FlightsPanel({ trip, onUpdate }: FlightsPanelProps) {
                     </div>
                     <div className="booking-card-details">
                         <span><Icon name="plane" size={13} /> {flight.departureAirport} → {flight.arrivalAirport}</span>
-                        <span><Icon name="planeTakeoff" size={13} /> Departs: {flight.departureTime}</span>
-                        <span><Icon name="planeLanding" size={13} /> Arrives: {flight.arrivalTime}</span>
+                        <span><Icon name="planeTakeoff" size={13} /> Departs {fmtWhen(flight.departureTime)}</span>
+                        <span><Icon name="planeLanding" size={13} /> Arrives {fmtWhen(flight.arrivalTime)}</span>
                         {flight.tripType === 'round-trip' && flight.returnDepartureTime && (
-                            <span><Icon name="refresh" size={13} /> Return: {flight.returnDepartureTime} → {flight.returnArrivalTime}</span>
+                            <span><Icon name="refresh" size={13} /> Return {fmtWhen(flight.returnDepartureTime)} → {fmtWhen(flight.returnArrivalTime)}</span>
                         )}
                         <span><Icon name="collab" size={13} /> {flight.passengers} passenger{flight.passengers !== 1 ? 's' : ''}</span>
                         <span><Icon name="dollar" size={13} /> ${flight.price}</span>
