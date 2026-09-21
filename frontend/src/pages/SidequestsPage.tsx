@@ -11,6 +11,7 @@ import { rankFor } from '../utils/ranks';
 import Reveal from '../components/Reveal';
 import { Icon } from '../components/Icon';
 import PlayerHud from '../components/quests/PlayerHud';
+import DeckFan from '../components/quests/DeckFan';
 import QuestTile from '../components/quests/QuestTile';
 import QuestSheet, { type QuestActions } from '../components/quests/QuestSheet';
 import { ClaimOverlay, CompleteOverlay, CreateQuestModal, DrawOverlay, type NewQuest } from '../components/quests/QuestOverlays';
@@ -223,18 +224,7 @@ export default function SidequestsPage() {
           )}
         </div>
 
-        <div className="qb-deck" aria-hidden="true">
-          {(['spades', 'hearts', 'diamonds', 'clubs'] as Suit[]).map((s, i) => (
-            <div key={s} className={`qb-deckcard suit-${s} d${i}`}>
-              <span className="qb-deckcard-corner">
-                <b>{(['K', 'Q', 'A', 'J'] as const)[i]}</b>
-                <i>{SUITS[s].pip}</i>
-              </span>
-              <span className="qb-deckcard-pip">{SUITS[s].pip}</span>
-              <span className="qb-deckcard-xp">+{[1125, 500, 1200, 275][i]} XP</span>
-            </div>
-          ))}
-        </div>
+        <DeckFan />
       </header>
 
       {/* ── Mode, search, suits, difficulty ── */}

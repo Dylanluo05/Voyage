@@ -1,172 +1,156 @@
 import { Link } from 'react-router-dom';
 import Reveal from '../components/Reveal';
 import { Icon } from '../components/Icon';
+import DeckFan from '../components/quests/DeckFan';
+import { RANK_LABEL, RANK_ORDER, SUIT_ORDER, SUITS, xpFor } from '../components/quests/questMeta';
+import { RANKS } from '../utils/ranks';
 
-const SUITS = [
-    { symbol: '♠', name: 'Spades', label: 'Physical', color: '#1e293b', bg: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.3)', desc: 'Endurance, movement, and outdoor challenges that test your body.' },
-    { symbol: '♥', name: 'Hearts', label: 'Social', color: '#dc2626', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)', desc: 'Connection, conversation, and challenges that put you among people.' },
-    { symbol: '♦', name: 'Diamonds', label: 'Intellectual', color: '#1d4ed8', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', desc: 'Knowledge, creativity, and strategy that push your mind.' },
-    { symbol: '♣', name: 'Clubs', label: 'Teamwork', color: '#065f46', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)', desc: 'Coordination, leadership, and challenges built for groups.' },
+const STEPS = [
+  { title: 'Browse', body: 'Explore dares posted by the Voyage community. Filter by suit to find the kind of challenge that fits your trip.' },
+  { title: 'Claim', body: 'Lock one in. It commits you to finishing it. Think of it as drawing the card.' },
+  { title: 'Complete', body: 'Do the thing and submit a photo as proof. Our AI judge checks that it matches the quest.' },
+  { title: 'Earn XP', body: 'Pass the check and the XP is yours. It stacks on your profile and moves you up the leaderboard.' },
 ];
 
-const MULTIPLIERS: Record<string, number> = { spades: 1.5, hearts: 1.0, diamonds: 1.2, clubs: 1.1 };
-const RANKS = [
-    { rank: 'J', label: 'Beginner', base: 250 },
-    { rank: 'Q', label: 'Novice', base: 500 },
-    { rank: 'K', label: 'Intermediate', base: 750 },
-    { rank: 'A', label: 'Advanced', base: 1000 },
-];
-
-function computeXp(base: number, multiplier: number): number {
-    return Math.round(base * multiplier / 5) * 5;
-}
-
-const PLAYER_RANKS = [
-    { name: 'Recruit', xp: 0 },
-    { name: 'Wanderer', xp: 1000 },
-    { name: 'Adventurer', xp: 2000 },
-    { name: 'Explorer', xp: 4000 },
-    { name: 'Veteran', xp: 7000 },
-    { name: 'Champion', xp: 10000 },
-    { name: 'Legend', xp: 15000 },
-    { name: 'Voyager', xp: 20000 },
-];
+const SUIT_DESC = {
+  spades: 'Endurance, movement and outdoor challenges that test your body.',
+  hearts: 'Connection, conversation and dares that put you among people.',
+  diamonds: 'Knowledge, creativity and strategy that push your mind.',
+  clubs: 'Coordination, leadership and challenges built for groups.',
+} as const;
 
 export default function HowToPlayPage() {
-    return (
-        <div className="htp-page">
-            <div className="htp-orb htp-orb-1" />
-            <div className="htp-orb htp-orb-2" />
-            <div className="htp-orb htp-orb-3" />
-
-            <div className="htp-card">
-
-                {/* Header */}
-                <div className="htp-header">
-                    <span className="htp-eyebrow">Voyage Sidequests</span>
-                    <h1 className="htp-title">How to Play</h1>
-                    <p className="htp-subtitle">Community travel challenges powered by a card-based difficulty system. Complete them. Earn XP. Build your legend.</p>
-                </div>
-
-                <div className="htp-divider" />
-
-                {/* How it works */}
-                <Reveal as="section" className="htp-section" variant="up">
-                    <h2 className="htp-section-title">How It Works</h2>
-                    <div className="htp-steps">
-                        {[
-                            { n: '1', title: 'Browse', body: 'Explore sidequests posted by the Voyage community. Filter by suit to find the type of challenge that fits your trip.' },
-                            { n: '2', title: 'Claim', body: 'Lock in a sidequest. This commits you to completing it. Think of it as drawing the card.' },
-                            { n: '3', title: 'Complete', body: 'Do the challenge and submit a photo as proof. Our AI judge verifies that your photo matches the sidequest.' },
-                            { n: '4', title: 'Earn XP', body: 'Pass verification and the XP is yours. It stacks on your profile and moves you up the leaderboard.' },
-                        ].map(step => (
-                            <div key={step.n} className="htp-step">
-                                <div className="htp-step-num">{step.n}</div>
-                                <div className="htp-step-body">
-                                    <strong className="htp-step-title">{step.title}</strong>
-                                    <p className="htp-step-desc">{step.body}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </Reveal>
-
-                <div className="htp-divider" />
-
-                {/* The Card System */}
-                <Reveal as="section" className="htp-section" variant="up">
-                    <h2 className="htp-section-title">The Card System</h2>
-                    <p className="htp-section-desc">Every sidequest has a <strong>suit</strong> (its category) and a <strong>rank</strong> (its difficulty). Together they determine how much XP you earn.</p>
-
-                    <h3 className="htp-subsection-title">Suits: what kind of challenge</h3>
-                    <div className="htp-suits-grid">
-                        {SUITS.map(s => (
-                            <div key={s.name} className="htp-suit-card" style={{ background: s.bg, borderColor: s.border }}>
-                                <span className="htp-suit-symbol" style={{ color: s.color }}>{s.symbol}</span>
-                                <div className="htp-suit-info">
-                                    <span className="htp-suit-name" style={{ color: s.color }}>{s.name}</span>
-                                    <span className="htp-suit-label">{s.label}</span>
-                                    <p className="htp-suit-desc">{s.desc}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <h3 className="htp-subsection-title">Ranks: how hard</h3>
-                    <div className="htp-ranks-row">
-                        {RANKS.map(r => (
-                            <div key={r.rank} className="htp-rank-pill">
-                                <span className="htp-rank-letter">{r.rank}</span>
-                                <span className="htp-rank-label">{r.label}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    <h3 className="htp-subsection-title">XP Rewards</h3>
-                    <p className="htp-section-desc" style={{ marginBottom: 16 }}>Physical (♠ Spades) challenges carry the highest multiplier. The Ace of Spades is the most valuable card in the deck.</p>
-                    <div className="htp-xp-table">
-                        <div className="htp-xp-table-header">
-                            <div />
-                            {SUITS.map(s => (
-                                <div key={s.name} className="htp-xp-col-head" style={{ color: s.color }}>
-                                    {s.symbol} {s.name}
-                                </div>
-                            ))}
-                        </div>
-                        {RANKS.map(r => (
-                            <div key={r.rank} className="htp-xp-row">
-                                <div className="htp-xp-row-head">
-                                    <span className="htp-xp-rank">{r.rank}</span>
-                                    <span className="htp-xp-rank-label">{r.label}</span>
-                                </div>
-                                {SUITS.map(s => (
-                                    <div key={s.name} className="htp-xp-cell" style={{ borderColor: s.border }}>
-                                        {computeXp(r.base, MULTIPLIERS[s.name.toLowerCase()])} XP
-                                    </div>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
-                </Reveal>
-
-                <div className="htp-divider" />
-
-                {/* Events */}
-                <Reveal as="section" className="htp-section" variant="up">
-                    <h2 className="htp-section-title">Events</h2>
-                    <p className="htp-section-desc">Some sidequests have a set date and a participant cap. When you enroll in an event, you're automatically claiming the sidequest. You're committing to show up and complete it together with others.</p>
-                    <div className="htp-info-box">
-                        <span className="htp-info-icon"><Icon name="calendar" size={18} /></span>
-                        <p>You can leave an event before the date and it will unclaim the sidequest. You cannot unclaim a sidequest you've already completed.</p>
-                    </div>
-                </Reveal>
-
-                <div className="htp-divider" />
-
-                {/* Player Ranks */}
-                <Reveal as="section" className="htp-section" variant="up">
-                    <h2 className="htp-section-title">Player Ranks</h2>
-                    <p className="htp-section-desc">As your XP grows, so does your rank. The leaderboard tracks the top adventurers across all of Voyage.</p>
-                    <div className="htp-player-ranks">
-                        {PLAYER_RANKS.map((r, i) => (
-                            <div key={r.name} className="htp-player-rank">
-                                <span className="htp-player-rank-pos">{i + 1}</span>
-                                <span className="htp-player-rank-name">{r.name}</span>
-                                <span className="htp-player-rank-xp">{r.xp === 0 ? 'Starting rank' : `${r.xp.toLocaleString()} XP`}</span>
-                            </div>
-                        ))}
-                    </div>
-                </Reveal>
-
-                <div className="htp-divider" />
-
-                {/* CTA */}
-                <div className="htp-cta">
-                    <Link to="/sidequests" className="htp-cta-btn">Browse Sidequests</Link>
-                    <Link to="/profile" className="htp-cta-ghost">View Your Profile</Link>
-                </div>
-
-            </div>
+  return (
+    <div className="qb hp">
+      <header className="qb-hero">
+        <div className="qb-hero-copy">
+          <h1 className="qb-title">
+            <span>How to</span>
+            <span><em className="punch">play.</em></span>
+          </h1>
+          <p className="qb-lede">
+            Community dares tied to real places, scored like a deck of cards. Claim one, prove it with a photo, and climb the ranks.
+          </p>
+          <div className="qb-cta">
+            <Link to="/sidequests" className="qb-btn qb-btn--solid">
+              <Icon name="cards" size={17} /> Draw a card
+            </Link>
+            <Link to="/leaderboard" className="qb-textlink">
+              See the leaderboard <Icon name="arrowRight" size={14} />
+            </Link>
+          </div>
         </div>
-    );
+        <DeckFan />
+      </header>
+
+      {/* Four steps */}
+      <section className="hp-section">
+        <div className="qb-section-head"><h2>Four steps</h2></div>
+        <Reveal as="ol" className="hp-steps" variant="up" stagger>
+          {STEPS.map((s, i) => (
+            <li key={s.title} className="hp-step">
+              <span className="hp-step-n">{i + 1}</span>
+              <h3>{s.title}</h3>
+              <p>{s.body}</p>
+            </li>
+          ))}
+        </Reveal>
+      </section>
+
+      {/* Suits */}
+      <section className="hp-section">
+        <div className="qb-section-head">
+          <h2>Suits</h2>
+          <span>What kind of challenge</span>
+        </div>
+        <Reveal as="div" className="hp-suits" variant="up" stagger>
+          {SUIT_ORDER.map((s) => (
+            <article key={s} className={`hp-suit suit-${s}`}>
+              <span className="hp-suit-pip" aria-hidden="true">{SUITS[s].pip}</span>
+              <span className="hp-suit-corner">{SUITS[s].pip}</span>
+              <h3>{SUITS[s].name}</h3>
+              <b>{SUITS[s].category}</b>
+              <p>{SUIT_DESC[s]}</p>
+            </article>
+          ))}
+        </Reveal>
+      </section>
+
+      {/* Ranks + XP */}
+      <section className="hp-section">
+        <div className="qb-section-head">
+          <h2>Ranks and XP</h2>
+          <span>Rank sets the base, suit sets the multiplier</span>
+        </div>
+        <Reveal as="div" className="hp-xp" variant="up">
+          <div className="hp-xp-row hp-xp-row--head">
+            <span />
+            {SUIT_ORDER.map((s) => (
+              <span key={s} className={`hp-xp-suit suit-${s}`}>{SUITS[s].pip} {SUITS[s].name}</span>
+            ))}
+          </div>
+          {RANK_ORDER.map((r) => (
+            <div key={r} className="hp-xp-row">
+              <span className="hp-xp-rank">
+                <b>{r}</b>
+                <em>{RANK_LABEL[r]}</em>
+              </span>
+              {SUIT_ORDER.map((s) => {
+                const xp = xpFor(s, r);
+                return (
+                  <span key={s} className={`hp-xp-cell${xp === 1500 ? ' is-top' : ''}`}>
+                    {xp.toLocaleString()}
+                    {xp === 1500 && <small>Top card</small>}
+                  </span>
+                );
+              })}
+            </div>
+          ))}
+        </Reveal>
+        <p className="hp-note">Spades carry the highest multiplier, so the Ace of Spades is the most valuable card in the deck.</p>
+      </section>
+
+      {/* Events */}
+      <section className="hp-section">
+        <Reveal as="div" className="hp-events" variant="up">
+          <span className="hp-events-ico"><Icon name="calendar" size={26} /></span>
+          <div>
+            <h2>Group events</h2>
+            <p>
+              Some quests have a set date and a participant cap. Enrolling in an event also claims the quest, so you are committing to show up.
+              You can leave before the date, which unclaims it. A quest you already completed cannot be unclaimed.
+            </p>
+          </div>
+        </Reveal>
+      </section>
+
+      {/* Player ranks */}
+      <section className="hp-section pf-progress hp-ranks">
+        <div className="hp-ranks-head">
+          <h2>Player ranks</h2>
+          <p>As your XP grows, so does your rank. The leaderboard tracks the top players across all of Voyage.</p>
+        </div>
+        <ol className="pf-ladder" aria-label="Rank ladder">
+          {RANKS.map((rk, i) => (
+            <li key={rk.name} className={i === 0 ? 'is-now' : ''}>
+              <span className="pf-ladder-dot">{i + 1}</span>
+              <b>{rk.name}</b>
+              <em>{rk.xp === 0 ? 'Start' : rk.xp.toLocaleString()}</em>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="landing-close hp-cta">
+        <h2>Ready to <em className="punch">play?</em></h2>
+        <p>Your first quest is worth up to 1,500 XP.</p>
+        <div className="hero-actions">
+          <Link to="/sidequests" className="btn btn--primary">
+            Browse sidequests
+            <span className="btn__ico"><Icon name="arrowUpRight" size={15} /></span>
+          </Link>
+        </div>
+      </section>
+    </div>
+  );
 }
