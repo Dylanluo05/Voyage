@@ -45,7 +45,10 @@ export default function NavBar() {
   return (
     <>
       <nav className="navbar">
-        <Link to="/" className="brand">Voyage</Link>
+        <Link to="/" className="brand">
+          <Icon name="compass" size={20} weight="fill" />
+          Voyage
+        </Link>
 
         {/* Desktop nav */}
         <div className="nav-actions">
@@ -105,7 +108,7 @@ export default function NavBar() {
               <NavLink to="/login" className={({ isActive }) => isActive ? 'active' : ''}>
                 Log in
               </NavLink>
-              <NavLink to="/register" className={({ isActive }) => isActive ? 'active' : ''}>
+              <NavLink to="/register" className="nav-cta">
                 Sign up
               </NavLink>
             </>

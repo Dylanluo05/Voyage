@@ -60,7 +60,7 @@ const STEPS = [
 const SPOTLIGHT = [
   { title: 'Sunrise from a summit', suit: 'spades', rank: 'J', pip: '♠', xp: 375 },
   { title: 'Jump off something tall', suit: 'hearts', rank: 'J', pip: '♥', xp: 250 },
-  { title: 'A border on foot', suit: 'diamonds', rank: 'A', pip: '♦', xp: 900 },
+  { title: 'A border on foot', suit: 'diamonds', rank: 'A', pip: '♦', xp: 1200 },
   { title: 'A day out for five', suit: 'clubs', rank: 'Q', pip: '♣', xp: 550 },
 ] as const;
 

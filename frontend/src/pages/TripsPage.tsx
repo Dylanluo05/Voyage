@@ -23,14 +23,14 @@ function getTripStatus(startDate: string, endDate: string): 'upcoming' | 'ongoin
   return 'ongoing';
 }
 
+// Deep, low-chroma banners: each trip keeps its own tone, white text stays legible.
 const DEST_PALETTES = [
-  ['#0891b2', '#0e7490'],
-  ['#7c3aed', '#6d28d9'],
-  ['#dc2626', '#f97316'],
-  ['#059669', '#0891b2'],
-  ['#d97706', '#dc2626'],
-  ['#db2777', '#7c3aed'],
-  ['#2563eb', '#0891b2'],
+  ['#151515', '#2b2b2e'],
+  ['#0b2a4a', '#0b5cad'],
+  ['#12251f', '#1f5c47'],
+  ['#26201a', '#5a4632'],
+  ['#1d2233', '#39466b'],
+  ['#1a1f1c', '#3b4a3f'],
 ];
 
 function destPalette(destination: string): [string, string] {
@@ -41,9 +41,9 @@ function destPalette(destination: string): [string, string] {
 }
 
 const STATUS_META = {
-  upcoming: { label: 'Upcoming', color: '#0891b2', bg: 'rgba(8,145,178,0.12)', border: 'rgba(8,145,178,0.3)' },
-  ongoing:  { label: 'Ongoing',  color: '#059669', bg: 'rgba(5,150,105,0.12)', border: 'rgba(5,150,105,0.3)' },
-  past:     { label: 'Past',     color: '#64748b', bg: 'rgba(100,116,139,0.1)', border: 'rgba(100,116,139,0.2)' },
+  upcoming: { label: 'Upcoming', color: '#ffffff', bg: 'rgba(255,255,255,0.16)', border: 'rgba(255,255,255,0.32)' },
+  ongoing:  { label: 'Ongoing',  color: '#86efc0', bg: 'rgba(16,185,129,0.24)', border: 'rgba(134,239,192,0.45)' },
+  past:     { label: 'Past',     color: 'rgba(255,255,255,0.72)', bg: 'rgba(255,255,255,0.08)', border: 'rgba(255,255,255,0.18)' },
 };
 
 export default function TripsPage() {
@@ -197,7 +197,7 @@ export default function TripsPage() {
                       </div>
 
                       <div className="trip-card-actions">
-                        <Link to={`/trips/${trip._id}`} className="trip-open-btn" style={{ background: `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)` }}>
+                        <Link to={`/trips/${trip._id}`} className="trip-open-btn">
                           Open Trip →
                         </Link>
                       </div>

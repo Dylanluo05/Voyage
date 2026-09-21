@@ -42,16 +42,16 @@ const TIER_FEATURES: Record<Plan, string[]> = {
 };
 
 const TIER_ACCENT: Record<Plan, string> = {
-  free:         'var(--muted)',
-  explorer:     '#60a5fa',
-  pro:          'var(--teal)',
-  globetrotter: 'var(--gold)',
+  free:         'var(--ink-faint)',
+  explorer:     'var(--ink)',
+  pro:          'var(--accent)',
+  globetrotter: 'var(--ink)',
 };
 
 const TIER_BADGE: Record<Plan, string | null> = {
   free:         null,
   explorer:     null,
-  pro:          'Most Popular',
+  pro:          'Most popular',
   globetrotter: null,
 };
 
@@ -166,7 +166,7 @@ export default function SubscriptionPage() {
                     ) : (
                       <button
                         className="sub-cta-btn"
-                        style={{ background: accent, color: tier === 'explorer' ? '#08090e' : tier === 'pro' ? '#08090e' : '#08090e' }}
+                        style={tier === 'pro' ? { background: 'var(--accent)', color: '#fff' } : undefined}
                         disabled={checkoutLoading !== null}
                         onClick={() => handleUpgrade(tier)}
                       >

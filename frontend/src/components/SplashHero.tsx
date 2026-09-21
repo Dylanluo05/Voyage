@@ -1,58 +1,93 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useLenis } from 'lenis/react';
 
 /* ─────────────────────────────────────────────────────────────────────────
- * SplashHero — full-bleed video splash with a load-in sequence and a scroll exit.
+ * SplashHero: full-bleed video splash with a load-in sequence and a scroll exit.
  *
- * LOAD-IN (first visit per session, skipped for reduced motion):
- *   intro  black curtain + one line rising word by word        (~2.1s)
- *   reveal curtain lifts, video settles, headline rises        (~1.2s)
- *   done   scroll unlocked, curtain unmounted
- * Repeat visits skip the curtain but still rise the headline in.
- * Everything is CSS keyed off `data-phase`; React only changes phase 3 times.
+ * LOAD-IN (every page load or reload, skipped for reduced motion):
+ *   intro  sky-tinted screen, one line rising word by word, a route arc
+ *          drawing itself underneath                            (~2.1s)
+ *   reveal the horizon lifts (curved wipe) to uncover the video,
+ *          the headline rises word by word                      (~1.2s)
+ *   done   scroll unlocked, intro unmounted
+ * Navigating back to Home inside the app skips the intro but still rises the
+ * headline in. Everything is CSS keyed off `data-phase`; React only changes
+ * phase 3 times.
+ *
+ * QUEST CARD: every cut of the montage is presented as a sidequest (playing
+ * card with suit, rank and real XP). It follows the video via requestAnimationFrame
+ * and only re-renders when the cut changes. Edit CUTS alongside the video.
  *
  * SCROLL EXIT: the <section> is SCENE_HEIGHT tall with a sticky 100svh stage.
  * progress (0→1) drives ONE css variable (`--p`) written by a single rAF loop
  * (Lenis's animated scroll, sleeps off screen, no scroll listener). CSS calc()s
  * shrink the video into a rounded card and lift/fade the text.
- *
- * VIDEO: one pre-cut looping montage. To swap in the real one, replace the two
- * files in public/video/ (or change MONTAGE). Cuts live inside the file.
  * ───────────────────────────────────────────────────────────────────────── */
+
+type Suit = 'spades' | 'hearts' | 'diamonds' | 'clubs';
+type Rank = 'J' | 'Q' | 'K' | 'A';
+
+// Mirrors backend computeXp(): base by rank, multiplier by suit, rounded to 5.
+const BASE_XP: Record<Rank, number> = { J: 250, Q: 500, K: 750, A: 1000 };
+const SUIT_MULT: Record<Suit, number> = { spades: 1.5, hearts: 1.0, diamonds: 1.2, clubs: 1.1 };
+const SUIT_PIP: Record<Suit, string> = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' };
+const xpFor = (suit: Suit, rank: Rank) => Math.round((BASE_XP[rank] * SUIT_MULT[suit]) / 5) * 5;
+
+/** One entry per cut in montage.mp4, in order. `dur` is seconds on screen. */
+const CUTS: { dur: number; label: string; suit: Suit; rank: Rank }[] = [
+  { dur: 1.3, label: 'Catch big air on a board', suit: 'spades', rank: 'K' },
+  { dur: 1.2, label: 'Take the leap', suit: 'spades', rank: 'A' },
+  { dur: 1.2, label: 'Cannonball with the whole group', suit: 'hearts', rank: 'J' },
+  { dur: 1.3, label: 'Jump out of a plane', suit: 'spades', rank: 'A' },
+  { dur: 1.3, label: 'Send a downhill trail', suit: 'spades', rank: 'Q' },
+  { dur: 1.2, label: 'Cliff jump into open water', suit: 'spades', rank: 'K' },
+  { dur: 1.4, label: 'Backflip off the dock', suit: 'hearts', rank: 'Q' },
+  { dur: 1.2, label: 'Ride a dirt jump', suit: 'spades', rank: 'K' },
+  { dur: 1.4, label: 'Get up on a wakeboard', suit: 'spades', rank: 'Q' },
+  { dur: 1.1, label: 'Land a trampoline flip', suit: 'hearts', rank: 'J' },
+  { dur: 1.3, label: 'Jump into a waterfall pool', suit: 'spades', rank: 'K' },
+  { dur: 1.4, label: 'Ride a barrel wave', suit: 'spades', rank: 'Q' },
+  { dur: 1.3, label: 'Dive from the high platform', suit: 'spades', rank: 'K' },
+  { dur: 1.2, label: 'Land a snowboard trick', suit: 'spades', rank: 'Q' },
+  { dur: 1.2, label: 'Sprint off the dock together', suit: 'hearts', rank: 'J' },
+  { dur: 1.3, label: 'Ride a zipline with the crew', suit: 'clubs', rank: 'Q' },
+  { dur: 1.2, label: 'Pop a BMX wheelie', suit: 'spades', rank: 'Q' },
+];
+const CUT_STARTS = CUTS.reduce<number[]>((acc, c, i) => {
+  acc.push(i === 0 ? 0 : acc[i - 1] + CUTS[i - 1].dur);
+  return acc;
+}, []);
 
 const MONTAGE = { src: '/video/montage.mp4', poster: '/video/montage-poster.jpg' };
 
 const SCENE_HEIGHT = '220svh';
-const INTRO_HOLD_MS = 2100; // curtain stays down this long
-const REVEAL_MS = 1250; // curtain lift + headline entrance
-const SEEN_KEY = 'voyage-intro-seen';
+const INTRO_HOLD_MS = 2100; // intro screen stays up this long
+const REVEAL_MS = 1250; // horizon lift + headline entrance
 
 type Phase = 'intro' | 'reveal' | 'done';
+type WordSpec = { t: string; em?: boolean; dot?: boolean };
 
-const INTRO_LINE = [{ t: 'Life' }, { t: 'is' }, { t: 'short.', em: true }];
-const TITLE_LINES = [
+const INTRO_LINE: WordSpec[] = [{ t: 'Life' }, { t: 'is' }, { t: 'short', dot: true }];
+const TITLE_LINES: WordSpec[][] = [
   [{ t: 'Make' }, { t: 'sh*t', em: true }],
   [{ t: 'happen.' }],
 ];
 
 const clamp01 = (n: number) => Math.min(Math.max(n, 0), 1);
 
-function readSeen(): boolean {
-  try {
-    return sessionStorage.getItem(SEEN_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
+/** In-memory on purpose: resets on every page load or reload, but survives in-app
+ *  navigation, so the intro replays on reload and not when clicking back to Home. */
+let introPlayed = false;
 
-/** One word inside an overflow mask; --i staggers the rise. */
-function Word({ t, em, i }: { t: string; em?: boolean; i: number }) {
+/** One word inside an overflow mask; --i staggers the rise. `dot` appends a blue full stop. */
+function Word({ t, em, dot, i }: WordSpec & { i: number }) {
   return (
     <span className="w">
       <span className={em ? 'punch' : undefined} style={{ ['--i' as string]: i } as CSSProperties}>
         {t}
+        {dot && <i className="dot">.</i>}
       </span>
     </span>
   );
@@ -73,8 +108,9 @@ export default function SplashHero({ children }: Props) {
 
   const reduced =
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const [showIntro] = useState(() => !reduced && !readSeen());
+  const [showIntro] = useState(() => !reduced && !introPlayed);
   const [phase, setPhase] = useState<Phase>('intro');
+  const [cut, setCut] = useState(0);
 
   // ── Load-in timeline ───────────────────────────────────────────────────
   useEffect(() => {
@@ -96,11 +132,7 @@ export default function SplashHero({ children }: Props) {
       timers.push(
         window.setTimeout(() => {
           setPhase('reveal');
-          try {
-            sessionStorage.setItem(SEEN_KEY, '1');
-          } catch {
-            /* private mode: intro simply replays next visit */
-          }
+          introPlayed = true;
         }, INTRO_HOLD_MS),
         window.setTimeout(finish, INTRO_HOLD_MS + REVEAL_MS),
       );
@@ -122,6 +154,41 @@ export default function SplashHero({ children }: Props) {
     v.play().catch(() => {
       /* autoplay blocked: poster stays */
     });
+  }, [reduced]);
+
+  // ── Quest card follows the current cut ─────────────────────────────────
+  useEffect(() => {
+    const root = rootRef.current;
+    const v = videoRef.current;
+    if (!root || !v || reduced) return;
+
+    let raf = 0;
+    let last = 0;
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+      const t = v.currentTime;
+      let i = 0;
+      for (let k = CUT_STARTS.length - 1; k >= 0; k--) {
+        if (t >= CUT_STARTS[k]) {
+          i = k;
+          break;
+        }
+      }
+      if (i !== last) {
+        last = i;
+        setCut(i);
+      }
+    };
+    const io = new IntersectionObserver(([e]) => {
+      cancelAnimationFrame(raf);
+      raf = 0;
+      if (e.isIntersecting) raf = requestAnimationFrame(tick);
+    });
+    io.observe(root);
+    return () => {
+      cancelAnimationFrame(raf);
+      io.disconnect();
+    };
   }, [reduced]);
 
   // ── Scroll progress → --p ──────────────────────────────────────────────
@@ -160,6 +227,11 @@ export default function SplashHero({ children }: Props) {
   // --p is written imperatively by the rAF loop; CSS falls back to 0.
   const sectionStyle: CSSProperties = { height: reduced ? '100svh' : SCENE_HEIGHT };
 
+  const quest = useMemo(() => {
+    const c = CUTS[cut] ?? CUTS[0];
+    return { ...c, pip: SUIT_PIP[c.suit], xp: xpFor(c.suit, c.rank) };
+  }, [cut]);
+
   let introIndex = 0;
   let titleIndex = 0;
 
@@ -171,11 +243,17 @@ export default function SplashHero({ children }: Props) {
         phase !== 'done' &&
         createPortal(
           <div className="splash-intro" data-phase={phase} aria-hidden="true">
-            <p className="splash-intro__line">
-              {INTRO_LINE.map((w) => (
-                <Word key={w.t} t={w.t} em={w.em} i={introIndex++} />
-              ))}
-            </p>
+            <div className="splash-intro__stack">
+              <p className="splash-intro__line">
+                {INTRO_LINE.map((w) => (
+                  <Word key={w.t} {...w} i={introIndex++} />
+                ))}
+              </p>
+              <svg className="splash-intro__route" viewBox="0 0 320 64" fill="none">
+                <path d="M6 56 Q160 -22 314 56" pathLength="1" />
+                <circle cx="314" cy="56" r="5" />
+              </svg>
+            </div>
           </div>,
           document.body,
         )}
@@ -205,20 +283,33 @@ export default function SplashHero({ children }: Props) {
           </div>
 
           <div className="splash__content">
-            <h1 className="splash__title">
-              {TITLE_LINES.map((line, li) => (
-                <span key={li} className="splash__line">
-                  {line.map((w) => (
-                    <Word key={w.t} t={w.t} em={w.em} i={titleIndex++} />
-                  ))}
-                </span>
-              ))}
-            </h1>
-            <p className="splash__sub">
-              Claim sidequests, film the chaos, and keep every trip&apos;s plans, photos and costs in
-              one place.
-            </p>
-            <div className="splash__actions">{children}</div>
+            <div className="splash__copy">
+              <h1 className="splash__title">
+                {TITLE_LINES.map((line, li) => (
+                  <span key={li} className="splash__line">
+                    {line.map((w) => (
+                      <Word key={w.t} {...w} i={titleIndex++} />
+                    ))}
+                  </span>
+                ))}
+              </h1>
+              <p className="splash__sub">
+                Claim sidequests, film the chaos, and keep every trip&apos;s plans, photos and costs
+                in one place.
+              </p>
+              <div className="splash__actions">{children}</div>
+            </div>
+
+            <div className="splash__quest" aria-hidden="true">
+              <div key={cut} className={`quest-card suit-${quest.suit}`}>
+                <div className="quest-card__top">
+                  <span>{quest.rank}</span>
+                  <span>{quest.pip}</span>
+                </div>
+                <div className="quest-card__title">{quest.label}</div>
+                <div className="quest-card__xp">+{quest.xp} XP</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
