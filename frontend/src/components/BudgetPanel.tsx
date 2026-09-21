@@ -12,9 +12,9 @@ interface BudgetPanelProps {
 
 const CATEGORY_COLORS: Record<string, string> = {
     food: '#f59e0b',
-    activity: '#6366f1',
-    attraction: '#8b5cf6',
-    misc: '#ec4899',
+    activity: '#0b76dd',
+    attraction: '#0d9488',
+    misc: '#6b7280',
 };
 
 function nightsBetween(checkIn: string, checkOut: string): number {
@@ -81,8 +81,8 @@ export default function BudgetPanel({ trip, onUpdate }: BudgetPanelProps) {
     const spentPct = budget ? Math.min(100, (totalSpent / budget) * 100) : 0;
 
     const allSources: { label: string; icon: IconName; cost: number; color: string }[] = [
-        { label: 'Itinerary', icon: 'pin', cost: itineraryCost, color: '#6366f1' },
-        { label: 'Hotels', icon: 'bed', cost: hotelCost, color: '#8b5cf6' },
+        { label: 'Itinerary', icon: 'pin', cost: itineraryCost, color: '#0b76dd' },
+        { label: 'Hotels', icon: 'bed', cost: hotelCost, color: '#0d9488' },
         { label: 'Flights', icon: 'plane', cost: flightCost, color: '#22d3ee' },
     ];
     const sources = allSources.filter(s => s.cost > 0);
