@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { getPublicTrip } from '../api/trips';
 import type { Trip, ItineraryItem } from '../types';
 import { Icon } from '../components/Icon';
+import { useAuth } from '../context/AuthContext';
+import { TripCover } from '../components/trips/TripTile';
+import Reveal from '../components/Reveal';
 
 function formatTime(time: string | undefined) {
   if (!time) return '';
@@ -28,6 +31,8 @@ function getDayLabel(trip: Trip, day: number) {
 }
 
 const CATEGORY_LABELS = { food: 'Food', activity: 'Activity', attraction: 'Attraction' };
+
+const money = (n: number) => `$${Math.round(n).toLocaleString()}`;
 
 function getOrderedDayItems(trip: Trip, day: number): ItineraryItem[] {
   const groupItemsMap = new Map<string, ItineraryItem[]>();
@@ -69,9 +74,12 @@ function getOrderedDayItems(trip: Trip, day: number): ItineraryItem[] {
 
 export default function SharePage() {
   const { token } = useParams<{ token: string }>();
+  const { user } = useAuth();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeDay, setActiveDay] = useState(1);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -81,94 +89,175 @@ export default function SharePage() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  if (loading) return <div className="share-page"><p className="muted">Loading…</p></div>;
-  if (error || !trip) return <div className="share-page"><p className="error">{error}</p></div>;
+  const days = useMemo(() => {
+    if (!trip) return [];
+    return Array.from({ length: getDayCount(trip) }, (_, i) => i + 1)
+      .map((day) => ({ day, items: getOrderedDayItems(trip, day) }))
+      .filter((d) => d.items.length > 0);
+  }, [trip]);
+
+  // Highlight the day that is currently under the sticky bar.
+  useEffect(() => {
+    if (days.length === 0) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const seen = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (seen) setActiveDay(Number(seen.target.getAttribute('data-day')));
+      },
+      { rootMargin: '-25% 0px -60% 0px' },
+    );
+    days.forEach((d) => {
+      const el = document.getElementById(`day-${d.day}`);
+      if (el) io.observe(el);
+    });
+    return () => io.disconnect();
+  }, [days]);
+
+  function copyLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function jump(day: number) {
+    document.getElementById(`day-${day}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  if (loading) return <div className="qb sp"><p className="muted qb-empty">Loading trip…</p></div>;
+  if (error || !trip)
+    return (
+      <div className="qb sp">
+        <div className="qb-emptycard">
+          <Icon name="compass" size={34} />
+          <h3>Trip not found</h3>
+          <p>{error ?? 'This link is invalid or the trip is no longer shared.'}</p>
+          <Link to="/discover" className="qb-btn qb-btn--solid">Discover trips</Link>
+        </div>
+      </div>
+    );
 
   const totalDays = getDayCount(trip);
   const totalCost = trip.items.reduce((sum, i) => sum + (i.cost ?? 0), 0);
+  const start = new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  const end = new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  const people = 1 + (trip.collaborators?.length ?? 0);
 
   return (
-    <div className="share-page">
-      <header className="share-header">
-        <div className="share-header-inner">
-          <h1 className="share-title">{trip.title}</h1>
-          <p className="share-meta">
-            {trip.destination} · {new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
-            {' - '}
-            {new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
-            {' · '}{totalDays} day{totalDays !== 1 ? 's' : ''}
+    <div className="qb sp">
+      {/* Hero: the destination, big */}
+      <TripCover trip={trip} className="sp-hero">
+        <span className="sp-hero-dest">
+          <Icon name="pin" size={16} weight="fill" /> {trip.destination}
+        </span>
+        <div className="sp-hero-copy">
+          <h1 className="sp-title">{trip.title}</h1>
+          <p className="sp-meta">
+            {start} - {end}
+            {trip.owner?.name && <span>Shared by {trip.owner.name}</span>}
           </p>
-          {trip.description && <p className="share-description">{trip.description}</p>}
-          <div className="share-stats">
-            <span>{trip.items.length} activities</span>
-            {totalCost > 0 && <span>~${totalCost.toFixed(0)} estimated</span>}
-            {trip.budget && <span>${trip.budget} budget</span>}
-          </div>
-          <button type="button" className="share-print-btn" onClick={() => window.print()}>
-            Print / Save as PDF
-          </button>
         </div>
-      </header>
+      </TripCover>
 
-      <main className="share-main">
-        {Array.from({ length: totalDays }, (_, i) => i + 1).map((day) => {
-          const dayItems = getOrderedDayItems(trip, day);
-          if (dayItems.length === 0) return null;
-          return (
-            <section key={day} className="share-day">
-              <h2 className="share-day-heading">
-                <span className="share-day-number">Day {day}</span>
-                <span className="share-day-date">{getDayLabel(trip, day)}</span>
-              </h2>
-              <div className="share-items">
-                {dayItems.map((item: ItineraryItem) => (
-                  <div key={item._id} className="share-item">
-                    {item.imageUrl && (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        className="share-item-img"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                      />
+      {trip.description && <p className="sp-desc">{trip.description}</p>}
+
+      <div className="sp-bar">
+        <dl className="sp-stats">
+          <div><dt>Days</dt><dd>{totalDays}</dd></div>
+          <div><dt>Activities</dt><dd>{trip.items.length}</dd></div>
+          {people > 1 && <div><dt>Travelers</dt><dd>{people}</dd></div>}
+          {totalCost > 0 && <div><dt>Estimated</dt><dd>~{money(totalCost)}</dd></div>}
+          {trip.budget ? <div><dt>Budget</dt><dd>{money(trip.budget)}</dd></div> : null}
+        </dl>
+        <div className="sp-actions">
+          <button type="button" className="qb-btn qb-btn--outline" onClick={copyLink}>
+            <Icon name="link" size={16} /> {copied ? 'Copied' : 'Copy link'}
+          </button>
+          <button type="button" className="qb-btn qb-btn--outline" onClick={() => window.print()}>
+            <Icon name="list" size={16} /> Print or save PDF
+          </button>
+          <Link to={user ? '/trips' : '/register'} className="qb-btn qb-btn--solid">
+            {user ? 'Plan your own' : 'Plan your own trip'} <Icon name="arrowUpRight" size={15} />
+          </Link>
+        </div>
+      </div>
+
+      {/* Day jumper */}
+      {days.length > 1 && (
+        <nav className="sp-days" aria-label="Jump to a day">
+          {days.map((d) => (
+            <button key={d.day} type="button" className={`sp-day-chip${activeDay === d.day ? ' is-on' : ''}`} onClick={() => jump(d.day)}>
+              Day {d.day}
+            </button>
+          ))}
+        </nav>
+      )}
+
+      {days.length === 0 && (
+        <div className="qb-emptycard">
+          <Icon name="list" size={34} />
+          <h3>Nothing planned yet</h3>
+          <p>This itinerary has no activities so far.</p>
+        </div>
+      )}
+
+      {days.map(({ day, items }) => {
+        const dayCost = items.reduce((sum, i) => sum + (i.cost ?? 0), 0);
+        return (
+          <section key={day} id={`day-${day}`} data-day={day} className="sp-day">
+            <header className="sp-day-head">
+              <h2 className="sp-day-n">Day {day}</h2>
+              <p className="sp-day-date">
+                {getDayLabel(trip, day)}
+                <span>{items.length} {items.length === 1 ? 'stop' : 'stops'}{dayCost > 0 ? `, ~${money(dayCost)}` : ''}</span>
+              </p>
+            </header>
+
+            <Reveal as="ol" className="sp-items" variant="up" stagger>
+              {items.map((item: ItineraryItem) => (
+                <li key={item._id} className={`sp-item${item.imageUrl ? ' has-img' : ''}`}>
+                  <span className="sp-time">
+                    {item.startTime ? formatTime(item.startTime) : 'Anytime'}
+                    {item.endTime && <em>until {formatTime(item.endTime)}</em>}
+                  </span>
+                  {item.imageUrl && (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.title}
+                      className="sp-img"
+                      loading="lazy"
+                      onError={(e) => { (e.target as HTMLImageElement).closest('.sp-item')?.classList.remove('has-img'); (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  )}
+                  <div className="sp-item-body">
+                    {item.category && (
+                      <span className={`rec-badge rec-badge--${item.category}`}>{CATEGORY_LABELS[item.category]}</span>
                     )}
-                    <div className="share-item-body">
-                      {item.category && (
-                        <span className={`rec-badge rec-badge--${item.category}`}>
-                          {CATEGORY_LABELS[item.category]}
-                        </span>
-                      )}
-                      <div className="share-item-title">
-                        {(item.startTime || item.endTime) && (
-                          <strong>
-                            {item.startTime && item.endTime
-                              ? `${formatTime(item.startTime)} - ${formatTime(item.endTime)}`
-                              : formatTime(item.startTime)}
-                            {' '}
-                          </strong>
-                        )}
-                        {item.title}
-                      </div>
-                      {item.location?.name && (
-                        <div className="share-item-location">
-                          <Icon name="pin" size={12} /> {item.location.name}{item.location.address ? ` · ${item.location.address}` : ''}
-                        </div>
-                      )}
-                      {item.cost !== undefined && (
-                        <div className="share-item-cost"><Icon name="dollar" size={12} /> ${item.cost.toFixed(2)}</div>
-                      )}
-                      {item.notes && <p className="share-item-notes">{item.notes}</p>}
-                    </div>
+                    <h3 className="sp-item-title">{item.title}</h3>
+                    {item.location?.name && (
+                      <p className="sp-item-loc">
+                        <Icon name="pin" size={14} /> {item.location.name}{item.location.address ? `, ${item.location.address}` : ''}
+                      </p>
+                    )}
+                    {item.notes && <p className="sp-item-notes">{item.notes}</p>}
+                    {item.cost !== undefined && item.cost > 0 && (
+                      <span className="sp-item-cost"><Icon name="dollar" size={13} /> ${item.cost.toFixed(2)}</span>
+                    )}
                   </div>
-                ))}
-              </div>
-            </section>
-          );
-        })}
-      </main>
+                </li>
+              ))}
+            </Reveal>
+          </section>
+        );
+      })}
 
-      <footer className="share-footer">
-        <p>Shared via Voyage</p>
-      </footer>
+      <section className="sp-cta">
+        <h2>Like this plan?<br /><em className="punch">Make it yours.</em></h2>
+        <p>Copy the ideas, add your friends and plan the trip together on Voyage. Free to start.</p>
+        <Link to={user ? '/trips' : '/register'} className="qb-btn qb-btn--solid">
+          {user ? 'Open my trips' : 'Start a trip'} <Icon name="arrowUpRight" size={15} />
+        </Link>
+      </section>
     </div>
   );
 }
