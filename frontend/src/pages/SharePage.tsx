@@ -167,7 +167,6 @@ export default function SharePage() {
           <div><dt>Activities</dt><dd>{trip.items.length}</dd></div>
           {people > 1 && <div><dt>Travelers</dt><dd>{people}</dd></div>}
           {totalCost > 0 && <div><dt>Estimated</dt><dd>~{money(totalCost)}</dd></div>}
-          {trip.budget ? <div><dt>Budget</dt><dd>{money(trip.budget)}</dd></div> : null}
         </dl>
         <div className="sp-actions">
           <button type="button" className="qb-btn qb-btn--outline" onClick={copyLink}>

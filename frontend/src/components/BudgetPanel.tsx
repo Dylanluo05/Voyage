@@ -1,6 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Trip } from "../types";
 import { updateBudget } from "../api/trips";
+import { useAuth } from "../context/AuthContext";
+import { getMyBudget, getMySpending } from "../utils/budget";
 import CircularProgress from './CircularProgress';
 import { Icon, type IconName } from './Icon';
 import Reveal from './Reveal';
@@ -17,35 +19,20 @@ const CATEGORY_COLORS: Record<string, string> = {
     misc: '#6b7280',
 };
 
-function nightsBetween(checkIn: string, checkOut: string): number {
-    const a = new Date(checkIn);
-    const b = new Date(checkOut);
-    return Math.max(1, Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)));
-}
-
 export default function BudgetPanel({ trip, onUpdate }: BudgetPanelProps) {
-    const [budgetInput, setBudgetInput] = useState<string>('' + (trip.budget ?? ''));
+    const { user } = useAuth();
+    const budget = getMyBudget(trip, user?.id) ?? 0;
+    const [budgetInput, setBudgetInput] = useState<string>('' + (budget || ''));
     const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const itineraryCost = useMemo(() =>
-        trip.items.reduce((sum, item) => sum + (item.cost ?? 0), 0),
-        [trip.items]
-    );
+    // Keep the field in step with the saved value (e.g. after a save from another device)
+    useEffect(() => {
+        setBudgetInput('' + (budget || ''));
+    }, [budget]);
 
-    const hotelCost = useMemo(() =>
-        trip.hotels.reduce((sum, hotel) => {
-            const nights = nightsBetween(hotel.checkIn, hotel.checkOut);
-            return sum + (hotel.pricePerNight * nights) / hotel.guests;
-        }, 0),
-        [trip.hotels]
-    );
-
-    const flightCost = useMemo(() =>
-        trip.flights.reduce((sum, f) => sum + f.price, 0),
-        [trip.flights]
-    );
-
-    const totalSpent = itineraryCost + hotelCost + flightCost;
+    const spending = useMemo(() => getMySpending(trip, user?.id), [trip, user?.id]);
+    const { itinerary: itineraryCost, hotels: hotelCost, flights: flightCost, expenses: expenseCost, total: totalSpent } = spending;
 
     const byDay = useMemo(() => {
         const map: Record<number, number> = {};
@@ -65,17 +52,23 @@ export default function BudgetPanel({ trip, onUpdate }: BudgetPanelProps) {
     }, [trip.items]);
 
     async function handleSave() {
-        if (Number.isNaN(parseFloat(budgetInput))) return;
+        const amount = parseFloat(budgetInput);
+        if (Number.isNaN(amount) || amount < 0) {
+            setError('Enter a budget of $0 or more.');
+            return;
+        }
         setSaving(true);
+        setError(null);
         try {
-            const updated = await updateBudget(trip._id, parseFloat(budgetInput));
+            const updated = await updateBudget(trip._id, amount);
             onUpdate(updated);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Could not save your budget.');
         } finally {
             setSaving(false);
         }
     }
 
-    const budget = trip.budget ?? 0;
     const remaining = budget ? budget - totalSpent : null;
     const overBudget = remaining !== null && remaining < 0;
     const spentPct = budget ? Math.min(100, (totalSpent / budget) * 100) : 0;
@@ -84,13 +77,14 @@ export default function BudgetPanel({ trip, onUpdate }: BudgetPanelProps) {
         { label: 'Itinerary', icon: 'pin', cost: itineraryCost, color: '#0b76dd' },
         { label: 'Hotels', icon: 'bed', cost: hotelCost, color: '#0d9488' },
         { label: 'Flights', icon: 'plane', cost: flightCost, color: '#22d3ee' },
+        { label: 'Shared expenses', icon: 'dollar', cost: expenseCost, color: '#f59e0b' },
     ];
     const sources = allSources.filter(s => s.cost > 0);
 
     return (
         <Reveal as="section" id="budget-section" className="card" variant="up">
             <div className="budget-header-row">
-                <h2 style={{ margin: 0 }}>Budget</h2>
+                <h2 style={{ margin: 0 }}>Your budget</h2>
                 <div className="budget-set-row">
                     <input
                         type="number"
@@ -106,10 +100,14 @@ export default function BudgetPanel({ trip, onUpdate }: BudgetPanelProps) {
                     </button>
                 </div>
             </div>
+            {error && <p className="budget-error" role="alert" style={{ color: 'var(--coral)', margin: '8px 0 0' }}>{error}</p>}
+            <p className="budget-section-label" style={{ margin: '8px 0 0' }}>
+                Only your share counts here: your itinerary costs, your part of hotels and flights, and your shared-expense splits.
+            </p>
 
             <div className="budget-stats-row">
                 <div className="budget-stat">
-                    <span className="budget-stat-label">Budget</span>
+                    <span className="budget-stat-label">Your budget</span>
                     <span className="budget-stat-value">${budget ? budget.toLocaleString() : '-'}</span>
                 </div>
                 <div className="budget-stat">

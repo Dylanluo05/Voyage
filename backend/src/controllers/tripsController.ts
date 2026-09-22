@@ -483,7 +483,8 @@ export async function getPublicTrip(req: Request, res: Response, next: NextFunct
   try {
     const trip = await Trip.findOne({ shareToken: req.params.token }).populate(COLLAB_POPULATE);
     if (!trip) throw new HttpError(404, 'Trip not found');
-    res.json(trip);
+    // Budgets are personal; never expose them on the public share link
+    res.json({ ...trip.toJSON(), budgets: [] });
   } catch (err) {
     next(err);
   }
@@ -614,7 +615,13 @@ export async function updateBudget(req: Request, res: Response, next: NextFuncti
     const { budget } = z.object({ budget: z.number().min(0) }).parse(req.body);
     const trip = await Trip.findOne(accessFilter(req, req.params.id));
     if (!trip) throw new HttpError(404, 'Trip not found');
-    trip.budget = budget;
+    const uid = ownerId(req);
+    const mine = trip.budgets.find((b) => b.userId.equals(uid));
+    if (mine) {
+      mine.amount = budget;
+    } else {
+      trip.budgets.push({ userId: uid, amount: budget });
+    }
     await trip.save();
     await trip.populate(COLLAB_POPULATE);
     res.json(trip);

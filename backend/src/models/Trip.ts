@@ -83,7 +83,7 @@ export interface TripDoc extends Document {
   shareToken: string;
   createdAt: Date;
   updatedAt: Date;
-  budget?: number;
+  budgets: TripBudgetData[];
   hotels: HotelBookingData[];
   flights: FlightBookingData[];
   expenses: ExpenseData[];
@@ -96,6 +96,11 @@ export interface DayAnchorData {
   day: number;
   startAddress?: string;
   endAddress?: string;
+}
+
+export interface TripBudgetData {
+  userId: Types.ObjectId;
+  amount: number;
 }
 
 export interface HotelBookingData {
@@ -264,6 +269,14 @@ const flightSchema = new Schema<FlightBookingData>(
   { _id: true }
 );
 
+const budgetSchema = new Schema<TripBudgetData>(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    amount: { type: Number, required: true, min: 0 },
+  },
+  { _id: false }
+);
+
 const expenseSplitSchema = new Schema<ExpenseSplitData>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -306,7 +319,7 @@ const tripSchema = new Schema<TripDoc>(
     items: { type: [itineraryItemSchema], default: [] },
     groups: { type: [groupSchema], default: [] },
     playlist: { type: [playlistTrackSchema], default: [] },
-    budget: { type: Number, min: 0 },
+    budgets: { type: [budgetSchema], default: [] },
     isCompleted: { type: Boolean, default: false },
     log: { type: tripLogSchema, default: () => ({ photos: [], ratings: [] }) },
     shareToken: {
