@@ -10,6 +10,7 @@ const CATEGORY_LABELS: Record<ItemCategory, string> = {
 import { compressImage } from '../utils/image';
 import Lightbox from './Lightbox';
 import { Icon } from './Icon';
+import LiveTransitWidget from './LiveTransitWidget';
 
 interface Props {
   item: ItineraryItem;
@@ -502,6 +503,9 @@ export default function ItineraryItemCard({
           )}
           {item.location?.lat && item.location?.lng && (
             <a target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${item.location?.lat},${item.location?.lng}`} className="directions-link">Get Directions →</a>
+          )}
+          {item.location?.lat != null && item.location?.lng != null && (
+            <LiveTransitWidget lat={item.location.lat} lng={item.location.lng} />
           )}
           {item.cost !== undefined && (
             <div className="muted small"><Icon name="dollar" size={12} /> ${item.cost.toFixed(2)}</div>

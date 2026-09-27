@@ -287,3 +287,18 @@ export interface LeaderboardEntry {
   name: string;
   xp: number;
 }
+
+export interface TransitArrival {
+  route: string;
+  direction: 'N' | 'S';
+  directionLabel?: string;
+  minutes: number;
+}
+
+export interface NearbyTransitStation {
+  complexId: string;
+  name: string;
+  lines: string[];
+  distanceMeters: number;
+  arrivals: TransitArrival[];
+}

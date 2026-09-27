@@ -13,6 +13,7 @@ import billingRouter from './routes/billing';
 import photosRouter from './routes/photos';
 import publicSidequestsRouter from './routes/publicSidequests';
 import spotifyRouter from './routes/spotify';
+import transitRouter from './routes/transit';
 import { errorHandler } from './middleware/error';
 
 async function main(): Promise<void> {
@@ -40,6 +41,7 @@ async function main(): Promise<void> {
   app.use('/api/photos', apiLimiter, photosRouter);
   app.use('/api/public-sidequests', apiLimiter, publicSidequestsRouter);
   app.use('/api/spotify', apiLimiter, spotifyRouter);
+  app.use('/api/transit', apiLimiter, transitRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'Not found' });
