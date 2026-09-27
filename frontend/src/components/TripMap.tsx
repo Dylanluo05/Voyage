@@ -4,6 +4,7 @@ import type { ItineraryItem } from '../types';
 
 interface TripMapProps {
   items: ItineraryItem[];
+  destination?: { lat: number; lng: number };
 }
 
 type MapLocation = {
@@ -28,7 +29,7 @@ const ROUTE_LINE_OPTIONS: google.maps.PolylineOptions = {
   geodesic: true,
 };
 
-export default function TripMap({ items }: TripMapProps) {
+export default function TripMap({ items, destination }: TripMapProps) {
   const [selected, setSelected] = useState<MapLocation | null>(null);
   const [geocodedLocations, setGeocodedLocations] = useState<Record<string, { lat: number; lng: number }>>({});
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -111,12 +112,12 @@ export default function TripMap({ items }: TripMapProps) {
 
   const center = useMemo(() => {
     const src = filteredLocations.length > 0 ? filteredLocations : locations;
-    if (src.length === 0) return { lat: 40.7128, lng: -74.006 };
+    if (src.length === 0) return destination ?? { lat: 40.7128, lng: -74.006 };
     return {
       lat: src.reduce((s, l) => s + l.lat, 0) / src.length,
       lng: src.reduce((s, l) => s + l.lng, 0) / src.length,
     };
-  }, [filteredLocations, locations]);
+  }, [filteredLocations, locations, destination]);
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;

@@ -25,7 +25,8 @@ import SortableGroupBlock from '../components/SortableGroupBlock';
 import DayColumn from '../components/DayColumn';
 import CommuteWidget from '../components/CommuteWidget';
 import CollaboratorsPanel from '../components/CollaboratorsPanel';
-import { Autocomplete, useLoadScript } from '@react-google-maps/api';
+import { Autocomplete } from '@react-google-maps/api';
+import { useGoogleMaps } from '../context/GoogleMapsContext';
 import TripMap from '../components/TripMap';
 import WeatherWidget from '../components/WeatherWidget';
 import PlaylistPanel from '../components/PlaylistPanel';
@@ -42,8 +43,6 @@ import TripWorkspace, { ALL_SECTIONS, TripPane, isSectionKey, type SectionKey } 
 import TripOverview from '../components/TripOverview';
 import DayAnchorEditor from '../components/DayAnchorEditor';
 import TripChatPanel from '../components/TripChatPanel';
-
-const GOOGLE_MAPS_LIBRARIES: ('places')[] = ['places'];
 
 async function geocodeLocation(
   location: { name?: string; address?: string }
@@ -181,10 +180,7 @@ export default function TripDetailPage() {
       }));
     });
   }, []);
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    libraries: GOOGLE_MAPS_LIBRARIES,
-  });
+  const { isLoaded } = useGoogleMaps();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -742,7 +738,16 @@ export default function TripDetailPage() {
       </TripPane>
 
       <TripPane k="map" active={activeKey} visited={visited} keepAlive={false}>
-        {isLoaded && <TripMap items={orderedMapItems} />}
+        {isLoaded && (
+          <TripMap
+            items={orderedMapItems}
+            destination={
+              trip.destinationLat != null && trip.destinationLng != null
+                ? { lat: trip.destinationLat, lng: trip.destinationLng }
+                : undefined
+            }
+          />
+        )}
       </TripPane>
 
       <TripPane k="budget" active={activeKey} visited={visited}>
@@ -771,6 +776,8 @@ export default function TripDetailPage() {
             destination={trip.destination}
             startDate={trip.startDate.split('T')[0]}
             endDate={trip.endDate.split('T')[0]}
+            lat={trip.destinationLat}
+            lng={trip.destinationLng}
           />
         )}
       </TripPane>

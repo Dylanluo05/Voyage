@@ -72,6 +72,8 @@ export interface TripDoc extends Document {
   collaborators: Types.ObjectId[];
   title: string;
   destination: string;
+  destinationLat?: number;
+  destinationLng?: number;
   startDate: Date;
   endDate: Date;
   description?: string;
@@ -313,6 +315,8 @@ const tripSchema = new Schema<TripDoc>(
     collaborators: { type: [{ type: Schema.Types.ObjectId, ref: 'User' }], default: [] },
     title: { type: String, required: true, trim: true },
     destination: { type: String, required: true, trim: true },
+    destinationLat: { type: Number, min: -90, max: 90 },
+    destinationLng: { type: Number, min: -180, max: 180 },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     description: { type: String, trim: true },

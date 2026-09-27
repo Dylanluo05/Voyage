@@ -1,9 +1,10 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as tripsApi from '../api/trips';
 import type { Trip } from '../types';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useGoogleMaps } from '../context/GoogleMapsContext';
 import Reveal from '../components/Reveal';
 import { Icon } from '../components/Icon';
 import TripTile, { TripCover, mosaicSizes, tripDays, tripStatus, type TripStatus } from '../components/trips/TripTile';
@@ -15,16 +16,38 @@ const utcDay = (iso: string) => {
 
 export default function TripsPage() {
   const { user } = useAuth();
+  const { isLoaded: mapsLoaded } = useGoogleMaps();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('');
   const [destination, setDestination] = useState('');
+  const [destinationCoords, setDestinationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [description, setDescription] = useState('');
   const [creating, setCreating] = useState(false);
+  const destinationAutoRef = useRef<google.maps.places.Autocomplete | null>(null);
+
+  const destinationInputRef = useCallback((el: HTMLInputElement | null) => {
+    if (destinationAutoRef.current) {
+      google.maps.event.clearInstanceListeners(destinationAutoRef.current);
+      destinationAutoRef.current = null;
+    }
+    if (!el || !mapsLoaded) return;
+    destinationAutoRef.current = new google.maps.places.Autocomplete(el, {
+      types: ['(regions)'],
+      fields: ['formatted_address', 'name', 'geometry'],
+    });
+    destinationAutoRef.current.addListener('place_changed', () => {
+      const place = destinationAutoRef.current!.getPlace();
+      if (!place.formatted_address && !place.name) return;
+      setDestination(place.formatted_address || place.name || '');
+      const loc = place.geometry?.location;
+      setDestinationCoords(loc ? { lat: loc.lat(), lng: loc.lng() } : null);
+    });
+  }, [mapsLoaded]);
 
   async function refresh() {
     try {
@@ -45,8 +68,16 @@ export default function TripsPage() {
     if (new Date(endDate) < new Date(startDate)) { setError('End date must be on or after start date'); return; }
     setCreating(true);
     try {
-      await tripsApi.createTrip({ title, destination, startDate, endDate, description: description || undefined });
-      setTitle(''); setDestination(''); setStartDate(''); setEndDate(''); setDescription('');
+      await tripsApi.createTrip({
+        title,
+        destination,
+        destinationLat: destinationCoords?.lat,
+        destinationLng: destinationCoords?.lng,
+        startDate,
+        endDate,
+        description: description || undefined,
+      });
+      setTitle(''); setDestination(''); setDestinationCoords(null); setStartDate(''); setEndDate(''); setDescription('');
       setShowForm(false);
       await refresh();
     } catch (err) {
@@ -127,7 +158,13 @@ export default function TripsPage() {
           <h2>Where to?</h2>
           <form onSubmit={onCreate} className="form grid-2">
             <label>Title<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Tokyo Summer 2026" required /></label>
-            <label>Destination<input value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="e.g. Tokyo, Japan" required /></label>
+            <label>Destination<input
+              ref={destinationInputRef}
+              value={destination}
+              onChange={(e) => { setDestination(e.target.value); setDestinationCoords(null); }}
+              placeholder="e.g. Tokyo, Japan"
+              required
+            /></label>
             <label>Start date<input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required /></label>
             <label>End date<input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required /></label>
             <label className="full-width">Description <span className="muted">(optional)</span>

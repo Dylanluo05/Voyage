@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import { IconProvider } from './components/Icon';
+import { GoogleMapsProvider } from './context/GoogleMapsContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import SmoothScroll from './components/SmoothScroll';
 import RouteTransition from './components/RouteTransition';
@@ -56,9 +57,11 @@ function Shell() {
             path="/trips"
             element={
               <ProtectedRoute>
-                <main>
-                  <TripsPage />
-                </main>
+                <GoogleMapsProvider>
+                  <main>
+                    <TripsPage />
+                  </main>
+                </GoogleMapsProvider>
               </ProtectedRoute>
             }
           />
@@ -66,9 +69,11 @@ function Shell() {
             path="/trips/:id"
             element={
               <ProtectedRoute>
-                <main>
-                  <TripDetailPage />
-                </main>
+                <GoogleMapsProvider>
+                  <main>
+                    <TripDetailPage />
+                  </main>
+                </GoogleMapsProvider>
               </ProtectedRoute>
             }
           />

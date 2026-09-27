@@ -62,20 +62,38 @@ interface Props {
   destination: string;
   startDate: string;
   endDate: string;
+  lat?: number;
+  lng?: number;
 }
 
-export default function WeatherWidget({ destination, startDate, endDate }: Props) {
+export default function WeatherWidget({ destination, startDate, endDate, lat, lng }: Props) {
   const [days, setDays] = useState<WeatherDay[]>([]);
   const [loading, setLoading] = useState(true);
+  const [locateError, setLocateError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function fetchWeather() {
       setLoading(true);
+      setLocateError(false);
       try {
-        // Use Google Maps Geocoder — handles abbreviations like "NYC", "LA", etc.
-        const { lat: latitude, lng: longitude } = await geocodeWithGoogle(destination);
+        // Prefer coordinates already resolved for the trip; only geocode the
+        // raw destination text as a fallback (older trips, ambiguous input).
+        let latitude: number;
+        let longitude: number;
+        if (lat != null && lng != null) {
+          latitude = lat;
+          longitude = lng;
+        } else {
+          try {
+            ({ lat: latitude, lng: longitude } = await geocodeWithGoogle(destination));
+          } catch (err) {
+            console.error('[WeatherWidget]', err);
+            if (!cancelled) setLocateError(true);
+            return;
+          }
+        }
 
         // Open-Meteo forecast supports up to 16 days ahead; archive covers the past.
         // If the trip end is >16 days in the future, no data exists yet.
@@ -129,9 +147,20 @@ export default function WeatherWidget({ destination, startDate, endDate }: Props
     return () => {
       cancelled = true;
     };
-  }, [destination, startDate, endDate]);
+  }, [destination, startDate, endDate, lat, lng]);
 
-  if (loading || days.length === 0) return null;
+  if (loading) return null;
+
+  if (locateError) {
+    return (
+      <Reveal as="section" className="card weather-widget" variant="up">
+        <h2 style={{ marginBottom: 12 }}>Weather</h2>
+        <p className="muted small">Couldn&apos;t find weather data for &ldquo;{destination}&rdquo;. Try a more specific destination (e.g. add the country).</p>
+      </Reveal>
+    );
+  }
+
+  if (days.length === 0) return null;
 
   return (
     <Reveal as="section" className="card weather-widget" variant="up">

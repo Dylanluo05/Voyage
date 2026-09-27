@@ -100,6 +100,8 @@ export interface Trip {
   collaborators: CollaboratorUser[];
   title: string;
   destination: string;
+  destinationLat?: number;
+  destinationLng?: number;
   startDate: string;
   endDate: string;
   description?: string;
@@ -129,6 +131,8 @@ export interface DayAnchor {
 export type NewTripInput = {
   title: string;
   destination: string;
+  destinationLat?: number;
+  destinationLng?: number;
   startDate: string;
   endDate: string;
   description?: string;

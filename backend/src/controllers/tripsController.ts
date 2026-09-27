@@ -46,6 +46,8 @@ const reorderSchema = z.object({
 const tripBaseSchema = z.object({
   title: z.string().min(1).max(200),
   destination: z.string().min(1).max(200),
+  destinationLat: z.number().min(-90).max(90).optional(),
+  destinationLng: z.number().min(-180).max(180).optional(),
   startDate: z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'Invalid startDate'),
   endDate: z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'Invalid endDate'),
   description: z.string().max(1000).optional(),
@@ -95,6 +97,8 @@ export async function createTrip(req: Request, res: Response, next: NextFunction
       owner: ownerId(req),
       title: data.title,
       destination: data.destination,
+      destinationLat: data.destinationLat,
+      destinationLng: data.destinationLng,
       startDate: new Date(data.startDate),
       endDate: new Date(data.endDate),
       description: data.description,
