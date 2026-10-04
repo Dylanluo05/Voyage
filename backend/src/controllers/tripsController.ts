@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { Types } from 'mongoose';
 import jwt from 'jsonwebtoken';
-import { Trip, ItineraryItemData } from '../models/Trip';
+import { Trip, ItineraryItemData, PendingCollaboratorData } from '../models/Trip';
 import { User } from '../models/User';
 import { HttpError } from '../middleware/error';
 import { searchTracks, getSpotifyAuthUrl } from '../lib/spotify';
@@ -10,6 +10,7 @@ import { interpretVibe } from '../lib/vibeInterpreter';
 import { checkTripQuota, checkAndIncrementQuota } from '../lib/aiQuota';
 import { addTripClient, removeTripClient } from '../lib/tripEvents';
 import { createSseToken, consumeSseToken } from '../lib/sseTokens';
+import { sendTripInviteEmail } from '../lib/mailer';
 import { env } from '../config/env';
 
 const locationSchema = z
@@ -83,7 +84,12 @@ export async function listTrips(req: Request, res: Response, next: NextFunction)
     const trips = await Trip.find({ $or: [{ owner: uid }, { collaborators: uid }] })
       .sort({ startDate: 1 })
       .populate(COLLAB_POPULATE);
-    res.json(trips);
+    res.json(
+      trips.map((trip) => {
+        const owner = trip.owner as unknown as { _id: Types.ObjectId };
+        return owner._id.equals(uid) ? trip : { ...trip.toJSON(), pendingCollaborators: [] };
+      })
+    );
   } catch (err) {
     next(err);
   }
@@ -116,7 +122,12 @@ export async function getTrip(req: Request, res: Response, next: NextFunction): 
     ensureValidObjectId(req.params.id, 'trip id');
     const trip = await Trip.findOne(accessFilter(req, req.params.id)).populate(COLLAB_POPULATE);
     if (!trip) throw new HttpError(404, 'Trip not found');
-    res.json(trip);
+    const owner = trip.owner as unknown as { _id: Types.ObjectId };
+    if (owner._id.equals(ownerId(req))) {
+      res.json(trip);
+    } else {
+      res.json({ ...trip.toJSON(), pendingCollaborators: [] });
+    }
   } catch (err) {
     next(err);
   }
@@ -358,8 +369,29 @@ export async function inviteCollaborator(req: Request, res: Response, next: Next
     const trip = await Trip.findOne({ _id: req.params.id, owner: ownerId(req) });
     if (!trip) throw new HttpError(404, 'Trip not found');
 
-    const invitee = await User.findOne({ email: email.toLowerCase() });
-    if (!invitee) throw new HttpError(404, 'No account found with that email');
+    const lowerEmail = email.toLowerCase();
+    const invitee = await User.findOne({ email: lowerEmail });
+
+    if (!invitee) {
+      const existing = trip.pendingCollaborators.find((p) => p.email === lowerEmail);
+      if (existing) {
+        existing.invitedAt = new Date();
+      } else {
+        trip.pendingCollaborators.push({ email: lowerEmail, invitedAt: new Date() });
+      }
+      await trip.save();
+
+      const inviter = await User.findById(ownerId(req)).select('name');
+      try {
+        await sendTripInviteEmail(lowerEmail, inviter?.name ?? 'Someone', trip.title);
+      } catch (err) {
+        console.error('[invite email]', err);
+      }
+
+      await trip.populate(COLLAB_POPULATE);
+      res.json(trip);
+      return;
+    }
 
     if (invitee._id.equals(trip.owner)) {
       throw new HttpError(400, 'That user is already the trip owner');
@@ -391,6 +423,29 @@ export async function removeCollaborator(req: Request, res: Response, next: Next
       (c) => !c.equals(new Types.ObjectId(req.params.userId))
     ) as Types.DocumentArray<Types.ObjectId>;
     if (trip.collaborators.length === before) throw new HttpError(404, 'Collaborator not found');
+
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function removePendingCollaborator(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const email = decodeURIComponent(req.params.email).toLowerCase();
+
+    // Only owner can cancel a pending invite
+    const trip = await Trip.findOne({ _id: req.params.id, owner: ownerId(req) });
+    if (!trip) throw new HttpError(404, 'Trip not found');
+
+    const before = trip.pendingCollaborators.length;
+    trip.pendingCollaborators = trip.pendingCollaborators.filter(
+      (p) => p.email !== email
+    ) as Types.DocumentArray<PendingCollaboratorData>;
+    if (trip.pendingCollaborators.length === before) throw new HttpError(404, 'Pending invite not found');
 
     await trip.save();
     await trip.populate(COLLAB_POPULATE);
@@ -487,8 +542,8 @@ export async function getPublicTrip(req: Request, res: Response, next: NextFunct
   try {
     const trip = await Trip.findOne({ shareToken: req.params.token }).populate(COLLAB_POPULATE);
     if (!trip) throw new HttpError(404, 'Trip not found');
-    // Budgets are personal; never expose them on the public share link
-    res.json({ ...trip.toJSON(), budgets: [] });
+    // Budgets are personal, and pending invites are PII; never expose either on the public share link
+    res.json({ ...trip.toJSON(), budgets: [], pendingCollaborators: [] });
   } catch (err) {
     next(err);
   }

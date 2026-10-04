@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../api/client';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -8,8 +8,9 @@ import AuthShell from '../components/AuthShell';
 export default function RegisterPage() {
   const { register, authWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(searchParams.get('email') ?? '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);

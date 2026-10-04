@@ -87,6 +87,12 @@ export function removeCollaborator(tripId: string, userId: string): Promise<Trip
   });
 }
 
+export function removePendingCollaborator(tripId: string, email: string): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/pending-collaborators/${encodeURIComponent(email)}`, {
+    method: 'DELETE',
+  });
+}
+
 export function createGroup(tripId: string, input: { title: string; day: number; itemIds: string[] }): Promise<Trip> {
   return apiFetch<Trip>(`/api/trips/${tripId}/groups`, {
     method: 'POST',

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { requireAuth } from '../middleware/auth';
 import {
   listTrips,
@@ -16,6 +17,7 @@ import {
   toggleReaction,
   inviteCollaborator,
   removeCollaborator,
+  removePendingCollaborator,
   updateBudget,
   searchSpotify,
   addTrack,
@@ -43,6 +45,14 @@ import { parseHotelConfirmation, parseFlightConfirmation } from '../controllers/
 import { tripChat } from '../controllers/chatController';
 
 const router = Router();
+
+const inviteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user!.sub,
+});
 
 router.get('/:id/events', getTripEvents);
 router.get('/public', listPublicTrips);
@@ -78,8 +88,9 @@ router.get('/:id/playlist/export', exportPlaylist);
 router.post('/:id/playlist', addTrack);
 router.delete('/:id/playlist/:trackId', removeTrack);
 
-router.post('/:id/collaborators', inviteCollaborator);
+router.post('/:id/collaborators', inviteLimiter, inviteCollaborator);
 router.delete('/:id/collaborators/:userId', removeCollaborator);
+router.delete('/:id/pending-collaborators/:email', removePendingCollaborator);
 
 router.put('/:id/complete', markCompleted);
 router.post('/:id/log/photos', addLogPhoto);

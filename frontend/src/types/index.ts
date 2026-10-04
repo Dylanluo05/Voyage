@@ -94,10 +94,16 @@ export interface TripBudget {
   amount: number;
 }
 
+export interface PendingCollaborator {
+  email: string;
+  invitedAt: string;
+}
+
 export interface Trip {
   _id: string;
   owner: CollaboratorUser;
   collaborators: CollaboratorUser[];
+  pendingCollaborators?: PendingCollaborator[];
   title: string;
   destination: string;
   destinationLat?: number;

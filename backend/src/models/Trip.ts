@@ -70,6 +70,7 @@ export interface TripDoc extends Document {
   _id: Types.ObjectId;
   owner: Types.ObjectId;
   collaborators: Types.ObjectId[];
+  pendingCollaborators: PendingCollaboratorData[];
   title: string;
   destination: string;
   destinationLat?: number;
@@ -91,6 +92,11 @@ export interface TripDoc extends Document {
   expenses: ExpenseData[];
   dayAnchors: DayAnchorData[];
   isPublic: boolean;
+}
+
+export interface PendingCollaboratorData {
+  email: string;
+  invitedAt: Date;
 }
 
 export interface DayAnchorData {
@@ -300,6 +306,14 @@ const expenseSchema = new Schema<ExpenseData>(
   { _id: true }
 );
 
+const pendingCollaboratorSchema = new Schema<PendingCollaboratorData>(
+  {
+    email: { type: String, required: true, lowercase: true, trim: true },
+    invitedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
 const dayAnchorSchema = new Schema<DayAnchorData>(
   {
     day: { type: Number, required: true },
@@ -313,6 +327,7 @@ const tripSchema = new Schema<TripDoc>(
   {
     owner: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     collaborators: { type: [{ type: Schema.Types.ObjectId, ref: 'User' }], default: [] },
+    pendingCollaborators: { type: [pendingCollaboratorSchema], default: [] },
     title: { type: String, required: true, trim: true },
     destination: { type: String, required: true, trim: true },
     destinationLat: { type: Number, min: -90, max: 90 },
@@ -343,6 +358,7 @@ const tripSchema = new Schema<TripDoc>(
 
 tripSchema.index({ owner: 1, startDate: 1 });
 tripSchema.index({ collaborators: 1 });
+tripSchema.index({ 'pendingCollaborators.email': 1 });
 tripSchema.index({ isPublic: 1 });
 
 tripSchema.post('save', function (doc) {

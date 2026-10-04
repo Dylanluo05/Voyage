@@ -14,16 +14,23 @@ export default function CollaboratorsPanel({ trip, isOwner, onUpdate }: Props) {
   const [email, setEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [removingPending, setRemovingPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   async function handleInvite(e: FormEvent) {
     e.preventDefault();
     setInviting(true);
     setError(null);
+    setInfo(null);
     try {
+      const sentTo = email.trim().toLowerCase();
       const updated = await tripsApi.inviteCollaborator(trip._id, email);
       onUpdate(updated);
       setEmail('');
+      if (updated.pendingCollaborators?.some((p) => p.email === sentTo)) {
+        setInfo("Invite sent — they'll join automatically once they sign up.");
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to invite collaborator');
     } finally {
@@ -41,6 +48,19 @@ export default function CollaboratorsPanel({ trip, isOwner, onUpdate }: Props) {
       setError(err instanceof ApiError ? err.message : 'Failed to remove collaborator');
     } finally {
       setRemovingId(null);
+    }
+  }
+
+  async function handleRemovePending(pendingEmail: string) {
+    setRemovingPending(pendingEmail);
+    setError(null);
+    try {
+      const updated = await tripsApi.removePendingCollaborator(trip._id, pendingEmail);
+      onUpdate(updated);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to cancel invite');
+    } finally {
+      setRemovingPending(null);
     }
   }
 
@@ -75,6 +95,27 @@ export default function CollaboratorsPanel({ trip, isOwner, onUpdate }: Props) {
         </ul>
       )}
 
+      {isOwner && trip.pendingCollaborators && trip.pendingCollaborators.length > 0 && (
+        <ul className="collab-list">
+          {trip.pendingCollaborators.map((p) => (
+            <li key={p.email} className="collab-item">
+              <div>
+                <span style={{ fontWeight: 500 }}>{p.email}</span>
+                <span className="muted small"> · Pending</span>
+              </div>
+              <button
+                type="button"
+                className="ghost small-btn"
+                onClick={() => handleRemovePending(p.email)}
+                disabled={removingPending === p.email}
+              >
+                {removingPending === p.email ? 'Cancelling…' : 'Cancel invite'}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {isOwner && (
         <form onSubmit={handleInvite} className="collab-invite-form">
           <input
@@ -90,6 +131,7 @@ export default function CollaboratorsPanel({ trip, isOwner, onUpdate }: Props) {
         </form>
       )}
 
+      {info && <div className="muted small" style={{ marginTop: 10 }}>{info}</div>}
       {error && <div className="error" style={{ marginTop: 10 }}>{error}</div>}
     </Reveal>
   );
