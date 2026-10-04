@@ -9,6 +9,13 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface PendingAuth {
+  pending: true;
+  email: string;
+}
+
+export type OtpPurpose = 'login' | 'register';
+
 export interface Location {
   name?: string;
   address?: string;

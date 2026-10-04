@@ -4,11 +4,13 @@ import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../api/client';
 import { useGoogleLogin } from '@react-oauth/google';
 import AuthShell from '../components/AuthShell';
+import OtpStep from '../components/OtpStep';
 
 export default function RegisterPage() {
   const { register, authWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [step, setStep] = useState<'form' | 'code'>('form');
   const [name, setName] = useState('');
   const [email, setEmail] = useState(searchParams.get('email') ?? '');
   const [password, setPassword] = useState('');
@@ -32,13 +34,22 @@ export default function RegisterPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await register(email, password, name);
-      navigate('/');
+      const pending = await register(email, password, name);
+      if (pending) setStep('code');
+      else navigate('/');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Registration failed');
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (step === 'code') {
+    return (
+      <AuthShell title={<>Check your <em className="punch">email.</em></>} lede="Enter the code we sent to finish creating your account.">
+        <OtpStep email={email} purpose="register" onVerified={() => navigate('/')} />
+      </AuthShell>
+    );
   }
 
   return (

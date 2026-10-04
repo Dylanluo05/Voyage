@@ -4,10 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../api/client';
 import { useGoogleLogin } from '@react-oauth/google';
 import AuthShell from '../components/AuthShell';
+import OtpStep from '../components/OtpStep';
 
 export default function LoginPage() {
   const { login, authWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const [step, setStep] = useState<'form' | 'code'>('form');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -30,13 +32,22 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await login(email, password);
-      navigate('/');
+      const pending = await login(email, password);
+      if (pending) setStep('code');
+      else navigate('/');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Login failed');
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (step === 'code') {
+    return (
+      <AuthShell title={<>Check your <em className="punch">email.</em></>} lede="Enter the code we sent to finish logging in.">
+        <OtpStep email={email} purpose="login" onVerified={() => navigate('/')} />
+      </AuthShell>
+    );
   }
 
   return (

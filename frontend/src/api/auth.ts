@@ -1,12 +1,12 @@
 import { apiFetch } from './client';
-import type { AuthResponse, User } from '../types';
+import type { AuthResponse, PendingAuth, OtpPurpose, User } from '../types';
 
 export function register(input: {
   email: string;
   password: string;
   name: string;
-}): Promise<AuthResponse> {
-  return apiFetch<AuthResponse>('/api/auth/register', {
+}): Promise<AuthResponse | PendingAuth> {
+  return apiFetch<AuthResponse | PendingAuth>('/api/auth/register', {
     method: 'POST',
     body: JSON.stringify(input),
   });
@@ -22,10 +22,24 @@ export function googleAuth(accessToken: string): Promise<AuthResponse> {
 export function login(input: {
   email: string;
   password: string;
-}): Promise<AuthResponse> {
-  return apiFetch<AuthResponse>('/api/auth/login', {
+}): Promise<AuthResponse | PendingAuth> {
+  return apiFetch<AuthResponse | PendingAuth>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify(input),
+  });
+}
+
+export function verifyOtp(email: string, code: string, purpose: OtpPurpose): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>('/api/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, code, purpose }),
+  });
+}
+
+export function resendOtp(email: string, purpose: OtpPurpose): Promise<PendingAuth> {
+  return apiFetch<PendingAuth>('/api/auth/resend-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, purpose }),
   });
 }
 

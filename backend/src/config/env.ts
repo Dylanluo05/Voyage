@@ -26,5 +26,7 @@ export const env = {
   stripePriceGlobetrotter: process.env.STRIPE_PRICE_GLOBETROTTER ?? '',
   pexelsApiKey: process.env.PEXELS_API_KEY ?? '',
   resendApiKey: process.env.RESEND_API_KEY ?? '',
+  mailFrom: process.env.MAIL_FROM ?? 'Voyage <onboarding@resend.dev>',
+  requireEmailOtp: process.env.REQUIRE_EMAIL_OTP === 'true',
   adminEmails: new Set((process.env.ADMIN_EMAILS ?? '').split(',').map(e => e.trim()).filter(Boolean)),
 };
