@@ -40,6 +40,7 @@ import {
   publishTrip,
   listPublicTrips,
   exportPlaylist,
+  calendarExport,
 } from '../controllers/tripsController';
 import { parseHotelConfirmation, parseFlightConfirmation } from '../controllers/importController';
 import { tripChat } from '../controllers/chatController';
@@ -109,5 +110,7 @@ router.delete('/:id/expenses/:expenseId', removeExpense);
 router.patch('/:id/expenses/:expenseId/splits/:userId', settleSplit);
 
 router.patch('/:id/day-anchor', updateDayAnchor);
+
+router.get('/:id/calendar/export', calendarExport);
 
 export default router;

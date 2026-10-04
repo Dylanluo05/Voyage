@@ -1,5 +1,28 @@
-import { apiFetch } from './client';
+import { apiFetch, API_URL, getToken, ApiError } from './client';
 import type { Trip, NewTripInput, NewItemInput, ReorderInput, SpotifySearchResult, LogPhoto, HotelBooking, FlightBooking, Expense, AuthResponse } from '../types';
+
+export async function downloadTripCalendar(tripId: string): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`${API_URL}/api/trips/${tripId}/calendar/export`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => undefined);
+    throw new ApiError(res.status, data?.error ?? 'Failed to export calendar', data);
+  }
+  const match = res.headers.get('Content-Disposition')?.match(/filename="(.+)"/);
+  const filename = match?.[1] ?? 'trip.ics';
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
 export function updateDayAnchor(
   tripId: string,

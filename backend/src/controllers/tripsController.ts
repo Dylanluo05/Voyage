@@ -11,6 +11,7 @@ import { checkTripQuota, checkAndIncrementQuota } from '../lib/aiQuota';
 import { addTripClient, removeTripClient } from '../lib/tripEvents';
 import { createSseToken, consumeSseToken } from '../lib/sseTokens';
 import { sendTripInviteEmail } from '../lib/mailer';
+import { buildTripIcs, sanitizeFilename } from '../lib/calendar';
 import { env } from '../config/env';
 
 const locationSchema = z
@@ -970,6 +971,26 @@ export async function exportPlaylist(req: Request, res: Response, next: NextFunc
     );
     const url = getSpotifyAuthUrl(state, redirectUri);
     res.json({ url });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function calendarExport(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) {
+      res.status(404).json({ error: 'Trip not found' });
+      return;
+    }
+
+    const icsString = buildTripIcs(trip);
+    const filename = `${sanitizeFilename(trip.title)}.ics`;
+
+    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.status(200).send(icsString);
   } catch (err) {
     next(err);
   }

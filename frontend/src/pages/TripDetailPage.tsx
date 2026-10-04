@@ -653,6 +653,15 @@ export default function TripDetailPage() {
           </button>
           <button
             type="button"
+            className="ghost small-btn"
+            onClick={() =>
+              tripsApi.downloadTripCalendar(trip._id).catch(() => alert('Failed to export calendar'))
+            }
+          >
+            Export calendar
+          </button>
+          <button
+            type="button"
             className={trip.isCompleted ? 'ghost small-btn' : 'small-btn'}
             onClick={() =>
               tripsApi.markCompleted(trip._id, !trip.isCompleted).then(setTrip)
