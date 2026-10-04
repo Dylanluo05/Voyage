@@ -10,15 +10,26 @@ function required(name: string, fallback?: string): string {
   return value;
 }
 
+const nodeEnv = process.env.NODE_ENV ?? 'development';
+const isProduction = nodeEnv === 'production';
+
+const jwtSecret = required('JWT_SECRET');
+if (jwtSecret.length < 32) {
+  throw new Error('JWT_SECRET must be at least 32 characters long');
+}
+
 export const env = {
   port: Number(process.env.PORT ?? 4000),
-  mongoUri: required('MONGO_URI', 'mongodb://localhost:27017/trip_planner'),
-  jwtSecret: required('JWT_SECRET'),
+  // In production this must come from a real env var — no localhost fallback.
+  // Locally it's convenient to default to a local MongoDB instance.
+  mongoUri: isProduction ? required('MONGO_URI') : (process.env.MONGO_URI ?? 'mongodb://localhost:27017/trip_planner'),
+  jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
   clientOrigins: (process.env.CLIENT_ORIGIN ?? 'http://localhost:5173')
     .split(',').map(o => o.trim()).filter(Boolean),
   get clientOrigin() { return this.clientOrigins[0]; },
-  nodeEnv: process.env.NODE_ENV ?? 'development',
+  nodeEnv,
+  isProduction,
   stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? '',
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',
   stripePriceExplorer: process.env.STRIPE_PRICE_EXPLORER ?? '',

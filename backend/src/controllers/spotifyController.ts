@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import { Trip } from '../models/Trip';
 import { exchangeCodeForToken, getSpotifyUserId, createPlaylistForTrip } from '../lib/spotify';
 import { env } from '../config/env'; // used for clientOrigin redirect
@@ -12,8 +13,11 @@ export async function spotifyCallback(req: Request, res: Response): Promise<void
   }
 
   let tripId: string;
+  let userId: string;
   try {
-    ({ tripId } = JSON.parse(state) as { tripId: string });
+    const payload = jwt.verify(state, env.jwtSecret) as { tripId: string; userId: string };
+    tripId = payload.tripId;
+    userId = payload.userId;
   } catch {
     res.redirect(`${env.clientOrigin}?spotify_error=invalid_state`);
     return;
@@ -23,6 +27,11 @@ export async function spotifyCallback(req: Request, res: Response): Promise<void
     const trip = await Trip.findById(tripId);
     if (!trip) {
       res.redirect(`${env.clientOrigin}?spotify_error=trip_not_found`);
+      return;
+    }
+    const isMember = trip.owner.equals(userId) || trip.collaborators.some((c) => c.equals(userId));
+    if (!isMember) {
+      res.redirect(`${env.clientOrigin}?spotify_error=forbidden`);
       return;
     }
 

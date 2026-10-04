@@ -956,11 +956,18 @@ export async function listPublicTrips(req: Request, res: Response, next: NextFun
 
 export async function exportPlaylist(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const trip = await Trip.findById(req.params.id);
+    ensureValidObjectId(req.params.id, 'trip id');
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
     if (!trip) { res.status(404).json({ error: 'Trip not found' }); return; }
 
     const redirectUri = `${req.protocol}://${req.get('host')}/api/spotify/callback`;
-    const state = JSON.stringify({ tripId: trip._id.toString() });
+    // Signed so the callback (a plain browser redirect, no Authorization header)
+    // can trust who requested the export without a forgeable raw JSON state param.
+    const state = jwt.sign(
+      { tripId: trip._id.toString(), userId: ownerId(req).toString() },
+      env.jwtSecret,
+      { expiresIn: '10m' }
+    );
     const url = getSpotifyAuthUrl(state, redirectUri);
     res.json({ url });
   } catch (err) {
