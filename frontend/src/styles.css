@@ -1892,6 +1892,36 @@ fieldset legend {
 }
 .wrap--wide { max-width: 1440px; }
 
+.legal-page {
+  max-width: 720px;
+  margin-inline: auto;
+  padding-block: clamp(2rem, 6vw, 4rem) 5rem;
+}
+.legal-page .eyebrow { margin-bottom: 1rem; }
+.legal-page h1 { margin-top: 8px; }
+.legal-page .legal-updated {
+  color: var(--ink-faint);
+  font-size: var(--step--1);
+  margin-bottom: 2.5rem;
+}
+.legal-page h2 {
+  font-size: var(--step-1);
+  margin-top: 2.5rem;
+}
+.legal-page p,
+.legal-page li {
+  color: var(--ink-soft);
+  line-height: 1.65;
+  margin-bottom: 1rem;
+}
+.legal-page ul,
+.legal-page ol {
+  padding-left: 1.4rem;
+  margin-bottom: 1rem;
+}
+.legal-page strong { color: var(--ink); }
+.legal-page a { text-decoration: underline; }
+
 .eyebrow {
   display: inline-block;
   font-family: var(--font-mono);
@@ -7793,6 +7823,9 @@ main:has(> .au) { max-width: 1240px; padding-top: clamp(1rem, 3vw, 2rem); }
 .au-main .google-signin-btn { border-radius: var(--r-pill); padding: 0.9rem 1.5rem; font-size: 1rem; }
 .au-switch { margin: 1.5rem 0 0; color: var(--ink-soft); }
 .au-switch a { font-weight: 600; }
+
+.auth-fineprint { margin: 0.75rem 0 0; color: var(--ink-faint); font-size: var(--step--1); }
+.auth-fineprint a { font-weight: 600; }
 @media (max-width: 860px) {
   .au { grid-template-columns: minmax(0, 1fr); min-height: 0; }
   .au-side { min-height: 240px; order: -1; }

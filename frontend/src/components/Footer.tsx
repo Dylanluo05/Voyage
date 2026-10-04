@@ -30,6 +30,8 @@ export default function Footer() {
         <div className="site-footer-meta">
           <span>&copy; {year} Voyage</span>
           <Link to="/subscription">Plans</Link>
+          <Link to="/privacy">Privacy</Link>
+          <Link to="/terms">Terms</Link>
         </div>
       </div>
     </footer>

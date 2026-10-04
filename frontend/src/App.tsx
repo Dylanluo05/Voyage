@@ -21,6 +21,8 @@ const DiscoverPage = lazy(() => import('./pages/DiscoverPage'));
 const SidequestsPage = lazy(() => import('./pages/SidequestsPage'));
 const HowToPlayPage = lazy(() => import('./pages/HowToPlayPage'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
 
 /** Route family → drives `<body data-route>` so the atmosphere shifts hue per section. */
 function routeFamily(pathname: string): string {
@@ -33,6 +35,7 @@ function routeFamily(pathname: string): string {
   if (pathname.startsWith('/subscription')) return 'subscription';
   if (pathname.startsWith('/login') || pathname.startsWith('/register')) return 'auth';
   if (pathname.startsWith('/share') || pathname.startsWith('/upload')) return 'share';
+  if (pathname.startsWith('/privacy') || pathname.startsWith('/terms')) return 'legal';
   return 'app';
 }
 
@@ -121,6 +124,8 @@ function Shell() {
               </ProtectedRoute>
             }
           />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </Suspense>

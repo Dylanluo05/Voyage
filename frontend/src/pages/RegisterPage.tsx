@@ -89,6 +89,10 @@ export default function RegisterPage() {
         <button type="submit" disabled={submitting}>
           {submitting ? 'Creating…' : 'Sign up'}
         </button>
+        <p className="auth-fineprint">
+          By signing up, you agree to our <Link to="/terms">Terms</Link> and{' '}
+          <Link to="/privacy">Privacy Policy</Link>.
+        </p>
       </form>
       <div className="auth-divider"><span>or</span></div>
       <button type="button" className="google-signin-btn" onClick={() => loginWithGoogle()}>
