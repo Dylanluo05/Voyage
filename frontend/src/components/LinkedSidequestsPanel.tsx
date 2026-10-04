@@ -9,9 +9,10 @@ import { SUITS } from './quests/questMeta';
 
 interface Props {
     tripId: string;
+    destination?: string;
 }
 
-export default function LinkedSidequestsPanel({ tripId }: Props) {
+export default function LinkedSidequestsPanel({ tripId, destination }: Props) {
     const { user } = useAuth();
     const [sidequests, setSidequests] = useState<PublicSidequest[]>([]);
     const [loading, setLoading] = useState(true);
@@ -47,7 +48,10 @@ export default function LinkedSidequestsPanel({ tripId }: Props) {
                     <h2>Sidequests for this trip</h2>
                     <p className="muted">Dares you plan to do while you are there.</p>
                 </div>
-                <Link to="/sidequests" className="ls-add">
+                <Link
+                    to={destination ? `/sidequests?location=${encodeURIComponent(destination)}` : '/sidequests'}
+                    className="ls-add"
+                >
                     <Icon name="plus" size={15} /> Find more
                 </Link>
             </div>

@@ -11,6 +11,8 @@ type Props = {
   delay?: number;
   /** re-hide when it scrolls back out */
   repeat?: boolean;
+  /** fraction of the element's own area that must be visible to reveal (default 0.12) — lower for tall/unbounded content that can never fill 12% of itself on screen */
+  threshold?: number;
   as?: ElementType;
   className?: string;
   style?: CSSProperties;
@@ -29,6 +31,7 @@ export default function Reveal({
   stagger = false,
   delay,
   repeat = false,
+  threshold = 0.12,
   as: Tag = 'div',
   className = '',
   style,
@@ -61,11 +64,11 @@ export default function Reveal({
           el.classList.remove('is-in', 'revealed');
         }
       },
-      { threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
+      { threshold, rootMargin: '0px 0px -8% 0px' }
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [stagger, delay, repeat]);
+  }, [stagger, delay, repeat, threshold]);
 
   return (
     <Tag

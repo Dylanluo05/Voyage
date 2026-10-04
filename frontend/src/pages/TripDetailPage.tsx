@@ -763,7 +763,7 @@ export default function TripDetailPage() {
       </TripPane>
 
       <TripPane k="sidequests" active={activeKey} visited={visited}>
-        <LinkedSidequestsPanel tripId={trip._id} />
+        <LinkedSidequestsPanel tripId={trip._id} destination={trip.destination} />
       </TripPane>
 
       <TripPane k="expenses" active={activeKey} visited={visited}>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { PublicSidequest, Trip, UserProfile } from '../types';
 import * as tripsApi from '../api/trips';
 import * as usersApi from '../api/users';
@@ -30,6 +30,8 @@ function msg(err: unknown, fallback: string) {
 export default function SidequestsPage() {
   const { user } = useAuth();
   const uid = user?.id;
+  const [searchParams] = useSearchParams();
+  const initialLocation = searchParams.get('location') ?? '';
 
   const [quests, setQuests] = useState<PublicSidequest[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -40,7 +42,7 @@ export default function SidequestsPage() {
   const [mode, setMode] = useState<Mode>('board');
   const [suit, setSuit] = useState<Suit | 'all'>('all');
   const [rank, setRank] = useState<Rank | 'all'>('all');
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialLocation);
 
   const [sheetId, setSheetId] = useState<string | null>(null);
   const [sheetProving, setSheetProving] = useState(false);
@@ -55,7 +57,7 @@ export default function SidequestsPage() {
     (async () => {
       try {
         const [sq, tr, pr] = await Promise.all([
-          sidequestsApi.listPublicSidequests(),
+          sidequestsApi.listPublicSidequests(initialLocation || undefined),
           tripsApi.listTrips().catch(() => [] as Trip[]),
           usersApi.getProfile().catch(() => null),
         ]);
@@ -68,6 +70,9 @@ export default function SidequestsPage() {
         setLoading(false);
       }
     })();
+    // Only the location this page was opened with seeds the initial fetch;
+    // later edits to the search box go through onSearch instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const replace = (updated: PublicSidequest) => setQuests((prev) => prev.map((q) => (q._id === updated._id ? updated : q)));
@@ -314,7 +319,7 @@ export default function SidequestsPage() {
           )}
 
           {list.length > 0 ? (
-            <Reveal as="div" className="qb-mosaic" variant="up" stagger>
+            <Reveal as="div" className="qb-mosaic" variant="up" stagger threshold={0}>
               {renderTiles(list)}
             </Reveal>
           ) : mode === 'mine' && finished.length > 0 ? (
@@ -344,7 +349,7 @@ export default function SidequestsPage() {
                   {finished.length} completed · {finished.reduce((s, q) => s + q.xpReward, 0).toLocaleString()} XP earned
                 </span>
               </div>
-              <Reveal as="div" className="qb-wall" variant="up" stagger>
+              <Reveal as="div" className="qb-wall" variant="up" stagger threshold={0}>
                 {finished.map((q) => {
                   const proof = q.completions.find((c) => c.userId === uid);
                   return (

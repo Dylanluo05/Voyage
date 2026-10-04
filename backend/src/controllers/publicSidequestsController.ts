@@ -53,10 +53,16 @@ function ownerId(req: Request): Types.ObjectId {
     return new Types.ObjectId(req.user.sub);
 }
 
+function escapeRegex(s: string): string {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export async function listPublicSidequests(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
         const { location } = req.query;
-        const publicSidequests = await PublicSidequest.find({ ...(location && { location: new RegExp(location as string, 'i') }) });
+        const publicSidequests = await PublicSidequest.find(
+            { ...(location && { location: new RegExp(escapeRegex(location as string), 'i') }) }
+        ).lean();
         res.json(publicSidequests);
     } catch (err) {
         next(err);
