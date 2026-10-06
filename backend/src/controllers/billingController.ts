@@ -1,17 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import Stripe from 'stripe';
 import { z } from 'zod';
 import { User, Plan } from '../models/User';
 import { HttpError } from '../middleware/error';
 import { env } from '../config/env';
 import { getQuotaStatus, TIER_CONFIG } from '../lib/aiQuota';
-
-type StripeInstance = InstanceType<typeof Stripe>;
-
-function getStripe(): StripeInstance {
-  if (!env.stripeSecretKey) throw new HttpError(503, 'Billing not configured — add STRIPE_SECRET_KEY');
-  return new Stripe(env.stripeSecretKey);
-}
+import { getStripe, StripeInstance } from '../lib/stripe';
 
 const PRICE_MAP: Record<Exclude<Plan, 'free'>, () => string> = {
   explorer:     () => env.stripePriceExplorer,

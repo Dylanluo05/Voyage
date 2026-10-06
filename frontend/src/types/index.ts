@@ -236,6 +236,7 @@ export interface UserProfile {
   badges: Badge[];
   xp: number;
   sidequestHistory: SidequestHistoryData[];
+  hasPassword: boolean;
 }
 
 export interface SidequestHistoryData {

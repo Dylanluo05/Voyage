@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { UserProfile } from "../types";
-import { getProfile, updateProfile } from "../api/users";
+import { getProfile, updateProfile, deleteAccount } from "../api/users";
 import { getLeaderboard } from "../api/publicSidequests";
 import { useAuth } from "../context/AuthContext";
+import { ApiError } from "../api/client";
 import { uploadToCloudinary } from "../utils/image";
 import Reveal from "../components/Reveal";
 import CountUp from "../components/CountUp";
@@ -37,7 +38,8 @@ function AvatarDisplay({ avatarUrl, name, size = 72 }: { avatarUrl?: string; nam
 export default function ProfilePage() {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null);
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
 
     // Profile edit state
     const [editingBio, setEditingBio] = useState(false);
@@ -49,6 +51,13 @@ export default function ProfilePage() {
     const [savingWishlist, setSavingWishlist] = useState(false);
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const avatarInputRef = useRef<HTMLInputElement>(null);
+
+    // Account deletion
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    const [deletePassword, setDeletePassword] = useState('');
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     const loadUserProfile = async () => {
         try {
@@ -97,6 +106,20 @@ export default function ProfilePage() {
             // silently fail
         } finally {
             setSavingWishlist(false);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        setDeleteError(null);
+        setDeleting(true);
+        try {
+            await deleteAccount(profile?.hasPassword ? deletePassword : undefined);
+            logout();
+            navigate('/');
+        } catch (err) {
+            setDeleteError(err instanceof ApiError ? err.message : 'Failed to delete account');
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -315,6 +338,68 @@ export default function ProfilePage() {
                             </div>
                         )}
                     </Reveal>
+
+                    {/* Danger zone */}
+                    <section className="pf-section pf-danger-zone">
+                        <h3>Delete account</h3>
+                        {!confirmingDelete ? (
+                            <>
+                                <p>Permanently delete your account and all trips you own. This cannot be undone.</p>
+                                <button type="button" className="pf-btn pf-btn--danger" onClick={() => setConfirmingDelete(true)}>
+                                    Delete my account
+                                </button>
+                            </>
+                        ) : (
+                            <div className="profile-edit-form">
+                                <p>
+                                    This deletes your account, every trip you own, and your sidequest activity.
+                                    Trips you only collaborate on are not affected. Type <strong>DELETE</strong> to confirm.
+                                </p>
+                                <input
+                                    value={deleteConfirmText}
+                                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                    placeholder="DELETE"
+                                    autoFocus
+                                />
+                                {profile.hasPassword && (
+                                    <input
+                                        type="password"
+                                        value={deletePassword}
+                                        onChange={(e) => setDeletePassword(e.target.value)}
+                                        placeholder="Current password"
+                                        autoComplete="current-password"
+                                    />
+                                )}
+                                {deleteError && <div className="error">{deleteError}</div>}
+                                <div className="pf-bio-actions">
+                                    <button
+                                        type="button"
+                                        className="pf-btn pf-btn--ghost"
+                                        onClick={() => {
+                                            setConfirmingDelete(false);
+                                            setDeleteConfirmText('');
+                                            setDeletePassword('');
+                                            setDeleteError(null);
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="pf-btn pf-btn--danger"
+                                        disabled={
+                                            deleting ||
+                                            deleteConfirmText !== 'DELETE' ||
+                                            (profile.hasPassword && !deletePassword)
+                                        }
+                                        onClick={handleDeleteAccount}
+                                    >
+                                        {deleting ? 'Deleting…' : 'Permanently delete my account'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </section>
                 </>
             )}
         </div>

@@ -7609,6 +7609,13 @@ main:has(> .lbp), main:has(> .pf) { max-width: 1240px; }
 
 .pf-section { margin-top: clamp(1.5rem, 4vw, 2.5rem); }
 .pf-section .qb-section-head { margin-top: 0; }
+
+.pf-danger-zone { padding: 1.25rem 1.5rem; border: 1px solid var(--danger); border-radius: 12px; }
+.pf-danger-zone h3 { color: var(--danger); font-size: var(--step-0); margin-bottom: 6px; }
+.pf-danger-zone p { color: var(--ink-soft); font-size: 0.92rem; margin-bottom: 1rem; }
+.pf .pf-btn--danger { background: var(--danger); color: #fff; }
+.pf .pf-btn--danger:hover { opacity: 0.85; }
+.pf .pf-btn--danger:disabled { opacity: 0.45; cursor: not-allowed; }
 .pf-chips { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1rem 0 0; padding: 0; list-style: none; }
 .pf-chip { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.7rem 1.2rem; border-radius: var(--r-pill); background: var(--surface); border: 1px solid var(--hairline-strong); font-size: 1.05rem; font-weight: 500; letter-spacing: -0.01em; }
 .pf-chip svg { color: var(--accent); }

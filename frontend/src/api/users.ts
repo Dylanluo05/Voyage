@@ -14,3 +14,10 @@ export function updateProfile(data: { bio?: string; wishlist?: string[]; avatarU
     });
 }
 
+export function deleteAccount(password?: string): Promise<void> {
+    return apiFetch<void>(`/api/users/account`, {
+        method: 'DELETE',
+        body: JSON.stringify({ password }),
+    });
+}
+
