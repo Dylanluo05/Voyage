@@ -26,6 +26,7 @@ const TermsPage = lazy(() => import('./pages/TermsPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const AdminReportsPage = lazy(() => import('./pages/AdminReportsPage'));
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));
 
 /** Route family → drives `<body data-route>` so the atmosphere shifts hue per section. */
 function routeFamily(pathname: string): string {
@@ -45,6 +46,7 @@ function routeFamily(pathname: string): string {
     return 'auth';
   if (pathname.startsWith('/share') || pathname.startsWith('/upload')) return 'share';
   if (pathname.startsWith('/privacy') || pathname.startsWith('/terms')) return 'legal';
+  if (pathname.startsWith('/admin')) return 'admin';
   return 'app';
 }
 
@@ -137,6 +139,14 @@ function Shell() {
           />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <main><AdminDashboardPage /></main>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/admin/reports"
             element={

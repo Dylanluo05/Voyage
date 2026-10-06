@@ -1,3 +1,5 @@
+import type { Plan, TierConfig } from '../api/billing';
+
 export interface User {
   id: string;
   email: string;
@@ -312,6 +314,28 @@ export interface Report {
   status: ReportStatus;
   createdAt: string;
   preview: { exists: boolean; summary?: string; imageUrl?: string };
+}
+
+export interface AdminAnalytics {
+  growth: {
+    totalUsers: number;
+    newUsers7d: number;
+    newUsers30d: number;
+    totalTrips: number;
+    newTrips7d: number;
+    totalSidequestClaims: number;
+    totalSidequestCompletions: number;
+    signupSeries: { date: string; count: number }[];
+  };
+  revenue: {
+    planCounts: Record<Plan, number>;
+    estimatedMRR: number;
+    tierConfig: Record<Plan, TierConfig>;
+  };
+  health: {
+    pendingReports: number;
+    aiRequestsToday: number;
+  };
 }
 
 export interface LeaderboardEntry {

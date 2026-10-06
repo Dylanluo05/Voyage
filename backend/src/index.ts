@@ -15,6 +15,7 @@ import publicSidequestsRouter from './routes/publicSidequests';
 import spotifyRouter from './routes/spotify';
 import transitRouter from './routes/transit';
 import reportsRouter from './routes/reports';
+import adminRouter from './routes/admin';
 import { errorHandler } from './middleware/error';
 
 async function main(): Promise<void> {
@@ -44,6 +45,7 @@ async function main(): Promise<void> {
   app.use('/api/spotify', apiLimiter, spotifyRouter);
   app.use('/api/transit', apiLimiter, transitRouter);
   app.use('/api/reports', apiLimiter, reportsRouter);
+  app.use('/api/admin', apiLimiter, adminRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'Not found' });

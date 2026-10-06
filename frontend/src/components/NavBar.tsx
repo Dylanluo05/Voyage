@@ -12,13 +12,16 @@ export default function NavBar() {
   const { theme, toggleTheme } = useTheme();
   const [sqOpen, setSqOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const sqRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
+  const adminRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setSqOpen(false);
     setUserOpen(false);
+    setAdminOpen(false);
     setMobileOpen(false);
   }, [location.pathname]);
 
@@ -31,6 +34,7 @@ export default function NavBar() {
     const handler = (e: MouseEvent) => {
       if (sqRef.current && !sqRef.current.contains(e.target as Node)) setSqOpen(false);
       if (userRef.current && !userRef.current.contains(e.target as Node)) setUserOpen(false);
+      if (adminRef.current && !adminRef.current.contains(e.target as Node)) setAdminOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -38,6 +42,7 @@ export default function NavBar() {
 
   const sqActive = ['/sidequests', '/leaderboard', '/how-to-play'].includes(location.pathname);
   const userActive = ['/profile', '/subscription'].includes(location.pathname);
+  const adminActive = location.pathname.startsWith('/admin');
 
   let mobileIndex = 0;
   const stagger = (): CSSProperties => ({ '--stagger': mobileIndex++ } as CSSProperties);
@@ -79,11 +84,30 @@ export default function NavBar() {
                 )}
               </div>
 
+              {user.isAdmin && (
+                <div className="nav-dropdown nav-dropdown--admin" ref={adminRef}>
+                  <button
+                    type="button"
+                    className={`nav-dropdown-trigger${adminActive || adminOpen ? ' active' : ''}`}
+                    onClick={() => { setAdminOpen(o => !o); setSqOpen(false); setUserOpen(false); }}
+                  >
+                    <Icon name="shieldWarning" size={15} weight="fill" /> Admin{' '}
+                    <span className={`nav-dropdown-caret${adminOpen ? ' open' : ''}`}>▾</span>
+                  </button>
+                  {adminOpen && (
+                    <div className="nav-dropdown-menu">
+                      <NavLink to="/admin" end className={({ isActive }) => isActive ? 'active' : ''}>Dashboard</NavLink>
+                      <NavLink to="/admin/reports" className={({ isActive }) => isActive ? 'active' : ''}>Reports</NavLink>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="nav-dropdown" ref={userRef}>
                 <button
                   type="button"
                   className={`nav-dropdown-trigger${userActive || userOpen ? ' active' : ''}`}
-                  onClick={() => { setUserOpen(o => !o); setSqOpen(false); }}
+                  onClick={() => { setUserOpen(o => !o); setSqOpen(false); setAdminOpen(false); }}
                 >
                   {user.name} <span className={`nav-dropdown-caret${userOpen ? ' open' : ''}`}>▾</span>
                 </button>
@@ -91,9 +115,6 @@ export default function NavBar() {
                   <div className="nav-dropdown-menu nav-dropdown-menu--right">
                     <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>Profile</NavLink>
                     <NavLink to="/subscription" className={({ isActive }) => isActive ? 'active' : ''}>Upgrade</NavLink>
-                    {user.isAdmin && (
-                      <NavLink to="/admin/reports" className={({ isActive }) => isActive ? 'active' : ''}>Reports</NavLink>
-                    )}
                     <div className="nav-dropdown-divider" />
                     <button
                       type="button"
@@ -153,7 +174,13 @@ export default function NavBar() {
               <div className="nav-mobile-divider" style={stagger()} />
               <NavLink to="/profile" style={stagger()}>Profile</NavLink>
               <NavLink to="/subscription" style={stagger()}>Upgrade</NavLink>
-              {user.isAdmin && <NavLink to="/admin/reports" style={stagger()}>Reports</NavLink>}
+              {user.isAdmin && (
+                <>
+                  <div className="nav-mobile-section-label nav-mobile-section-label--admin" style={stagger()}>Admin</div>
+                  <NavLink to="/admin" end style={stagger()}>Dashboard</NavLink>
+                  <NavLink to="/admin/reports" style={stagger()}>Reports</NavLink>
+                </>
+              )}
               <div className="nav-mobile-divider" style={stagger()} />
               <button
                 type="button"
