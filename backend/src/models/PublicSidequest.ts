@@ -16,6 +16,7 @@ export interface PublicSidequestDoc extends Document {
         tripId?: Types.ObjectId,
     }[],
     completions: {
+        _id?: Types.ObjectId,
         userId: Types.ObjectId,
         userName: string,
         photoUrl: string,

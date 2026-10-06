@@ -35,3 +35,12 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     res.status(401).json({ error: 'Invalid or expired token' });
   }
 }
+
+/** Must run after requireAuth. */
+export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+  if (!req.user || !env.adminEmails.has(req.user.email)) {
+    res.status(403).json({ error: 'Admin access required' });
+    return;
+  }
+  next();
+}

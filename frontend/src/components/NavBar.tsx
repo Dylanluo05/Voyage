@@ -91,6 +91,9 @@ export default function NavBar() {
                   <div className="nav-dropdown-menu nav-dropdown-menu--right">
                     <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>Profile</NavLink>
                     <NavLink to="/subscription" className={({ isActive }) => isActive ? 'active' : ''}>Upgrade</NavLink>
+                    {user.isAdmin && (
+                      <NavLink to="/admin/reports" className={({ isActive }) => isActive ? 'active' : ''}>Reports</NavLink>
+                    )}
                     <div className="nav-dropdown-divider" />
                     <button
                       type="button"
@@ -150,6 +153,7 @@ export default function NavBar() {
               <div className="nav-mobile-divider" style={stagger()} />
               <NavLink to="/profile" style={stagger()}>Profile</NavLink>
               <NavLink to="/subscription" style={stagger()}>Upgrade</NavLink>
+              {user.isAdmin && <NavLink to="/admin/reports" style={stagger()}>Reports</NavLink>}
               <div className="nav-mobile-divider" style={stagger()} />
               <button
                 type="button"

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import type { CSSProperties } from 'react';
 import type { Trip } from '../../types';
 import { Icon } from '../Icon';
+import ReportButton from '../ReportButton';
 import { useTripCover } from './useTripCover';
 
 export type TripStatus = 'upcoming' | 'ongoing' | 'past';
@@ -79,11 +80,13 @@ type Props = {
   mine?: { isOwner: boolean; onDelete: () => void };
   /** Public feed: show the author. */
   showAuthor?: boolean;
+  /** Public feed: let anyone but the owner report this trip. */
+  reportable?: boolean;
 };
 
 const STATUS_LABEL: Record<TripStatus, string> = { upcoming: 'Upcoming', ongoing: 'Happening now', past: 'Past' };
 
-export default function TripTile({ trip, href, size, status, mine, showAuthor }: Props) {
+export default function TripTile({ trip, href, size, status, mine, showAuthor, reportable }: Props) {
   const days = tripDays(trip.startDate, trip.endDate);
   const people = 1 + (trip.collaborators?.length ?? 0);
 
@@ -139,6 +142,7 @@ export default function TripTile({ trip, href, size, status, mine, showAuthor }:
               Delete
             </button>
           )}
+          {reportable && <ReportButton targetType="trip" targetId={trip._id} />}
         </div>
       </div>
     </article>

@@ -93,7 +93,14 @@ export default function DiscoverPage() {
           </div>
           <Reveal as="div" className="qb-mosaic" variant="up" stagger>
             {(() => { const sizes = mosaicSizes(trips.length); return trips.map((t, i) => (
-              <TripTile key={t._id} trip={t} href={`/share/${t.shareToken}`} size={sizes[i]} showAuthor />
+              <TripTile
+                key={t._id}
+                trip={t}
+                href={`/share/${t.shareToken}`}
+                size={sizes[i]}
+                showAuthor
+                reportable={!!user && t.owner?._id !== user.id}
+              />
             )); })()}
           </Reveal>
         </>

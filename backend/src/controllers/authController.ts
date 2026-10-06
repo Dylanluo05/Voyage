@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { OAuth2Client } from 'google-auth-library';
-import { User, hashPassword } from '../models/User';
+import { User, UserDoc, hashPassword } from '../models/User';
 import { signToken } from '../middleware/auth';
 import { HttpError } from '../middleware/error';
 import { linkPendingInvites } from '../lib/pendingInvites';
@@ -11,6 +11,10 @@ import type { OtpPurpose } from '../models/EmailOtp';
 import { env } from '../config/env';
 
 const googleClient = new OAuth2Client();
+
+function toUserJson(user: UserDoc) {
+  return { id: user.id, email: user.email, name: user.name, isAdmin: env.adminEmails.has(user.email) };
+}
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -62,7 +66,7 @@ export async function register(req: Request, res: Response, next: NextFunction):
       const user = await User.create({ email: lowerEmail, passwordHash, name });
       await linkPendingInvites(user._id, user.email).catch((err) => console.error('[linkPendingInvites]', err));
       const token = signToken({ sub: user.id, email: user.email });
-      res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name } });
+      res.status(201).json({ token, user: toUserJson(user) });
       return;
     }
 
@@ -93,7 +97,7 @@ export async function googleAuth(req: Request, res: Response, next: NextFunction
     const token = signToken({ sub: user.id, email: user.email });
     res.status(200).json({
       token,
-      user: { id: user.id, email: user.email, name: user.name },
+      user: toUserJson(user),
     });
   } catch (err) {
     next(err);
@@ -112,7 +116,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
 
     if (!env.requireEmailOtp) {
       const token = signToken({ sub: user.id, email: user.email });
-      res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
+      res.json({ token, user: toUserJson(user) });
       return;
     }
 
@@ -145,7 +149,7 @@ export async function verifyOtpHandler(req: Request, res: Response, next: NextFu
     const token = signToken({ sub: user.id, email: user.email });
     res.json({
       token,
-      user: { id: user.id, email: user.email, name: user.name },
+      user: toUserJson(user),
     });
   } catch (err) {
     next(err);
@@ -180,7 +184,7 @@ export async function resetPasswordHandler(req: Request, res: Response, next: Ne
     const { token, password } = resetPasswordSchema.parse(req.body);
     const user = await resetPassword(token, password);
     const authToken = signToken({ sub: user.id, email: user.email });
-    res.json({ token: authToken, user: { id: user.id, email: user.email, name: user.name } });
+    res.json({ token: authToken, user: toUserJson(user) });
   } catch (err) {
     next(err);
   }
@@ -191,7 +195,7 @@ export async function me(req: Request, res: Response, next: NextFunction): Promi
     if (!req.user) throw new HttpError(401, 'Unauthenticated');
     const user = await User.findById(req.user.sub);
     if (!user) throw new HttpError(404, 'User not found');
-    res.json({ id: user.id, email: user.email, name: user.name });
+    res.json(toUserJson(user));
   } catch (err) {
     next(err);
   }

@@ -84,6 +84,8 @@ import {
   LinkSimple,
   ChatText,
   PaperPlaneTilt,
+  WarningCircle,
+  ShieldWarning,
 } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
 
@@ -175,6 +177,8 @@ export const icons = {
   flag: Flag,
   link: LinkSimple,
   comment: ChatText,
+  warning: WarningCircle,
+  shieldWarning: ShieldWarning,
 } satisfies Record<string, PhosphorIcon>;
 
 export type IconName = keyof typeof icons;

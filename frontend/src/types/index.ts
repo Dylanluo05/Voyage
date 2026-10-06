@@ -2,6 +2,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  isAdmin?: boolean;
 }
 
 export interface AuthResponse {
@@ -265,6 +266,7 @@ export interface PublicSidequest {
     tripId?: string;
   }[];
   completions: {
+    _id: string;
     userId: string;
     userName: string;
     photoUrl: string;
@@ -294,6 +296,22 @@ export interface PublicSidequest {
   tripId?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export type ReportTargetType = 'trip' | 'sidequest' | 'sidequestCompletion' | 'sidequestComment';
+export type ReportStatus = 'pending' | 'resolved' | 'dismissed';
+
+export interface Report {
+  _id: string;
+  targetType: ReportTargetType;
+  targetId: string;
+  subTargetId?: string;
+  reporterId: string;
+  reporterName: string;
+  reason: string;
+  status: ReportStatus;
+  createdAt: string;
+  preview: { exists: boolean; summary?: string; imageUrl?: string };
 }
 
 export interface LeaderboardEntry {

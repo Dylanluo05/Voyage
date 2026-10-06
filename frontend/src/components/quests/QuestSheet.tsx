@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import type { PublicSidequest, Trip } from '../../types';
 import { uploadToCloudinary } from '../../utils/image';
 import { Icon } from '../Icon';
+import ReportButton from '../ReportButton';
 import QuestCover from './QuestCover';
 import { RANK_LABEL, SUITS } from './questMeta';
 
@@ -152,6 +153,10 @@ export default function QuestSheet({ quest, user, trips, actions, startProving, 
               <Icon name="trophy" size={16} /> {quest.completions.length} completed
             </li>
           </ul>
+
+          {userId && quest.createdBy.userId !== userId && (
+            <ReportButton targetType="sidequest" targetId={quest._id} className="qs-link" label="Report quest" />
+          )}
 
           {error && <p className="error">{error}</p>}
 
@@ -358,10 +363,20 @@ export default function QuestSheet({ quest, user, trips, actions, startProving, 
               </h3>
               <div className="qs-gallery">
                 {publicPhotos.map((c) => (
-                  <button key={c.userId} type="button" className="qs-shot" onClick={() => onOpenPhoto(c.photoUrl)}>
-                    <img src={c.photoUrl} alt={`${c.userName} completing the quest`} loading="lazy" />
-                    <span>{c.userName}</span>
-                  </button>
+                  <div key={c.userId} className="qs-shot-wrap">
+                    <button type="button" className="qs-shot" onClick={() => onOpenPhoto(c.photoUrl)}>
+                      <img src={c.photoUrl} alt={`${c.userName} completing the quest`} loading="lazy" />
+                      <span>{c.userName}</span>
+                    </button>
+                    {c.userId !== userId && (
+                      <ReportButton
+                        targetType="sidequestCompletion"
+                        targetId={quest._id}
+                        subTargetId={c._id}
+                        className="report-btn qs-shot-report"
+                      />
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -383,11 +398,13 @@ export default function QuestSheet({ quest, user, trips, actions, startProving, 
                     </p>
                     <p>{c.text}</p>
                   </div>
-                  {c.userId === userId && (
+                  {c.userId === userId ? (
                     <button type="button" className="qs-link" onClick={() => run('rm', () => actions.removeComment(quest._id, c._id))}>
                       Delete
                     </button>
-                  )}
+                  ) : userId ? (
+                    <ReportButton targetType="sidequestComment" targetId={quest._id} subTargetId={c._id} className="report-btn" />
+                  ) : null}
                 </li>
               ))}
             </ul>

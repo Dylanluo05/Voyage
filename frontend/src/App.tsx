@@ -25,6 +25,7 @@ const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const AdminReportsPage = lazy(() => import('./pages/AdminReportsPage'));
 
 /** Route family → drives `<body data-route>` so the atmosphere shifts hue per section. */
 function routeFamily(pathname: string): string {
@@ -136,6 +137,14 @@ function Shell() {
           />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route
+            path="/admin/reports"
+            element={
+              <ProtectedRoute>
+                <main><AdminReportsPage /></main>
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </Suspense>
