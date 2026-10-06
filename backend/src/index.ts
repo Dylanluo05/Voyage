@@ -1,3 +1,4 @@
+import './instrument';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -51,6 +52,8 @@ async function main(): Promise<void> {
     res.status(404).json({ error: 'Not found' });
   });
 
+  // Sentry's Express integration (auto-enabled by instrument.ts) captures
+  // errors passed to next() automatically — no manual error handler needed.
   app.use(errorHandler);
 
   app.listen(env.port, () => {

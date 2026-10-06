@@ -40,4 +40,5 @@ export const env = {
   mailFrom: process.env.MAIL_FROM ?? 'Voyage <onboarding@resend.dev>',
   requireEmailOtp: process.env.REQUIRE_EMAIL_OTP === 'true',
   adminEmails: new Set((process.env.ADMIN_EMAILS ?? '').split(',').map(e => e.trim()).filter(Boolean)),
+  sentryDsn: process.env.SENTRY_DSN ?? '',
 };
