@@ -19,6 +19,8 @@ Two independent npm projects, no root `package.json`. Run commands from inside `
 
 The `README.md` is stale — it predates AI chat, billing, Spotify, photo logs, and the sidequest/gamification system. Trust the code over the README.
 
+`PROGRESS.md` is a date-stamped log of what's been built and why, maintained across sessions. After completing a feature or fix the user asks to commit, add a dated entry (new date header if the top entry isn't today) summarizing what changed, in the same style as existing entries — a short paragraph, not a copy of the commit message, including any non-obvious tradeoffs or known gaps.
+
 ## Commands
 
 ### backend/
