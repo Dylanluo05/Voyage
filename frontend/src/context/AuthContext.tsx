@@ -20,6 +20,8 @@ interface AuthContextValue {
   register: (email: string, password: string, name: string) => Promise<boolean>;
   verifyOtp: (email: string, code: string, purpose: OtpPurpose) => Promise<void>;
   resendOtp: (email: string, purpose: OtpPurpose) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -84,6 +86,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await authApi.resendOtp(email, purpose);
   }, []);
 
+  const forgotPassword = useCallback(async (email: string) => {
+    await authApi.forgotPassword(email);
+  }, []);
+
+  const resetPassword = useCallback(async (token: string, password: string) => {
+    const res = await authApi.resetPassword(token, password);
+    setToken(res.token);
+    setUser(res.user);
+  }, []);
+
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
@@ -91,7 +103,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, authWithGoogle, register, verifyOtp, resendOtp, logout }}
+      value={{
+        user,
+        loading,
+        login,
+        authWithGoogle,
+        register,
+        verifyOtp,
+        resendOtp,
+        forgotPassword,
+        resetPassword,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

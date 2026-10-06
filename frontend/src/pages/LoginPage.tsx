@@ -73,6 +73,9 @@ export default function LoginPage() {
             autoComplete="current-password"
           />
         </label>
+        <p className="auth-fineprint">
+          <Link to="/forgot-password">Forgot password?</Link>
+        </p>
         {error && <div className="error">{error}</div>}
         <button type="submit" disabled={submitting}>
           {submitting ? 'Logging in…' : 'Log in'}

@@ -23,6 +23,8 @@ const HowToPlayPage = lazy(() => import('./pages/HowToPlayPage'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 
 /** Route family → drives `<body data-route>` so the atmosphere shifts hue per section. */
 function routeFamily(pathname: string): string {
@@ -33,7 +35,13 @@ function routeFamily(pathname: string): string {
   if (pathname.startsWith('/leaderboard') || pathname.startsWith('/how-to-play')) return 'play';
   if (pathname.startsWith('/profile')) return 'profile';
   if (pathname.startsWith('/subscription')) return 'subscription';
-  if (pathname.startsWith('/login') || pathname.startsWith('/register')) return 'auth';
+  if (
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/register') ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/reset-password')
+  )
+    return 'auth';
   if (pathname.startsWith('/share') || pathname.startsWith('/upload')) return 'share';
   if (pathname.startsWith('/privacy') || pathname.startsWith('/terms')) return 'legal';
   return 'app';
@@ -55,6 +63,8 @@ function Shell() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<main><LoginPage /></main>} />
           <Route path="/register" element={<main><RegisterPage /></main>} />
+          <Route path="/forgot-password" element={<main><ForgotPasswordPage /></main>} />
+          <Route path="/reset-password" element={<main><ResetPasswordPage /></main>} />
           <Route path="/discover" element={<main><DiscoverPage /></main>} />
           <Route
             path="/trips"

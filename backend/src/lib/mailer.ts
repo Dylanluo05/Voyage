@@ -76,6 +76,21 @@ export async function sendTripInviteEmail(to: string, inviterName: string, tripT
   );
 }
 
+export async function sendPasswordResetEmail(to: string, token: string): Promise<void> {
+  const link = `${env.clientOrigin}/reset-password?token=${encodeURIComponent(token)}`;
+  await sendEmail(
+    to,
+    'Reset your Voyage password',
+    emailLayout(
+      `<p style="margin:0 0 20px; font-size:15px; line-height:1.6; color:${INK_SOFT};">` +
+        `We got a request to reset the password for your Voyage account.</p>` +
+        `<p style="margin:0 0 24px; text-align:center;">${button(link, 'Reset your password')}</p>` +
+        `<p style="margin:0; font-size:13px; line-height:1.5; color:${INK_FAINT};">` +
+        `This link expires in 1 hour. If you did not request this, you can ignore this email.</p>`
+    )
+  );
+}
+
 export async function sendOtpEmail(to: string, code: string, purpose: 'login' | 'register'): Promise<void> {
   const subject = purpose === 'login' ? 'Your Voyage sign-in code' : 'Your Voyage verification code';
   const intro = purpose === 'login' ? 'Use this code to finish signing in:' : 'Use this code to finish creating your account:';

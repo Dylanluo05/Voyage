@@ -6,6 +6,7 @@ import { signToken } from '../middleware/auth';
 import { HttpError } from '../middleware/error';
 import { linkPendingInvites } from '../lib/pendingInvites';
 import { issueOtp, resendOtp, verifyOtp } from '../lib/otp';
+import { issuePasswordReset, resetPassword } from '../lib/passwordReset';
 import type { OtpPurpose } from '../models/EmailOtp';
 import { env } from '../config/env';
 
@@ -37,6 +38,15 @@ const verifyOtpSchema = z.object({
 const resendOtpSchema = z.object({
   email: z.string().email(),
   purpose: otpPurposeSchema,
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -148,6 +158,29 @@ export async function resendOtpHandler(req: Request, res: Response, next: NextFu
     const lowerEmail = email.toLowerCase();
     await resendOtp(lowerEmail, purpose as OtpPurpose);
     res.json({ pending: true, email: lowerEmail });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { email } = forgotPasswordSchema.parse(req.body);
+    await issuePasswordReset(email.toLowerCase());
+    // Same response whether or not the email has an account, so we don't
+    // reveal which emails are registered.
+    res.json({ message: 'If that email has an account, a reset link is on its way.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resetPasswordHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { token, password } = resetPasswordSchema.parse(req.body);
+    const user = await resetPassword(token, password);
+    const authToken = signToken({ sub: user.id, email: user.email });
+    res.json({ token: authToken, user: { id: user.id, email: user.email, name: user.name } });
   } catch (err) {
     next(err);
   }
