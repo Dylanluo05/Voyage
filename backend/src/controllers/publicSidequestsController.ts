@@ -5,8 +5,10 @@ import { PublicSidequest } from "../models/PublicSidequest";
 import z from "zod";
 import { User } from "../models/User";
 import Anthropic from '@anthropic-ai/sdk';
+import { recordAiCost } from '../lib/aiCost';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const MODEL = 'claude-haiku-4-5-20251001';
 
 // Per-user cooldown: userId:sidequestId -> last attempt timestamp (ms)
 const completionCooldowns = new Map<string, number>();
@@ -150,7 +152,7 @@ export async function completePublicSidequest(req: Request, res: Response, next:
         const user = await User.findById(uid).select('name');
         if (!user) throw new HttpError(404, 'User not found');
         const response = await anthropic.messages.create({
-            model: 'claude-haiku-4-5-20251001',
+            model: MODEL,
             max_tokens: 200,
             messages: [{
                 role: 'user',
@@ -160,6 +162,7 @@ export async function completePublicSidequest(req: Request, res: Response, next:
                 ],
             }],
         });
+        await recordAiCost(MODEL, 'sidequest', response.usage);
         const textBlock = response.content.find(b => b.type === 'text');
         if (!textBlock || textBlock.type !== 'text') throw new HttpError(500, 'AI returned unexpected response');
         const lines = textBlock.text.trim().split('\n').map(l => l.trim()).filter(Boolean);

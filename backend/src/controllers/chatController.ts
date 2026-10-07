@@ -4,10 +4,12 @@ import { Types } from 'mongoose';
 import { Trip, ItineraryItemData } from '../models/Trip';
 import { HttpError } from '../middleware/error';
 import { checkAndIncrementQuota } from '../lib/aiQuota';
+import { recordAiCost } from '../lib/aiCost';
 import { env } from '../config/env';
 import { z } from 'zod';
 
 const anthropic = new Anthropic();
+const MODEL = 'claude-sonnet-4-6';
 
 async function fetchPexelsPhoto(query: string): Promise<string | undefined> {
   if (!env.pexelsApiKey) return undefined;
@@ -149,7 +151,7 @@ Answer travel questions and help the user plan their trip. When they ask to add 
 
     // Stream Claude's initial response
     const stream = anthropic.messages.stream({
-      model: 'claude-sonnet-4-6',
+      model: MODEL,
       max_tokens: 2048,
       system: systemPrompt,
       tools,
@@ -163,6 +165,7 @@ Answer travel questions and help the user plan their trip. When they ask to add 
     }
 
     const finalMessage = await stream.finalMessage();
+    await recordAiCost(MODEL, 'chat', finalMessage.usage);
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
 
     for (const block of finalMessage.content) {
@@ -245,7 +248,7 @@ Answer travel questions and help the user plan their trip. When they ask to add 
     // If tools ran, get Claude's brief follow-up confirmation
     if (toolResults.length > 0) {
       const followUp = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: MODEL,
         max_tokens: 512,
         system: systemPrompt,
         tools,
@@ -255,6 +258,7 @@ Answer travel questions and help the user plan their trip. When they ask to add 
           { role: 'user', content: toolResults },
         ],
       });
+      await recordAiCost(MODEL, 'chat', followUp.usage);
       const followUpText = followUp.content.find(b => b.type === 'text')?.text ?? '';
       if (followUpText) {
         res.write(`event: text\ndata: ${JSON.stringify({ text: '\n\n' + followUpText })}\n\n`);

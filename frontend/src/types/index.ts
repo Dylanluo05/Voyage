@@ -336,6 +336,12 @@ export interface AdminAnalytics {
     pendingReports: number;
     aiRequestsToday: number;
   };
+  aiCost: {
+    byModel: { model: string; costUsd: number; inputTokens: number; outputTokens: number }[];
+    byFeature: { feature: string; costUsd: number }[];
+    totalCostUsd: number;
+    dailySeries: { date: string; costUsd: number }[];
+  };
 }
 
 export interface LeaderboardEntry {

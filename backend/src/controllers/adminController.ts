@@ -3,6 +3,7 @@ import { User, Plan } from '../models/User';
 import { Trip } from '../models/Trip';
 import { PublicSidequest } from '../models/PublicSidequest';
 import { Report } from '../models/Report';
+import { AiCostLog } from '../models/AiCostLog';
 import { TIER_CONFIG } from '../lib/aiQuota';
 
 const PLANS: Plan[] = ['free', 'explorer', 'pro', 'globetrotter'];
@@ -25,6 +26,9 @@ export async function getAnalytics(_req: Request, res: Response, next: NextFunct
       signupSeriesRaw,
       sidequestAggRaw,
       aiUsageAggRaw,
+      aiCostByModelRaw,
+      aiCostByFeatureRaw,
+      aiCostSeriesRaw,
     ] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({ createdAt: { $gte: since7d } }),
@@ -45,6 +49,17 @@ export async function getAnalytics(_req: Request, res: Response, next: NextFunct
       User.aggregate([
         { $match: { 'aiUsage.resetAt': { $gt: now } } },
         { $group: { _id: null, total: { $sum: '$aiUsage.count' } } },
+      ]),
+      AiCostLog.aggregate([
+        { $group: { _id: '$modelName', costUsd: { $sum: '$costUsd' }, inputTokens: { $sum: '$inputTokens' }, outputTokens: { $sum: '$outputTokens' } } },
+      ]),
+      AiCostLog.aggregate([
+        { $group: { _id: '$feature', costUsd: { $sum: '$costUsd' } } },
+      ]),
+      AiCostLog.aggregate([
+        { $match: { createdAt: { $gte: since30d } } },
+        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, costUsd: { $sum: '$costUsd' } } },
+        { $sort: { _id: 1 } },
       ]),
     ]);
 
@@ -74,6 +89,17 @@ export async function getAnalytics(_req: Request, res: Response, next: NextFunct
       health: {
         pendingReports,
         aiRequestsToday: aiUsageAggRaw[0]?.total ?? 0,
+      },
+      aiCost: {
+        byModel: (aiCostByModelRaw as { _id: string; costUsd: number; inputTokens: number; outputTokens: number }[]).map((r) => ({
+          model: r._id,
+          costUsd: r.costUsd,
+          inputTokens: r.inputTokens,
+          outputTokens: r.outputTokens,
+        })),
+        byFeature: (aiCostByFeatureRaw as { _id: string; costUsd: number }[]).map((r) => ({ feature: r._id, costUsd: r.costUsd })),
+        totalCostUsd: (aiCostByModelRaw as { costUsd: number }[]).reduce((sum, r) => sum + r.costUsd, 0),
+        dailySeries: (aiCostSeriesRaw as { _id: string; costUsd: number }[]).map((r) => ({ date: r._id, costUsd: r.costUsd })),
       },
     });
   } catch (err) {

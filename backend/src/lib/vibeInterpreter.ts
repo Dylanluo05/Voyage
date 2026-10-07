@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { recordAiCost } from './aiCost';
 
 const client = new Anthropic();
+const MODEL = 'claude-haiku-4-5-20251001';
 
 export interface SongSuggestion {
   title: string;
@@ -12,7 +14,7 @@ export async function interpretVibe(
   destination: string
 ): Promise<SongSuggestion[]> {
   const message = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: MODEL,
     max_tokens: 512,
     messages: [
       {
@@ -36,6 +38,8 @@ Respond with ONLY valid JSON, no explanation:
       },
     ],
   });
+
+  await recordAiCost(MODEL, 'vibe', message.usage);
 
   const text = message.content[0].type === 'text' ? message.content[0].text : '';
   const jsonMatch = text.match(/\[[\s\S]*\]/);

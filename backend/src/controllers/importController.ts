@@ -3,8 +3,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { HttpError } from '../middleware/error';
 import { checkAndIncrementQuota } from '../lib/aiQuota';
+import { recordAiCost } from '../lib/aiCost';
 
 const anthropic = new Anthropic();
+const MODEL = 'claude-haiku-4-5-20251001';
 
 const BodySchema = z.object({ text: z.string().min(1).max(12000) });
 
@@ -25,7 +27,7 @@ export async function parseHotelConfirmation(
     const { text } = BodySchema.parse(req.body);
 
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: MODEL,
       max_tokens: 1024,
       messages: [
         {
@@ -56,6 +58,7 @@ ${text}`,
       ],
     });
 
+    await recordAiCost(MODEL, 'import', message.usage);
     const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : '{}';
     res.json(extractJson(raw));
   } catch (err) {
@@ -74,7 +77,7 @@ export async function parseFlightConfirmation(
     const { text } = BodySchema.parse(req.body);
 
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: MODEL,
       max_tokens: 1024,
       messages: [
         {
@@ -112,6 +115,7 @@ ${text}`,
       ],
     });
 
+    await recordAiCost(MODEL, 'import', message.usage);
     const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : '{}';
     res.json(extractJson(raw));
   } catch (err) {
