@@ -219,9 +219,10 @@ export function removeExpense(tripId: string, expenseId: string): Promise<Trip> 
   });
 }
 
-export function settleSplit(tripId: string, expenseId: string, userId: string): Promise<Trip> {
+export function settleSplit(tripId: string, expenseId: string, userId: string, settled = true): Promise<Trip> {
   return apiFetch<Trip>(`/api/trips/${tripId}/expenses/${expenseId}/splits/${userId}`, {
     method: 'PATCH',
+    body: JSON.stringify({ settled }),
   });
 }
 

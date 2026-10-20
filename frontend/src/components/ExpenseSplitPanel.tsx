@@ -15,7 +15,7 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
         payer: currentUserId,
         title: '',
         amount: 0,
-        splits: [] as { userId: string; userName: string; amount: number; included: boolean }[],
+        splits: [] as { userId: string; userName: string; amount: number; base: number; included: boolean }[],
         tax: 0,
         tip: 0,
     });
@@ -26,25 +26,67 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
     const [showForm, setShowForm] = useState(false);
     const [splitMode, setSplitMode] = useState<'equal' | 'custom'>('equal');
 
-    const total = form.amount + form.tax + form.tip;
-    const splitSum = form.splits.filter(s => s.included).reduce((acc, s) => acc + s.amount, 0);
-    const remaining = total - splitSum;
+    const total = Math.round((form.amount + form.tax + form.tip) * 100) / 100;
+    const extras = form.tax + form.tip;
+    const baseSum = form.splits.filter(s => s.included).reduce((acc, s) => acc + s.base, 0);
+    // Custom mode: each person enters their pre-tax subtotal; tax + tip are spread proportionally.
+    const remaining = form.amount - baseSum;
+    const customAmounts = useMemo(() => {
+        const result: Record<string, number> = {};
+        const active = form.splits.filter(s => s.included);
+        if (baseSum <= 0) return result;
+        let allocated = 0;
+        active.forEach(s => {
+            result[s.userId] = Math.round((s.base + (extras * s.base) / baseSum) * 100) / 100;
+            allocated += result[s.userId];
+        });
+        // Push any rounding drift onto the largest share so the splits sum to the total exactly.
+        const target = Math.round((baseSum + extras) * 100) / 100;
+        const drift = Math.round((target - allocated) * 100) / 100;
+        if (drift !== 0) {
+            const largest = active.reduce((a, b) => (b.base > a.base ? b : a));
+            result[largest.userId] = Math.round((result[largest.userId] + drift) * 100) / 100;
+        }
+        return result;
+    }, [form.splits, baseSum, extras]);
 
     const members = useMemo(() => {
         return [
             { userId: trip.owner._id, userName: trip.owner._id === currentUserId ? 'You' : trip.owner.name },
-            ...trip.collaborators.map(c => ({ userId: c._id, userName: c.name })),
+            ...trip.collaborators.map(c => ({ userId: c._id, userName: c._id === currentUserId ? 'You' : c.name })),
         ];
-    }, [trip]);
+    }, [trip.owner, trip.collaborators, currentUserId]);
 
     useEffect(() => {
-        setForm(prev => ({ ...prev, splits: members.map(m => ({ ...m, included: true, amount: 0 })) }));
+        // Keep any in-progress entries when the trip refreshes (e.g. a collaborator's live update).
+        setForm(prev => ({
+            ...prev,
+            splits: members.map(m => {
+                const existing = prev.splits.find(s => s.userId === m.userId);
+                return existing ? { ...existing, userName: m.userName } : { ...m, included: true, amount: 0, base: 0 };
+            }),
+        }));
     }, [members]);
 
     function recalculateSplits(total: number, splits: typeof form.splits) {
         const included = splits.filter(s => s.included).length;
-        const share = included > 0 ? total / included : 0;
-        return splits.map(s => ({ ...s, amount: s.included ? share : 0 }));
+        if (included === 0) return splits.map(s => ({ ...s, amount: 0 }));
+        const totalCents = Math.round(total * 100);
+        const baseCents = Math.floor(totalCents / included);
+        // Spread leftover cents one each across the first few people so the shares sum exactly to the total.
+        let leftover = totalCents - baseCents * included;
+        return splits.map(s => {
+            if (!s.included) return { ...s, amount: 0 };
+            const cents = baseCents + (leftover > 0 ? 1 : 0);
+            if (leftover > 0) leftover--;
+            return { ...s, amount: cents / 100 };
+        });
+    }
+
+    // Stored names must never be the "You" label, since other viewers would read it as themselves.
+    function realName(userId: string, fallback: string) {
+        if (userId === trip.owner._id) return trip.owner.name;
+        return trip.collaborators.find(c => c._id === userId)?.name ?? fallback;
     }
 
     async function handleAdd(e: React.FormEvent) {
@@ -52,17 +94,19 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
         setSaving(true);
         setError('');
         try {
-            const activeSplits = form.splits.filter(s => s.included);
+            const activeSplits = form.splits
+                .filter(s => s.included)
+                .map(s => (splitMode === 'custom' ? { ...s, amount: customAmounts[s.userId] ?? 0 } : s));
             const payer = members.find(m => m.userId === form.payer) ?? members[0];
-            const payerRealName = payer.userId === trip.owner._id ? trip.owner.name : payer.userName;
+            const payerRealName = realName(payer.userId, payer.userName);
             const updated = await addExpense(trip._id, {
                 title: form.title,
                 amount: total,
                 paidBy: { userId: payer.userId, userName: payerRealName },
-                splits: activeSplits.map(({ userId, userName, amount }) => ({ userId, userName: userId === trip.owner._id ? trip.owner.name : userName, amount, settled: false })),
+                splits: activeSplits.map(({ userId, userName, amount }) => ({ userId, userName: realName(userId, userName), amount, settled: false })),
             });
             onUpdate(updated);
-            setForm({ payer: currentUserId, title: '', amount: 0, splits: members.map(m => ({ ...m, included: true, amount: 0 })), tax: 0, tip: 0 });
+            setForm({ payer: currentUserId, title: '', amount: 0, splits: members.map(m => ({ ...m, included: true, amount: 0, base: 0 })), tax: 0, tip: 0 });
             setShowForm(false);
             setSplitMode('equal');
         } catch (err) {
@@ -72,12 +116,12 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
         }
     }
 
-    async function handleSettle(expenseId: string, userId: string) {
+    async function handleSettle(expenseId: string, userId: string, settled = true) {
         const key = `${expenseId}-${userId}`;
         setSettlingId(key);
         setError('');
         try {
-            const updated = await settleSplit(trip._id, expenseId, userId);
+            const updated = await settleSplit(trip._id, expenseId, userId, settled);
             onUpdate(updated);
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
@@ -86,7 +130,8 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
         }
     }
 
-    async function handleRemove(expenseId: string) {
+    async function handleRemove(expenseId: string, title: string) {
+        if (!window.confirm(`Delete "${title}"? This can't be undone.`)) return;
         setRemovingId(expenseId);
         setError('');
         try {
@@ -106,7 +151,7 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
         for (const expense of trip.expenses) {
             const payerId = expense.paidBy.userId;
             for (const split of expense.splits) {
-                if (split.userId === payerId) continue;
+                if (split.userId === payerId || split.settled) continue;
                 if (!acc[split.userId]) acc[split.userId] = {};
                 acc[split.userId][payerId] = (acc[split.userId][payerId] ?? 0) + split.amount;
             }
@@ -135,6 +180,16 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
 
         return result;
     }, [trip.expenses, members]);
+
+    const myBalance = useMemo(() => {
+        let owed = 0;
+        let owe = 0;
+        for (const d of debts) {
+            if (d.toId === currentUserId) owed += d.amount;
+            if (d.fromId === currentUserId) owe += d.amount;
+        }
+        return { owed, owe, net: owed - owe };
+    }, [debts, currentUserId]);
 
     const totalSpent = useMemo(
         () => trip.expenses.reduce((sum, e) => sum + e.amount, 0),
@@ -252,7 +307,14 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                                     splits: recalculateSplits(prev.amount + prev.tax + prev.tip, prev.splits),
                                 }));
                             }} className={`split-toggle-btn ${splitMode === 'equal' ? 'active' : ''}`}>Equal</button>
-                            <button type="button" onClick={() => setSplitMode('custom')} className={`split-toggle-btn ${splitMode === 'custom' ? 'active' : ''}`}>Custom</button>
+                            <button type="button" onClick={() => {
+                                setSplitMode('custom');
+                                setForm(prev => {
+                                    const n = prev.splits.filter(s => s.included).length;
+                                    const share = n > 0 ? Math.round((prev.amount / n) * 100) / 100 : 0;
+                                    return { ...prev, splits: prev.splits.map(s => ({ ...s, base: s.included ? share : 0 })) };
+                                });
+                            }} className={`split-toggle-btn ${splitMode === 'custom' ? 'active' : ''}`}>Custom</button>
                         </div>
                         <p className="small muted" style={{ margin: '0 0 8px' }}>Split between</p>
                         {splitMode === 'equal' && form.splits.map(split => (
@@ -281,7 +343,7 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                                     onChange={() => {
                                         setForm(prev => {
                                             const updated = prev.splits.map(s =>
-                                                s.userId === split.userId ? { ...s, included: !s.included, amount: s.included ? 0 : s.amount } : s
+                                                s.userId === split.userId ? { ...s, included: !s.included, base: s.included ? 0 : s.base } : s
                                             );
                                             return {
                                                 ...prev, splits: updated
@@ -290,14 +352,18 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                                     }}
                                 />
                                 <span className="check-name">{split.userName}</span>
+                                {split.included && extras > 0 && baseSum > 0 && (
+                                    <span className="small muted">= ${(customAmounts[split.userId] ?? 0).toFixed(2)}</span>
+                                )}
                                 <input
                                     type="number"
                                     min="0"
                                     step="0.01"
-                                    value={split.amount || ''}
+                                    placeholder="Subtotal"
+                                    value={split.base || ''}
                                     onChange={(e) => {
                                         setForm(prev => {
-                                            const updated = prev.splits.map(s => s.userId === split.userId ? { ...s, amount: Number(e.target.value) || 0 } : s);
+                                            const updated = prev.splits.map(s => s.userId === split.userId ? { ...s, base: Number(e.target.value) || 0 } : s);
                                             return {
                                                 ...prev, splits: updated
                                             };
@@ -307,11 +373,11 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                             </label>
                         ))}
                         {splitMode === 'custom' && (
-                            <p className="small muted" style={{ color: Math.abs(remaining) > 0.01 ? 'var(--coral)' : 'var(--teal)' }}>Remaining: ${remaining.toFixed(2)}</p>
+                            <p className="small muted" style={{ color: Math.abs(remaining) > 0.01 ? 'var(--coral)' : 'var(--teal)' }}>Remaining subtotal: ${remaining.toFixed(2)}{extras > 0 ? ` · tax & tip ($${extras.toFixed(2)}) split proportionally` : ''}</p>
                         )}
                     </div>
                     {error && <p className="error">{error}</p>}
-                    <button type="submit" disabled={saving || !form.title || form.amount <= 0 || (splitMode === 'custom' && Math.abs(remaining) > 0.01)}>
+                    <button type="submit" disabled={saving || !form.title || form.amount <= 0 || !form.splits.some(s => s.included) || (splitMode === 'custom' && Math.abs(remaining) > 0.01)}>
                         {saving ? 'Adding…' : 'Add Expense'}
                     </button>
                 </form>
@@ -322,6 +388,20 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                 debts.length > 0 && (
                     <div className="expense-balances">
                         <h3 className="expense-section-title">Balances</h3>
+                        {currentUserId && (myBalance.owed > 0.005 || myBalance.owe > 0.005) && (
+                            <p className="balance-summary">
+                                {myBalance.net > 0.005 ? (
+                                    <>You're owed <strong className="balance-pos">${myBalance.net.toFixed(2)}</strong> overall</>
+                                ) : myBalance.net < -0.005 ? (
+                                    <>You owe <strong className="balance-neg">${(-myBalance.net).toFixed(2)}</strong> overall</>
+                                ) : (
+                                    <>You're all square overall</>
+                                )}
+                                {myBalance.owed > 0.005 && myBalance.owe > 0.005 && (
+                                    <span className="muted small"> (owed ${myBalance.owed.toFixed(2)}, owe ${myBalance.owe.toFixed(2)})</span>
+                                )}
+                            </p>
+                        )}
                         {debts.map(d => (
                             <div key={`${d.fromId}-${d.toId}`} className="balance-row balance-owes">
                                 <span className="balance-name">{d.fromName}</span>
@@ -349,7 +429,7 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                                             type="button"
                                             className="ghost small-btn expense-remove-btn"
                                             disabled={removingId === expense._id}
-                                            onClick={() => handleRemove(expense._id)}
+                                            onClick={() => handleRemove(expense._id, expense.title)}
                                         >
                                             {removingId === expense._id ? '…' : <Icon name="close" size={13} />}
                                         </button>
@@ -363,8 +443,22 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                                                 <span className="split-member">{split.userName}</span>
                                                 <span className="split-amt">${split.amount.toFixed(2)}</span>
                                                 {split.settled ? (
-                                                    <span className="settled-badge">Settled</span>
-                                                ) : (
+                                                    <>
+                                                        <span className="settled-badge">Settled</span>
+                                                        {(currentUserId === split.userId || currentUserId === expense.paidBy.userId) && (
+                                                            <button
+                                                                type="button"
+                                                                className="ghost small-btn"
+                                                                disabled={settlingId === key}
+                                                                onClick={() => handleSettle(expense._id, split.userId, false)}
+                                                            >
+                                                                {settlingId === key ? '…' : 'Undo'}
+                                                            </button>
+                                                        )}
+                                                    </>
+                                                ) : split.userId === expense.paidBy.userId ? (
+                                                    <span className="muted small">Paid</span>
+                                                ) : (currentUserId === split.userId || currentUserId === expense.paidBy.userId) ? (
                                                     <button
                                                         type="button"
                                                         className="ghost small-btn"
@@ -373,7 +467,7 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                                                     >
                                                         {settlingId === key ? '…' : 'Settle'}
                                                     </button>
-                                                )}
+                                                ) : null}
                                             </div>
                                         );
                                     })}

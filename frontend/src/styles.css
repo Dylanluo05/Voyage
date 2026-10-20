@@ -4077,6 +4077,19 @@ fieldset legend {
   font-weight: 600;
 }
 
+.balance-summary {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.balance-pos {
+  color: var(--teal);
+}
+
+.balance-neg {
+  color: var(--coral);
+}
+
 .balance-owed .balance-amount {
   color: var(--teal);
 }

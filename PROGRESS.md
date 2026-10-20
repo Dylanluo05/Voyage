@@ -6,6 +6,27 @@ architecture overview — this file is the narrative of how it got that way.
 
 ---
 
+## 2026-10-20
+
+### Expense split fixes and quality of life
+Custom splits now take each person's pre-tax subtotal and spread tax + tip
+across them proportionally, with cent rounding drift pushed onto the largest
+share so splits always sum to the total; equal splits are likewise computed
+in whole cents (leftover cents go to the first few people). Fixed a handful
+of bugs: settled splits were still counted in Balances, a live update from a
+collaborator reset the in-progress form, an equal split with nobody selected
+could be submitted, and "You" was being saved as a user name for
+collaborators. `addExpense` now validates server-side that the payer and
+split users are trip members, with no duplicates, and that split amounts add
+up to the total (within a cent per person). Added delete confirmation,
+Settle visibility limited to the payer/debtor, an Undo for settled splits
+(`PATCH .../splits/:userId` takes an optional `{ settled }` body, default
+true), and a "you're owed / you owe" summary atop Balances. **Known gaps:**
+no edit-expense flow, any collaborator can still delete any expense, and
+balances are netted per pair rather than minimized across the whole group.
+
+---
+
 ## 2026-10-06
 
 ### Sentry error tracking

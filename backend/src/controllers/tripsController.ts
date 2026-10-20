@@ -820,6 +820,16 @@ export async function addExpense(req: Request, res: Response, next: NextFunction
     }).parse(req.body);
     const trip = await Trip.findOne(accessFilter(req, req.params.id));
     if (!trip) throw new HttpError(404, 'Trip not found');
+    const memberIds = new Set([trip.owner.toString(), ...trip.collaborators.map(c => c.toString())]);
+    if (!memberIds.has(expense.paidBy.userId)) throw new HttpError(400, 'Payer is not a trip member');
+    if (expense.splits.length === 0) throw new HttpError(400, 'Select at least one person to split with');
+    const splitIds = expense.splits.map(s => s.userId);
+    if (new Set(splitIds).size !== splitIds.length) throw new HttpError(400, 'Duplicate person in split');
+    if (!splitIds.every(id => memberIds.has(id))) throw new HttpError(400, 'Split includes a non-member');
+    const splitTotal = expense.splits.reduce((sum, s) => sum + s.amount, 0);
+    if (Math.abs(splitTotal - expense.amount) > 0.01 * expense.splits.length) {
+      throw new HttpError(400, 'Split amounts must add up to the expense total');
+    }
     trip.expenses.push({
       title: expense.title,
       amount: expense.amount,
@@ -873,7 +883,8 @@ export async function settleSplit(req: Request, res: Response, next: NextFunctio
     const isDebtor = currentUid === req.params.userId;
     const isCreditor = currentUid === expense.paidBy.userId.toString();
     if (!isDebtor && !isCreditor) throw new HttpError(403, 'Not authorized to settle this split');
-    split.settled = true;
+    const { settled } = z.object({ settled: z.boolean().default(true) }).parse(req.body ?? {});
+    split.settled = settled;
     await trip.save();
     await trip.populate(COLLAB_POPULATE);
     res.json(trip);
