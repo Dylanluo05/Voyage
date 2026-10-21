@@ -213,6 +213,13 @@ export function addExpense(tripId: string, expense: Omit<Expense, '_id' | 'creat
   });
 }
 
+export function updateExpense(tripId: string, expenseId: string, expense: Omit<Expense, '_id' | 'createdAt'>): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/expenses/${expenseId}`, {
+    method: 'PUT',
+    body: JSON.stringify(expense),
+  });
+}
+
 export function removeExpense(tripId: string, expenseId: string): Promise<Trip> {
   return apiFetch<Trip>(`/api/trips/${tripId}/expenses/${expenseId}`, {
     method: 'DELETE',

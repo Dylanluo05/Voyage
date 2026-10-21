@@ -6,6 +6,25 @@ architecture overview — this file is the narrative of how it got that way.
 
 ---
 
+## 2026-10-21
+
+### Expense form redesign and editing
+Rebuilt the add-expense form to match the rest of the site: a large amount
+field up top, "paid by" pills instead of a dropdown, prefixed tax/tip inputs,
+an Equal/Custom pill switch, avatar-style member rows, and a summary card
+(subtotal/tax/tip/total plus a "left to assign" badge in Custom mode). Added
+editing of existing expenses via `PUT /api/trips/:id/expenses/:expenseId`,
+reusing the same form; add and edit now share one server-side validation
+helper. Only the payer or trip owner can edit. Shares with an unchanged
+person and amount keep their settled state, otherwise they reopen. **Tradeoff:**
+expenses only store final per-person totals, not the original subtotal/tax/tip,
+so editing opens in Custom mode with the stored amounts and hides tax/tip.
+**Known gaps:** a share belonging to someone removed from the trip is dropped
+from the edit form (the user must reassign it), any collaborator can still
+delete any expense, and the redesign hasn't been checked visually in a browser.
+
+---
+
 ## 2026-10-20
 
 ### Expense split fixes and quality of life

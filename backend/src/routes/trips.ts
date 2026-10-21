@@ -32,6 +32,7 @@ import {
   addFlight,
   removeFlight,
   addExpense,
+  updateExpense,
   removeExpense,
   settleSplit,
   updateDayAnchor,
@@ -106,6 +107,7 @@ router.delete('/:id/flights/:flightId', removeFlight);
 router.post('/:id/flights/parse', parseFlightConfirmation);
 
 router.post('/:id/expenses', addExpense);
+router.put('/:id/expenses/:expenseId', updateExpense);
 router.delete('/:id/expenses/:expenseId', removeExpense);
 router.patch('/:id/expenses/:expenseId/splits/:userId', settleSplit);
 

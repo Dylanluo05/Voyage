@@ -1,6 +1,6 @@
-import { useMemo, useState, useEffect } from "react";
-import { Trip } from "../types";
-import { addExpense, removeExpense, settleSplit } from "../api/trips";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { Trip, Expense } from "../types";
+import { addExpense, updateExpense, removeExpense, settleSplit } from "../api/trips";
 import { Icon } from "./Icon";
 import Reveal from "./Reveal";
 
@@ -25,6 +25,8 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
     const [error, setError] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [splitMode, setSplitMode] = useState<'equal' | 'custom'>('equal');
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const formRef = useRef<HTMLFormElement>(null);
 
     const total = Math.round((form.amount + form.tax + form.tip) * 100) / 100;
     const extras = form.tax + form.tip;
@@ -89,7 +91,50 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
         return trip.collaborators.find(c => c._id === userId)?.name ?? fallback;
     }
 
-    async function handleAdd(e: React.FormEvent) {
+    function blankForm() {
+        return { payer: currentUserId, title: '', amount: 0, splits: members.map(m => ({ ...m, included: true, amount: 0, base: 0 })), tax: 0, tip: 0 };
+    }
+
+    function closeForm() {
+        setShowForm(false);
+        setEditingId(null);
+        setSplitMode('equal');
+        setForm(blankForm());
+        setError('');
+    }
+
+    function openNewForm() {
+        setEditingId(null);
+        setSplitMode('equal');
+        setForm(blankForm());
+        setError('');
+        setShowForm(true);
+    }
+
+    function openEditForm(expense: Expense) {
+        // Stored expenses only keep the final per-person totals, so edits start in custom mode with those amounts.
+        setEditingId(expense._id);
+        setSplitMode('custom');
+        setError('');
+        setForm({
+            payer: expense.paidBy.userId,
+            title: expense.title,
+            amount: expense.amount,
+            tax: 0,
+            tip: 0,
+            splits: members.map(m => {
+                const existing = expense.splits.find(sp => sp.userId === m.userId);
+                return { ...m, included: !!existing, amount: existing?.amount ?? 0, base: existing?.amount ?? 0 };
+            }),
+        });
+        setShowForm(true);
+    }
+
+    useEffect(() => {
+        if (showForm) formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, [showForm, editingId]);
+
+    async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setSaving(true);
         setError('');
@@ -98,17 +143,17 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                 .filter(s => s.included)
                 .map(s => (splitMode === 'custom' ? { ...s, amount: customAmounts[s.userId] ?? 0 } : s));
             const payer = members.find(m => m.userId === form.payer) ?? members[0];
-            const payerRealName = realName(payer.userId, payer.userName);
-            const updated = await addExpense(trip._id, {
-                title: form.title,
+            const payload = {
+                title: form.title.trim(),
                 amount: total,
-                paidBy: { userId: payer.userId, userName: payerRealName },
+                paidBy: { userId: payer.userId, userName: realName(payer.userId, payer.userName) },
                 splits: activeSplits.map(({ userId, userName, amount }) => ({ userId, userName: realName(userId, userName), amount, settled: false })),
-            });
+            };
+            const updated = editingId
+                ? await updateExpense(trip._id, editingId, payload)
+                : await addExpense(trip._id, payload);
             onUpdate(updated);
-            setForm({ payer: currentUserId, title: '', amount: 0, splits: members.map(m => ({ ...m, included: true, amount: 0, base: 0 })), tax: 0, tip: 0 });
-            setShowForm(false);
-            setSplitMode('equal');
+            closeForm();
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
         } finally {
@@ -207,42 +252,31 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                         </p>
                     )}
                 </div>
-                <button type="button" className="ghost small-btn" onClick={() => {
-                    setShowForm(f => !f);
-                    setSplitMode('equal');
-                }}>
+                <button type="button" className="ghost small-btn" onClick={() => (showForm ? closeForm() : openNewForm())}>
                     {showForm ? 'Cancel' : '+ Add Expense'}
                 </button>
             </div>
 
             {showForm && (
-                <form onSubmit={handleAdd} className="expense-form">
-                    <div className="expense-form-row">
-                        <label>
-                            Who's Paying?
-                            <select value={form.payer} onChange={e => setForm(prev => ({ ...prev, payer: e.target.value }))} required>
-                                {members.map(m => (
-                                    <option key={m.userId} value={m.userId}>{m.userName}</option>
-                                ))}
-                            </select>
-                        </label>
+                <form ref={formRef} onSubmit={handleSubmit} className="xf">
+                    <div className="xf-head">
+                        <h3 className="xf-title">{editingId ? 'Edit expense' : 'New expense'}</h3>
+                        <button type="button" className="xf-icon-btn" onClick={closeForm} aria-label="Close form">
+                            <Icon name="close" size={16} />
+                        </button>
                     </div>
-                    <div className="expense-form-row">
-                        <label>
-                            Description
+
+                    <div className="xf-amount">
+                        <span className="xf-amount-label">{editingId ? 'Total' : 'Amount'}</span>
+                        <div className="xf-amount-field">
+                            <span className="xf-currency">$</span>
                             <input
-                                value={form.title}
-                                onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
-                                placeholder="Dinner, taxi, hotel…"
-                                required
-                            />
-                        </label>
-                        <label>
-                            Amount ($)
-                            <input
+                                className="xf-amount-input"
                                 type="number"
+                                inputMode="decimal"
                                 min="0"
                                 step="0.01"
+                                placeholder="0.00"
                                 value={form.amount || ''}
                                 onChange={e => {
                                     const newAmount = Number(e.target.value) || 0;
@@ -255,134 +289,238 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                                     }));
                                 }}
                                 required
+                                autoFocus={!editingId}
                             />
-                        </label>
-                    </div>
-                    <div className="expense-form-row">
-                        <label>
-                            Tax ($)
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={form.tax || ''}
-                                onChange={e => {
-                                    const newTax = Number(e.target.value) || 0;
-                                    setForm(prev => ({
-                                        ...prev,
-                                        tax: newTax,
-                                        splits: splitMode === 'equal'
-                                            ? recalculateSplits(prev.amount + newTax + prev.tip, prev.splits)
-                                            : prev.splits,
-                                    }));
-                                }}
-                            />
-                        </label>
-                        <label>
-                            Tip ($)
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={form.tip || ''}
-                                onChange={e => {
-                                    const newTip = Number(e.target.value) || 0;
-                                    setForm(prev => ({
-                                        ...prev,
-                                        tip: newTip,
-                                        splits: splitMode === 'equal'
-                                            ? recalculateSplits(prev.amount + prev.tax + newTip, prev.splits)
-                                            : prev.splits,
-                                    }));
-                                }}
-                            />
-                        </label>
-                    </div>
-                    <div className="expense-split-checks">
-                        <div className="split-toggle">
-                            <button type="button" onClick={() => {
-                                setSplitMode('equal');
-                                setForm(prev => ({
-                                    ...prev,
-                                    splits: recalculateSplits(prev.amount + prev.tax + prev.tip, prev.splits),
-                                }));
-                            }} className={`split-toggle-btn ${splitMode === 'equal' ? 'active' : ''}`}>Equal</button>
-                            <button type="button" onClick={() => {
-                                setSplitMode('custom');
-                                setForm(prev => {
-                                    const n = prev.splits.filter(s => s.included).length;
-                                    const share = n > 0 ? Math.round((prev.amount / n) * 100) / 100 : 0;
-                                    return { ...prev, splits: prev.splits.map(s => ({ ...s, base: s.included ? share : 0 })) };
-                                });
-                            }} className={`split-toggle-btn ${splitMode === 'custom' ? 'active' : ''}`}>Custom</button>
                         </div>
-                        <p className="small muted" style={{ margin: '0 0 8px' }}>Split between</p>
-                        {splitMode === 'equal' && form.splits.map(split => (
-                            <label key={split.userId} className="expense-check-row">
-                                <input
-                                    type="checkbox"
-                                    checked={split.included}
-                                    onChange={() => {
-                                        setForm(prev => {
-                                            const updated = prev.splits.map(s =>
-                                                s.userId === split.userId ? { ...s, included: !s.included } : s
-                                            );
-                                            return { ...prev, splits: recalculateSplits(prev.amount + prev.tax + prev.tip, updated) };
-                                        });
-                                    }}
-                                />
-                                <span className="check-name">{split.userName}</span>
-                                <span className="check-amount">${split.amount.toFixed(2)}</span>
+                    </div>
+
+                    <label className="xf-field">
+                        <span className="xf-label">Description</span>
+                        <input
+                            value={form.title}
+                            onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
+                            placeholder="Dinner, taxi, hotel…"
+                            maxLength={80}
+                            required
+                        />
+                    </label>
+
+                    <div className="xf-field">
+                        <span className="xf-label">Paid by</span>
+                        <div className="xf-chips" role="radiogroup" aria-label="Paid by">
+                            {members.map(m => (
+                                <button
+                                    key={m.userId}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={form.payer === m.userId}
+                                    className={`xf-chip ${form.payer === m.userId ? 'is-on' : ''}`}
+                                    onClick={() => setForm(prev => ({ ...prev, payer: m.userId }))}
+                                >
+                                    {m.userName}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {!editingId && (
+                        <div className="xf-row">
+                            <label className="xf-field">
+                                <span className="xf-label">Tax <span className="xf-optional">optional</span></span>
+                                <div className="xf-prefixed">
+                                    <span>$</span>
+                                    <input
+                                        type="number"
+                                        inputMode="decimal"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={form.tax || ''}
+                                        onChange={e => {
+                                            const newTax = Number(e.target.value) || 0;
+                                            setForm(prev => ({
+                                                ...prev,
+                                                tax: newTax,
+                                                splits: splitMode === 'equal'
+                                                    ? recalculateSplits(prev.amount + newTax + prev.tip, prev.splits)
+                                                    : prev.splits,
+                                            }));
+                                        }}
+                                    />
+                                </div>
                             </label>
-                        ))}
-                        {splitMode === 'custom' && form.splits.map(split => (
-                            <label key={split.userId} className="expense-check-row">
-                                <input
-                                    type="checkbox"
-                                    checked={split.included}
-                                    onChange={() => {
-                                        setForm(prev => {
-                                            const updated = prev.splits.map(s =>
-                                                s.userId === split.userId ? { ...s, included: !s.included, base: s.included ? 0 : s.base } : s
-                                            );
-                                            return {
-                                                ...prev, splits: updated
-                                            };
-                                        });
-                                    }}
-                                />
-                                <span className="check-name">{split.userName}</span>
-                                {split.included && extras > 0 && baseSum > 0 && (
-                                    <span className="small muted">= ${(customAmounts[split.userId] ?? 0).toFixed(2)}</span>
-                                )}
-                                <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="Subtotal"
-                                    value={split.base || ''}
-                                    onChange={(e) => {
-                                        setForm(prev => {
-                                            const updated = prev.splits.map(s => s.userId === split.userId ? { ...s, base: Number(e.target.value) || 0 } : s);
-                                            return {
-                                                ...prev, splits: updated
-                                            };
-                                        });
-                                    }}
-                                />
+                            <label className="xf-field">
+                                <span className="xf-label">Tip <span className="xf-optional">optional</span></span>
+                                <div className="xf-prefixed">
+                                    <span>$</span>
+                                    <input
+                                        type="number"
+                                        inputMode="decimal"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={form.tip || ''}
+                                        onChange={e => {
+                                            const newTip = Number(e.target.value) || 0;
+                                            setForm(prev => ({
+                                                ...prev,
+                                                tip: newTip,
+                                                splits: splitMode === 'equal'
+                                                    ? recalculateSplits(prev.amount + prev.tax + newTip, prev.splits)
+                                                    : prev.splits,
+                                            }));
+                                        }}
+                                    />
+                                </div>
                             </label>
-                        ))}
+                        </div>
+                    )}
+
+                    <div className="xf-split">
+                        <div className="xf-split-head">
+                            <span className="xf-label">Split between</span>
+                            <div className="xf-seg" role="tablist" aria-label="Split mode">
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={splitMode === 'equal'}
+                                    className={splitMode === 'equal' ? 'is-on' : ''}
+                                    onClick={() => {
+                                        setSplitMode('equal');
+                                        setForm(prev => ({
+                                            ...prev,
+                                            splits: recalculateSplits(prev.amount + prev.tax + prev.tip, prev.splits),
+                                        }));
+                                    }}
+                                >Equal</button>
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={splitMode === 'custom'}
+                                    className={splitMode === 'custom' ? 'is-on' : ''}
+                                    onClick={() => {
+                                        if (splitMode === 'custom') return;
+                                        setSplitMode('custom');
+                                        setForm(prev => {
+                                            const n = prev.splits.filter(s => s.included).length;
+                                            const share = n > 0 ? Math.round((prev.amount / n) * 100) / 100 : 0;
+                                            return { ...prev, splits: prev.splits.map(s => ({ ...s, base: s.included ? share : 0 })) };
+                                        });
+                                    }}
+                                >Custom</button>
+                            </div>
+                        </div>
+
                         {splitMode === 'custom' && (
-                            <p className="small muted" style={{ color: Math.abs(remaining) > 0.01 ? 'var(--coral)' : 'var(--teal)' }}>Remaining subtotal: ${remaining.toFixed(2)}{extras > 0 ? ` · tax & tip ($${extras.toFixed(2)}) split proportionally` : ''}</p>
+                            <p className="xf-hint">
+                                {editingId
+                                    ? 'Enter what each person owes. Switch to Equal to split evenly.'
+                                    : 'Enter each person\u2019s share before tax and tip. Tax and tip are added in proportion.'}
+                            </p>
+                        )}
+
+                        <div className="xf-members">
+                            {form.splits.map(split => {
+                                const toggle = () => setForm(prev => {
+                                    const updated = prev.splits.map(s =>
+                                        s.userId === split.userId
+                                            ? { ...s, included: !s.included, base: s.included ? 0 : s.base }
+                                            : s
+                                    );
+                                    return {
+                                        ...prev,
+                                        splits: splitMode === 'equal'
+                                            ? recalculateSplits(prev.amount + prev.tax + prev.tip, updated)
+                                            : updated,
+                                    };
+                                });
+                                const finalAmount = splitMode === 'custom' ? (customAmounts[split.userId] ?? 0) : split.amount;
+                                return (
+                                    <div key={split.userId} className={`xf-member ${split.included ? 'is-on' : ''}`}>
+                                        <button
+                                            type="button"
+                                            className="xf-member-toggle"
+                                            role="checkbox"
+                                            aria-checked={split.included}
+                                            onClick={toggle}
+                                        >
+                                            <span className="xf-avatar">
+                                                {split.included ? <Icon name="check" size={14} weight="bold" /> : split.userName.charAt(0).toUpperCase()}
+                                            </span>
+                                            <span className="xf-member-name">{split.userName}</span>
+                                        </button>
+                                        {splitMode === 'equal' ? (
+                                            <span className="xf-member-amt">{split.included ? `$${split.amount.toFixed(2)}` : '\u2014'}</span>
+                                        ) : split.included ? (
+                                            <div className="xf-member-custom">
+                                                <div className="xf-prefixed xf-prefixed-sm">
+                                                    <span>$</span>
+                                                    <input
+                                                        type="number"
+                                                        inputMode="decimal"
+                                                        min="0"
+                                                        step="0.01"
+                                                        placeholder="0.00"
+                                                        aria-label={`${split.userName} share`}
+                                                        value={split.base || ''}
+                                                        onChange={e => {
+                                                            const v = Number(e.target.value) || 0;
+                                                            setForm(prev => ({
+                                                                ...prev,
+                                                                splits: prev.splits.map(s => s.userId === split.userId ? { ...s, base: v } : s),
+                                                            }));
+                                                        }}
+                                                    />
+                                                </div>
+                                                {extras > 0 && baseSum > 0 && (
+                                                    <span className="xf-member-final">${finalAmount.toFixed(2)} with tax &amp; tip</span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="xf-member-amt">{'\u2014'}</span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="xf-summary">
+                        {(form.tax > 0 || form.tip > 0) && (
+                            <>
+                                <div><span>Subtotal</span><span>${form.amount.toFixed(2)}</span></div>
+                                {form.tax > 0 && <div><span>Tax</span><span>${form.tax.toFixed(2)}</span></div>}
+                                {form.tip > 0 && <div><span>Tip</span><span>${form.tip.toFixed(2)}</span></div>}
+                            </>
+                        )}
+                        <div className="xf-summary-total"><span>Total</span><span>${total.toFixed(2)}</span></div>
+                        {splitMode === 'custom' && form.amount > 0 && (
+                            <div className={`xf-remaining ${Math.abs(remaining) > 0.01 ? 'is-off' : 'is-ok'}`}>
+                                {Math.abs(remaining) <= 0.01
+                                    ? 'Fully assigned'
+                                    : remaining > 0
+                                        ? `$${remaining.toFixed(2)} left to assign`
+                                        : `$${(-remaining).toFixed(2)} over`}
+                            </div>
+                        )}
+                        {editingId && trip.expenses.find(x => x._id === editingId)?.splits.some(sp => sp.settled) && (
+                            <p className="xf-hint" style={{ margin: '6px 0 0' }}>Settled shares are reopened if their amount changes.</p>
                         )}
                     </div>
+
                     {error && <p className="error">{error}</p>}
-                    <button type="submit" disabled={saving || !form.title || form.amount <= 0 || !form.splits.some(s => s.included) || (splitMode === 'custom' && Math.abs(remaining) > 0.01)}>
-                        {saving ? 'Adding…' : 'Add Expense'}
-                    </button>
+                    <div className="xf-actions">
+                        <button type="button" className="xf-btn-ghost" onClick={closeForm}>Cancel</button>
+                        <button
+                            type="submit"
+                            className="xf-btn-primary"
+                            disabled={saving || !form.title.trim() || form.amount <= 0 || !form.splits.some(s => s.included) || (splitMode === 'custom' && Math.abs(remaining) > 0.01)}
+                        >
+                            {saving ? 'Saving…' : editingId ? 'Save changes' : 'Add expense'}
+                        </button>
+                    </div>
                 </form>
-            )
-            }
+            )}
 
             {
                 debts.length > 0 && (
@@ -425,6 +563,16 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                         <span className="expense-total">${expense.amount.toFixed(2)}</span>
+                                        {(currentUserId === expense.paidBy.userId || currentUserId === trip.owner._id) && (
+                                            <button
+                                                type="button"
+                                                className="ghost small-btn expense-remove-btn"
+                                                aria-label={`Edit ${expense.title}`}
+                                                onClick={() => openEditForm(expense)}
+                                            >
+                                                <Icon name="pencil" size={13} />
+                                            </button>
+                                        )}
                                         <button
                                             type="button"
                                             className="ghost small-btn expense-remove-btn"

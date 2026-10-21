@@ -809,27 +809,37 @@ export async function removeFlight(req: Request, res: Response, next: NextFuncti
 
 
 // ── Expenses ──────────────────────────────────────────────────────────────────
+const expenseBodySchema = z.object({
+  title: z.string().trim().min(1),
+  amount: z.number().min(0),
+  paidBy: z.object({ userId: z.string(), userName: z.string().min(1) }),
+  splits: z.array(z.object({ userId: z.string(), userName: z.string().min(1), amount: z.number().min(0) })),
+});
+
+// Shared by add + edit: payer/splits must be trip members, unique, and sum to the total.
+function validateExpenseBody(
+  trip: { owner: Types.ObjectId; collaborators: Types.ObjectId[] },
+  expense: z.infer<typeof expenseBodySchema>
+): void {
+  const memberIds = new Set([trip.owner.toString(), ...trip.collaborators.map(c => c.toString())]);
+  if (!memberIds.has(expense.paidBy.userId)) throw new HttpError(400, 'Payer is not a trip member');
+  if (expense.splits.length === 0) throw new HttpError(400, 'Select at least one person to split with');
+  const splitIds = expense.splits.map(s => s.userId);
+  if (new Set(splitIds).size !== splitIds.length) throw new HttpError(400, 'Duplicate person in split');
+  if (!splitIds.every(id => memberIds.has(id))) throw new HttpError(400, 'Split includes a non-member');
+  const splitTotal = expense.splits.reduce((sum, s) => sum + s.amount, 0);
+  if (Math.abs(splitTotal - expense.amount) > 0.01 * expense.splits.length) {
+    throw new HttpError(400, 'Split amounts must add up to the expense total');
+  }
+}
+
 export async function addExpense(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     ensureValidObjectId(req.params.id, 'trip id');
-    const expense = z.object({
-      title: z.string().min(1),
-      amount: z.number().min(0),
-      paidBy: z.object({ userId: z.string(), userName: z.string().min(1) }),
-      splits: z.array(z.object({ userId: z.string(), userName: z.string().min(1), amount: z.number().min(0) })),
-    }).parse(req.body);
+    const expense = expenseBodySchema.parse(req.body);
     const trip = await Trip.findOne(accessFilter(req, req.params.id));
     if (!trip) throw new HttpError(404, 'Trip not found');
-    const memberIds = new Set([trip.owner.toString(), ...trip.collaborators.map(c => c.toString())]);
-    if (!memberIds.has(expense.paidBy.userId)) throw new HttpError(400, 'Payer is not a trip member');
-    if (expense.splits.length === 0) throw new HttpError(400, 'Select at least one person to split with');
-    const splitIds = expense.splits.map(s => s.userId);
-    if (new Set(splitIds).size !== splitIds.length) throw new HttpError(400, 'Duplicate person in split');
-    if (!splitIds.every(id => memberIds.has(id))) throw new HttpError(400, 'Split includes a non-member');
-    const splitTotal = expense.splits.reduce((sum, s) => sum + s.amount, 0);
-    if (Math.abs(splitTotal - expense.amount) > 0.01 * expense.splits.length) {
-      throw new HttpError(400, 'Split amounts must add up to the expense total');
-    }
+    validateExpenseBody(trip, expense);
     trip.expenses.push({
       title: expense.title,
       amount: expense.amount,
@@ -847,6 +857,41 @@ export async function addExpense(req: Request, res: Response, next: NextFunction
     await trip.save();
     await trip.populate(COLLAB_POPULATE);
     res.status(201).json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateExpense(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const body = expenseBodySchema.parse(req.body);
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    const expense = trip.expenses.find((e) => e._id?.toString() === req.params.expenseId);
+    if (!expense) throw new HttpError(404, 'Expense not found');
+    const currentUid = ownerId(req).toString();
+    if (currentUid !== expense.paidBy.userId.toString() && currentUid !== trip.owner.toString()) {
+      throw new HttpError(403, 'Only the payer or trip owner can edit this expense');
+    }
+    validateExpenseBody(trip, body);
+    // A split that is unchanged (same person, same amount) keeps its settled state.
+    const previous = new Map(expense.splits.map(s => [s.userId.toString(), s]));
+    expense.title = body.title;
+    expense.amount = body.amount;
+    expense.paidBy = { userId: new Types.ObjectId(body.paidBy.userId), userName: body.paidBy.userName };
+    expense.splits = body.splits.map(s => {
+      const old = previous.get(s.userId);
+      return {
+        userId: new Types.ObjectId(s.userId),
+        userName: s.userName,
+        amount: s.amount,
+        settled: !!old && old.settled && Math.abs(old.amount - s.amount) < 0.005,
+      };
+    }) as typeof expense.splits;
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
   } catch (err) {
     next(err);
   }
