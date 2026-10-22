@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { Types } from 'mongoose';
 import { HttpError } from '../middleware/error';
 import { User } from '../models/User';
+import { httpsUrl } from '../lib/urls';
 import { deleteAccount as deleteAccountData } from '../lib/accountDeletion';
 
 function ownerId(req: Request): Types.ObjectId {
@@ -27,7 +28,7 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
         const { bio, wishlist, avatarUrl } = z.object({
             bio: z.string().max(300).optional(),
             wishlist: z.array(z.string().min(1)).optional(),
-            avatarUrl: z.string().url().optional().or(z.literal('')),
+            avatarUrl: httpsUrl.optional().or(z.literal('')),
         }).parse(req.body);
         const user = await User.findById(ownerId(req)).select('name email bio wishlist avatarUrl badges xp sidequestHistory createdAt');
         if (!user) throw new HttpError(404, 'User not found');

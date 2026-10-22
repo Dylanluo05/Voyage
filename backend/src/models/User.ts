@@ -16,6 +16,8 @@ export interface UserDoc extends Document {
   email: string;
   passwordHash?: string;
   googleId?: string;
+  /** false = signed up with email but never proved ownership; undefined = legacy account. */
+  emailVerified?: boolean;
   name: string;
   bio?: string;
   wishlist: string[];
@@ -83,6 +85,7 @@ const userSchema = new Schema<UserDoc>(
     },
     passwordHash: { type: String },
     googleId: { type: String },
+    emailVerified: { type: Boolean },
     name: { type: String, required: true, trim: true },
     bio: { type: String, trim: true, maxlength: 300 },
     wishlist: { type: [String], default: [] },

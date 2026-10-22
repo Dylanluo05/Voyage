@@ -52,6 +52,7 @@ export async function resetPassword(token: string, newPassword: string): Promise
   }
 
   user.passwordHash = await hashPassword(newPassword);
+  user.emailVerified = true; // they received the reset email
   await user.save();
   await doc.deleteOne();
 

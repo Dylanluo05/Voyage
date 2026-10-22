@@ -1,5 +1,6 @@
 import './instrument';
-import express from 'express';
+import * as Sentry from '@sentry/node';
+import express, { raw } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import helmet from 'helmet';
@@ -18,6 +19,7 @@ import transitRouter from './routes/transit';
 import reportsRouter from './routes/reports';
 import adminRouter from './routes/admin';
 import { errorHandler } from './middleware/error';
+import { stripeWebhook } from './controllers/billingController';
 
 async function main(): Promise<void> {
   await connectDb();
@@ -26,10 +28,22 @@ async function main(): Promise<void> {
   app.set('trust proxy', 1);
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.use(cors({ origin: env.clientOrigins, credentials: true, exposedHeaders: ['Content-Disposition'] }));
-  app.use(express.json({ limit: '5mb' }));
   app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
 
-  const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
+  // Stripe signature verification needs the unparsed body, so this must be
+  // registered before express.json() below.
+  app.post('/api/billing/webhook', raw({ type: 'application/json' }), stripeWebhook);
+
+  app.use(express.json({ limit: '1mb' }));
+
+  // /me runs on every page load, so it must not eat the login brute-force budget.
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => req.path === '/me',
+  });
   const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300, standardHeaders: true, legacyHeaders: false });
 
   app.get('/api/health', (_req, res) => {
@@ -61,6 +75,12 @@ async function main(): Promise<void> {
     console.log(`[api] listening on http://localhost:${env.port}`);
   });
 }
+
+process.on('unhandledRejection', (reason) => {
+  // eslint-disable-next-line no-console
+  console.error('[unhandledRejection]', reason);
+  Sentry.captureException(reason);
+});
 
 main().catch((err) => {
   // eslint-disable-next-line no-console

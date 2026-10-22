@@ -1,12 +1,10 @@
-import { Router, raw } from 'express';
+import { Router } from 'express';
 import { requireAuth } from '../middleware/auth';
-import { createCheckoutSession, createPortalSession, stripeWebhook, getBillingStatus } from '../controllers/billingController';
+import { createCheckoutSession, createPortalSession, getBillingStatus } from '../controllers/billingController';
 
 const router = Router();
 
-// Raw body required for Stripe signature verification
-router.post('/webhook', raw({ type: 'application/json' }), stripeWebhook);
-
+// The Stripe webhook is mounted in index.ts, before express.json().
 router.use(requireAuth);
 router.get('/status', getBillingStatus);
 router.post('/checkout', createCheckoutSession);

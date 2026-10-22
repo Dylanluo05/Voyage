@@ -21,6 +21,16 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     res.status(err.status).json({ error: err.message });
     return;
   }
+  // body-parser failures (malformed JSON, payload too large) are client errors.
+  const bodyErr = err as { type?: string; status?: number };
+  if (bodyErr?.type === 'entity.too.large') {
+    res.status(413).json({ error: 'Request body too large' });
+    return;
+  }
+  if (bodyErr?.type === 'entity.parse.failed') {
+    res.status(400).json({ error: 'Malformed JSON body' });
+    return;
+  }
   // eslint-disable-next-line no-console
   console.error('[error]', err);
   Sentry.captureException(err);

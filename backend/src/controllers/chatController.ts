@@ -113,14 +113,19 @@ export async function tripChat(req: Request, res: Response, next: NextFunction):
     const trip = await Trip.findOne(accessFilter(req, req.params.id));
     if (!trip) { next(new HttpError(404, 'Trip not found')); return; }
 
-    const { remaining } = await checkAndIncrementQuota(req.user.sub);
-
-    const { messages } = z.object({
+    // Validate first so a malformed request doesn't burn a quota unit.
+    const parsed = z.object({
       messages: z.array(z.object({
         role: z.enum(['user', 'assistant']),
-        content: z.string(),
-      })).min(1),
+        content: z.string().min(1).max(4000),
+      })).min(1).max(100),
     }).parse(req.body);
+    const messages = parsed.messages.slice(-20);
+    // The API requires the conversation to open with a user turn.
+    while (messages.length > 0 && messages[0].role !== 'user') messages.shift();
+    if (messages.length === 0) throw new HttpError(400, 'Conversation must include a user message');
+
+    const { remaining } = await checkAndIncrementQuota(req.user.sub);
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -150,13 +155,16 @@ ${itinerarySummary}
 Answer travel questions and help the user plan their trip. When they ask to add places or plan a day, use the tools. When they ask for photos or pictures for activities, use the add_photos tool with the exact item titles. Photos are added automatically when new items are created. Be concise and practical.`;
 
     // Stream Claude's initial response
+    const abort = new AbortController();
+    res.on('close', () => { if (!res.writableEnded) abort.abort(); });
+
     const stream = anthropic.messages.stream({
       model: MODEL,
       max_tokens: 2048,
       system: systemPrompt,
       tools,
-      messages: messages.slice(-20).map(m => ({ role: m.role, content: m.content })),
-    });
+      messages: messages.map(m => ({ role: m.role, content: m.content })),
+    }, { signal: abort.signal });
 
     for await (const event of stream) {
       if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
@@ -174,11 +182,11 @@ Answer travel questions and help the user plan their trip. When they ask to add 
 
       if (block.name === 'add_itinerary_items') {
         type ItemInput = { title: string; day: number; address?: string; startTime?: string; endTime?: string; category?: string; notes?: string };
-        const items = input.items as ItemInput[];
+        const items = (Array.isArray(input.items) ? (input.items as ItemInput[]) : []).slice(0, 3).filter(i => typeof i?.title === 'string');
         const addedTitles: string[] = [];
 
         for (const item of items) {
-          const clampedDay = Math.max(1, Math.min(totalDays, item.day));
+          const clampedDay = Math.max(1, Math.min(totalDays, Math.round(Number(item.day)) || 1));
           const maxPos = trip.items.filter(i => i.day === clampedDay).reduce((m, i) => Math.max(m, i.position), -1);
           const imageUrl = await fetchPexelsPhoto(`${item.title} ${trip.destination}`);
           trip.items.push({
@@ -197,14 +205,14 @@ Answer travel questions and help the user plan their trip. When they ask to add 
 
         await trip.save();
         toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: `Added ${addedTitles.length} item(s).` });
-        res.write(`event: tool_result\ndata: ${JSON.stringify({ action: 'add_items', items: addedTitles, day: (input.items as ItemInput[])[0]?.day })}\n\n`);
+        res.write(`event: tool_result\ndata: ${JSON.stringify({ action: 'add_items', items: addedTitles, day: items[0]?.day })}\n\n`);
       }
 
       if (block.name === 'replace_day') {
         type DayItem = { title: string; startTime?: string; endTime?: string; category?: string; notes?: string };
         const day = input.day as number;
-        const items = input.items as DayItem[];
-        const clampedDay = Math.max(1, Math.min(totalDays, day));
+        const items = (Array.isArray(input.items) ? (input.items as DayItem[]) : []).slice(0, 12).filter(i => typeof i?.title === 'string');
+        const clampedDay = Math.max(1, Math.min(totalDays, Math.round(Number(day)) || 1));
 
         const toRemove = trip.items.filter(i => i.day === clampedDay).map(i => i._id);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -253,7 +261,7 @@ Answer travel questions and help the user plan their trip. When they ask to add 
         system: systemPrompt,
         tools,
         messages: [
-          ...messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+          ...messages.map(m => ({ role: m.role, content: m.content })),
           { role: 'assistant', content: finalMessage.content },
           { role: 'user', content: toolResults },
         ],

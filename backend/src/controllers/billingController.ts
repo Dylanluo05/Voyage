@@ -27,6 +27,11 @@ export async function createCheckoutSession(req: Request, res: Response, next: N
     const user = await User.findById(req.user.sub).select('email aiUsage');
     if (!user) { next(new HttpError(404, 'User not found')); return; }
 
+    if (user.aiUsage?.stripeSubscriptionId) {
+      next(new HttpError(409, 'You already have an active subscription. Use "Manage billing" to change plans.'));
+      return;
+    }
+
     // If they already have a Stripe customer, attach to it
     const customerParam = user.aiUsage?.stripeCustomerId
       ? { customer: user.aiUsage.stripeCustomerId }

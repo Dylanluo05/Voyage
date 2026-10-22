@@ -13,6 +13,10 @@ import { createSseToken, consumeSseToken } from '../lib/sseTokens';
 import { sendTripInviteEmail } from '../lib/mailer';
 import { buildTripIcs, sanitizeFilename } from '../lib/calendar';
 import { env } from '../config/env';
+import { httpsUrl, uploadedPhotoUrl } from '../lib/urls';
+
+const MAX_ITEMS_PER_TRIP = 500;
+const MAX_LOG_PHOTOS_PER_TRIP = 200;
 
 const locationSchema = z
   .object({
@@ -31,7 +35,7 @@ const itemSchema = z.object({
   title: z.string().min(1).max(200),
   notes: z.string().max(2000).optional(),
   location: locationSchema,
-  imageUrl: z.string().url().optional(),
+  imageUrl: httpsUrl.optional(),
   cost: z.number().min(0).max(1_000_000).optional(),
   category: z.enum(['food', 'activity', 'attraction']).optional(),
 });
@@ -173,6 +177,7 @@ export async function addItem(req: Request, res: Response, next: NextFunction): 
     const trip = await Trip.findOne(accessFilter(req, req.params.id));
     if (!trip) throw new HttpError(404, 'Trip not found');
 
+    if (trip.items.length >= MAX_ITEMS_PER_TRIP) throw new HttpError(400, `A trip can have at most ${MAX_ITEMS_PER_TRIP} items`);
     const sameDayCount = trip.items.filter((i) => i.day === data.day).length;
     const newItem: ItineraryItemData = {
       ...data,
@@ -191,11 +196,14 @@ export async function updateItem(req: Request, res: Response, next: NextFunction
   try {
     ensureValidObjectId(req.params.id, 'trip id');
     ensureValidObjectId(req.params.itemId, 'item id');
-    const data = itemSchema.partial().parse(req.body);
     const trip = await Trip.findOne(accessFilter(req, req.params.id));
     if (!trip) throw new HttpError(404, 'Trip not found');
     const item = trip.items.find((i) => i._id?.toString() === req.params.itemId);
     if (!item) throw new HttpError(404, 'Item not found');
+    // Older items may hold an inline data: image; clients resend it unchanged on every edit.
+    const body = { ...req.body };
+    if (body.imageUrl && body.imageUrl === item.imageUrl) delete body.imageUrl;
+    const data = itemSchema.partial().parse(body);
     Object.assign(item, data);
     await trip.save();
     await trip.populate(COLLAB_POPULATE);
@@ -541,10 +549,29 @@ export async function recommendByVibe(req: Request, res: Response, next: NextFun
 
 export async function getPublicTrip(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const trip = await Trip.findOne({ shareToken: req.params.token }).populate(COLLAB_POPULATE);
+    const trip = await Trip.findOne({ shareToken: req.params.token }).populate([
+      { path: 'collaborators', select: 'name' },
+      { path: 'owner', select: 'name' },
+    ]);
     if (!trip) throw new HttpError(404, 'Trip not found');
-    // Budgets are personal, and pending invites are PII; never expose either on the public share link
-    res.json({ ...trip.toJSON(), budgets: [], pendingCollaborators: [] });
+    // Allow-list only what the share page shows. Budgets, expenses, bookings
+    // (confirmation numbers) and member emails must never reach an anonymous viewer.
+    res.json({
+      _id: trip._id,
+      title: trip.title,
+      destination: trip.destination,
+      destinationLat: trip.destinationLat,
+      destinationLng: trip.destinationLng,
+      description: trip.description,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      items: trip.items,
+      groups: trip.groups,
+      owner: trip.owner,
+      collaborators: trip.collaborators,
+      shareToken: trip.shareToken,
+      isPublic: trip.isPublic,
+    });
   } catch (err) {
     next(err);
   }
@@ -577,7 +604,7 @@ export async function markCompleted(req: Request, res: Response, next: NextFunct
     const memberIds = [trip.owner._id, ...trip.collaborators.map(c => c._id)];
     if (isCompleted && !trip.isCompleted) {
       await User.updateMany(
-        { _id: { $in: memberIds } },
+        { _id: { $in: memberIds }, 'badges.tripId': { $ne: trip._id } },
         { $push: { badges: { destination: trip.title, countryCode: extractCountryCode(trip.destination), source: 'auto', tripId: trip._id, awardedAt: new Date() } } }
       );
     }
@@ -594,12 +621,13 @@ export async function addLogPhoto(req: Request, res: Response, next: NextFunctio
   try {
     ensureValidObjectId(req.params.id, 'trip id');
     const { url, day, caption } = z.object({
-      url: z.string().min(1),
+      url: uploadedPhotoUrl,
       day: z.number().int().min(1).optional(),
       caption: z.string().max(300).optional(),
     }).parse(req.body);
     const trip = await Trip.findOne(accessFilter(req, req.params.id));
     if (!trip) throw new HttpError(404, 'Trip not found');
+    if (trip.log.photos.length >= MAX_LOG_PHOTOS_PER_TRIP) throw new HttpError(400, 'This trip has reached its photo limit');
     trip.log.photos.push({ url, day, caption, uploadedBy: ownerId(req), uploadedAt: new Date() });
     await trip.save();
     await trip.populate(COLLAB_POPULATE);
@@ -654,16 +682,16 @@ export async function rateItem(req: Request, res: Response, next: NextFunction):
 export async function addGuestPhoto(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { url, day, caption } = z.object({
-      url: z.string().min(1),
+      url: uploadedPhotoUrl,
       day: z.number().int().min(1).optional(),
       caption: z.string().max(300).optional()
     }).parse(req.body);
     const trip = await Trip.findOne({ shareToken: req.params.shareToken });
     if (!trip) throw new HttpError(404, 'Trip not found');
+    if (trip.log.photos.length >= MAX_LOG_PHOTOS_PER_TRIP) throw new HttpError(400, 'This trip has reached its photo limit');
     trip.log.photos.push({ url, day, caption, uploadedAt: new Date() });
     await trip.save();
-    await trip.populate(COLLAB_POPULATE);
-    res.status(201).json(trip);
+    res.status(201).json({ ok: true });
   } catch (err) {
     next(err);
   }
@@ -950,34 +978,38 @@ export async function issueSseToken(req: Request, res: Response, next: NextFunct
   }
 }
 
-export async function getTripEvents(req: Request, res: Response): Promise<void> {
-  const { token } = req.query as { token?: string };
-  if (!token) { res.status(401).json({ error: 'Unauthorized' }); return; }
+export async function getTripEvents(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { token } = req.query as { token?: string };
+    if (!token || typeof token !== 'string') { res.status(401).json({ error: 'Unauthorized' }); return; }
 
-  ensureValidObjectId(req.params.id, 'trip id');
-  const userId = consumeSseToken(token, req.params.id);
-  if (!userId) { res.status(401).json({ error: 'Invalid or expired token' }); return; }
+    ensureValidObjectId(req.params.id, 'trip id');
+    const userId = consumeSseToken(token, req.params.id);
+    if (!userId) { res.status(401).json({ error: 'Invalid or expired token' }); return; }
 
-  const trip = await Trip.findOne({
-    _id: req.params.id,
-    $or: [{ owner: userId }, { collaborators: userId }],
-  });
-  if (!trip) { res.status(404).json({ error: 'Trip not found' }); return; }
+    const trip = await Trip.findOne({
+      _id: req.params.id,
+      $or: [{ owner: userId }, { collaborators: userId }],
+    }).select('_id');
+    if (!trip) { res.status(404).json({ error: 'Trip not found' }); return; }
 
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders();
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
 
-  const tripId = trip._id.toString();
-  addTripClient(tripId, res);
+    const tripId = trip._id.toString();
+    addTripClient(tripId, res);
 
-  const heartbeat = setInterval(() => res.write(': heartbeat\n\n'), 30_000);
+    const heartbeat = setInterval(() => res.write(': heartbeat\n\n'), 30_000);
 
-  req.on('close', () => {
-    clearInterval(heartbeat);
-    removeTripClient(tripId, res);
-  });
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      removeTripClient(tripId, res);
+    });
+  } catch (err) {
+    next(err);
+  }
 }
 
 // ── Public trips feed ──────────────────────────────────────────────────────────────────

@@ -5,5 +5,5 @@ export async function connectDb(): Promise<void> {
   mongoose.set('strictQuery', true);
   await mongoose.connect(env.mongoUri);
   // eslint-disable-next-line no-console
-  console.log(`[db] connected to ${env.mongoUri}`);
+  console.log(`[db] connected to ${mongoose.connection.host}/${mongoose.connection.name}`);
 }

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import * as tripsApi from '../api/trips';
 import type { Trip, LogPhoto } from '../types';
-import { compressImage } from '../utils/image';
+import { uploadPhoto } from '../utils/image';
 import { getMyBudget, getMySpending } from '../utils/budget';
 import { Icon } from './Icon';
 import Reveal from './Reveal';
@@ -63,7 +63,7 @@ export default function TripLogPanel({ trip, currentUserId, onUpdate }: Props) {
     e.target.value = '';
     setUploading(true);
     try {
-      const url = await compressImage(file);
+      const url = await uploadPhoto(file);
       const updated = await tripsApi.addLogPhoto(trip._id, {
         url,
         day: selectedDay || undefined,

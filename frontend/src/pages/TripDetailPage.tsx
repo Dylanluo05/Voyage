@@ -33,7 +33,7 @@ import PlaylistPanel from '../components/PlaylistPanel';
 import TripLogPanel from '../components/TripLogPanel';
 import HotelsPanel from '../components/HotelsPanel';
 import FlightsPanel from '../components/FlightsPanel';
-import { compressImage, compressImageFromUrl } from '../utils/image';
+import { uploadPhoto } from '../utils/image';
 import { useAuth } from '../context/AuthContext';
 import { getMyBudget } from '../utils/budget';
 import BudgetPanel from '../components/BudgetPanel';
@@ -299,7 +299,7 @@ export default function TripDetailPage() {
   async function handleAddImageFile(file: File) {
     setCompressing(true);
     try {
-      const url = await compressImage(file);
+      const url = await uploadPhoto(file);
       setDraft((prev) => ({ ...prev, imageUrl: url }));
     } catch {
       setError('Failed to process image');
@@ -1033,14 +1033,7 @@ export default function TripDetailPage() {
                           src={url}
                           alt="suggestion"
                           className="photo-suggestion-thumb"
-                          onClick={async () => {
-                            try {
-                              const base64 = await compressImageFromUrl(url);
-                              setDraft((prev) => ({ ...prev, imageUrl: base64 }));
-                            } catch {
-                              setDraft((prev) => ({ ...prev, imageUrl: url }));
-                            }
-                          }}
+                          onClick={() => setDraft((prev) => ({ ...prev, imageUrl: url }))}
                         />
                       ))}
                     </div>

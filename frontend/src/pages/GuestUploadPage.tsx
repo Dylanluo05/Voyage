@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Trip } from '../types';
 import { addGuestPhoto, getPublicTrip } from '../api/trips';
-import { compressImage } from '../utils/image';
+import { uploadPhoto } from '../utils/image';
 import exifr from 'exifr';
 import { Icon } from '../components/Icon';
 
@@ -42,7 +42,7 @@ export default function GuestUploadPage() {
         setError('');
         try {
             for (const file of files) {
-                const baseUrl = await compressImage(file);
+                const baseUrl = await uploadPhoto(file);
                 const exifData = await exifr.parse(file, ['DateTimeOriginal']);
                 let day: number | undefined;
                 if (exifData?.DateTimeOriginal) {

@@ -7,7 +7,7 @@ const CATEGORY_LABELS: Record<ItemCategory, string> = {
   activity: 'Activity',
   attraction: 'Attraction',
 };
-import { compressImage } from '../utils/image';
+import { uploadPhoto } from '../utils/image';
 import Lightbox from './Lightbox';
 import { Icon } from './Icon';
 import LiveTransitWidget from './LiveTransitWidget';
@@ -194,7 +194,7 @@ export default function ItineraryItemCard({
   async function handleImageFile(file: File) {
     setCompressing(true);
     try {
-      const url = await compressImage(file);
+      const url = await uploadPhoto(file);
       setDraft((prev) => ({ ...prev, imageUrl: url }));
     } catch {
       setError('Failed to process image');

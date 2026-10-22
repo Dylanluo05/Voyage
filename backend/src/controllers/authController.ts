@@ -63,8 +63,8 @@ export async function register(req: Request, res: Response, next: NextFunction):
     const passwordHash = await hashPassword(password);
 
     if (!env.requireEmailOtp) {
-      const user = await User.create({ email: lowerEmail, passwordHash, name });
-      await linkPendingInvites(user._id, user.email).catch((err) => console.error('[linkPendingInvites]', err));
+      // Ownership of the address is unproven, so don't hand over pending trip invites.
+      const user = await User.create({ email: lowerEmail, passwordHash, name, emailVerified: false });
       const token = signToken({ sub: user.id, email: user.email });
       res.status(201).json({ token, user: toUserJson(user) });
       return;
@@ -81,18 +81,26 @@ export async function googleAuth(req: Request, res: Response, next: NextFunction
   try {
     const { accessToken } = googleAuthScheme.parse(req.body);
     googleClient.setCredentials({ access_token: accessToken });
-    const userinfoResp = await googleClient.request<{ sub: string; email: string; name: string }>({
+    const userinfoResp = await googleClient.request<{ sub: string; email: string; email_verified?: boolean; name: string }>({
       url: 'https://www.googleapis.com/oauth2/v3/userinfo',
     });
     if (userinfoResp.status !== 200) throw new HttpError(401, 'Invalid Google access token');
-    const { sub, email, name } = userinfoResp.data;
+    const { sub, name } = userinfoResp.data;
+    const email = userinfoResp.data.email?.toLowerCase();
     if (!email) throw new HttpError(401, 'Google account has no email');
+    if (userinfoResp.data.email_verified !== true) throw new HttpError(401, 'Your Google email address is not verified');
     let user = await User.findOne({ $or: [{ googleId: sub }, { email }] });
     if (!user) {
-      user = await User.create({ email, name, googleId: sub });
+      user = await User.create({ email, name, googleId: sub, emailVerified: true });
       await linkPendingInvites(user._id, user.email).catch((err) => console.error('[linkPendingInvites]', err));
     } else if (!user.googleId) {
-      await User.updateOne({ _id: user._id }, { $set: { googleId: sub } });
+      // Google just proved ownership of this address. If the existing account was
+      // created without verification, whoever made it may not be the owner, so
+      // drop their password and any access it implied.
+      const update: Record<string, unknown> = { $set: { googleId: sub, emailVerified: true } };
+      if (user.emailVerified === false) (update as { $unset?: object }).$unset = { passwordHash: '' };
+      await User.updateOne({ _id: user._id }, update);
+      await linkPendingInvites(user._id, user.email).catch((err) => console.error('[linkPendingInvites]', err));
     }
     const token = signToken({ sub: user.id, email: user.email });
     res.status(200).json({
@@ -111,6 +119,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
     const user = await User.findOne({ email: lowerEmail });
     if (!user) throw new HttpError(401, 'Invalid email or password');
 
+    if (!user.passwordHash) throw new HttpError(401, 'This account uses Google sign-in. Continue with Google instead.');
     const match = await user.comparePassword(password);
     if (!match) throw new HttpError(401, 'Invalid email or password');
 
@@ -139,6 +148,7 @@ export async function verifyOtpHandler(req: Request, res: Response, next: NextFu
         email: lowerEmail,
         name: doc.pendingName,
         passwordHash: doc.pendingPasswordHash,
+        emailVerified: true,
       });
       await linkPendingInvites(user._id, user.email).catch((err) => console.error('[linkPendingInvites]', err));
     } else {
