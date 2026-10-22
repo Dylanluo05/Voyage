@@ -90,6 +90,8 @@ export default function SidequestsPage() {
     return c;
   }, [quests]);
 
+  // Quests where someone is waiting on this user (creator, or any admin) to approve a photo.
+  const needsReview = quests.filter((q) => (q.reviewRequests ?? []).some((r) => r.status === 'pending' && r.userId !== uid));
   const board = quests.filter((q) => (suit === 'all' || q.cardSuit === suit) && (rank === 'all' || q.cardRank === rank));
 
   // ── actions (throwing versions feed the sheet, which shows the error inline) ──
@@ -110,6 +112,10 @@ export default function SidequestsPage() {
       setSheetId(null);
       setCompleted({ quest: updated, photoUrl, xpGain: updated.xpReward, before, after });
       usersApi.getProfile().then(setProfile).catch(() => undefined); // settle on the server's number
+    },
+    requestReview: async (id) => replace(await sidequestsApi.requestReview(id)),
+    review: async (id, requestId, decision, note) => {
+      replace(await sidequestsApi.reviewCompletion(id, requestId, decision, note));
     },
     createEvent: async (id, date, max) =>
       replace(await sidequestsApi.createEvent(id, { date, ...(max ? { maxParticipants: max } : {}) })),
@@ -306,6 +312,15 @@ export default function SidequestsPage() {
           {error}
         </p>
       )}
+      {needsReview.length > 0 && (
+        <p className="qb-notice" role="status">
+          {needsReview.reduce((n, q) => n + q.reviewRequests.filter((r) => r.status === 'pending' && r.userId !== uid).length, 0)} photo
+          submission(s) waiting for your review.{' '}
+          <button type="button" className="qb-link" onClick={() => { setSheetProving(false); setSheetId(needsReview[0]._id); }}>
+            Review now
+          </button>
+        </p>
+      )}
       {loading && <p className="muted qb-empty">Loading quests…</p>}
 
       {/* ── Board / In progress ── */}
@@ -379,7 +394,7 @@ export default function SidequestsPage() {
         <QuestSheet
           key={sheetQuest._id}
           quest={sheetQuest}
-          user={user ? { id: user.id, name: user.name } : null}
+          user={user ? { id: user.id, name: user.name, isAdmin: user.isAdmin } : null}
           trips={trips}
           actions={actions}
           startProving={sheetProving}

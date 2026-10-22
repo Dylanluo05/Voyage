@@ -27,6 +27,7 @@ export async function deleteAccount(user: UserDoc): Promise<void> {
         { 'completions.userId': user._id },
         { 'comments.userId': user._id },
         { 'event.enrollments.userId': user._id },
+        { 'reviewRequests.userId': user._id },
       ],
     },
     {
@@ -35,6 +36,7 @@ export async function deleteAccount(user: UserDoc): Promise<void> {
         completions: { userId: user._id },
         comments: { userId: user._id },
         'event.enrollments': { userId: user._id },
+        reviewRequests: { userId: user._id },
       },
     }
   );

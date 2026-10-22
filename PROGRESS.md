@@ -6,6 +6,32 @@ architecture overview — this file is the narrative of how it got that way.
 
 ---
 
+## 2026-10-22
+
+### Human review for AI-rejected sidequest photos
+When the vision model says no to a sidequest photo, the photo is no longer
+just discarded. It's saved as a private `reviewRequests` entry on the quest
+(with the AI's reason), the user can press "Ask <creator> to review", and the
+quest creator or any admin can approve or decline it from the quest sheet
+(a banner on the sidequests page counts what's waiting; the creator also gets
+an email). Approval creates a normal completion marked `reviewedBy` and pays
+the full quest XP through one shared, atomic `recordCompletion()` used by both
+the AI and human paths, so a double approval can't pay twice. Admin accounts
+cover Voyage-made quests, and admins may now complete quests they created
+(the seed scripts attribute Voyage quests to an account that would otherwise
+be blocked by the no-self-completion rule). Review requests are visible only
+to the submitter, the creator and admins, and account deletion removes them.
+The same files also carry the earlier hardening pass: completion attempts now
+spend AI quota and the daily cap, photo reuse is rejected, user-created quests
+are always rank J and limited to 5 a day, and other users' private completion
+photos and trip links are stripped from API responses (`sidequestView`).
+**Known gaps:** pending requests never expire, there's no in-app notification
+beyond the banner and the email (which needs the Resend domain to deliver),
+the AI-rejection branch hasn't been exercised against the live Anthropic API,
+and the UI hasn't been checked visually in a browser.
+
+---
+
 ## 2026-10-21
 
 ### Expense form redesign and editing

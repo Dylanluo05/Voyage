@@ -76,6 +76,21 @@ export async function sendTripInviteEmail(to: string, inviterName: string, tripT
   );
 }
 
+export async function sendReviewRequestEmail(to: string, submitterName: string, questTitle: string): Promise<void> {
+  const link = `${env.clientOrigin}/sidequests`;
+  await sendEmail(
+    to,
+    `Photo review requested on "${escapeHtml(questTitle)}"`,
+    emailLayout(
+      `<p style="margin:0 0 20px; font-size:15px; line-height:1.6; color:${INK_SOFT};">` +
+        `<strong style="color:${INK};">${escapeHtml(submitterName)}</strong> submitted a photo for ` +
+        `<strong style="color:${INK};">${escapeHtml(questTitle)}</strong> that our automatic check couldn't confirm, ` +
+        `and is asking you to review it.</p>` +
+        `<p style="margin:0 0 24px; text-align:center;">${button(link, 'Review submission')}</p>`
+    )
+  );
+}
+
 export async function sendPasswordResetEmail(to: string, token: string): Promise<void> {
   const link = `${env.clientOrigin}/reset-password?token=${encodeURIComponent(token)}`;
   await sendEmail(

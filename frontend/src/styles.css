@@ -8292,3 +8292,10 @@ main:has(> .au) { max-width: 1240px; padding-top: clamp(1rem, 3vw, 2rem); }
 .admin-dashboard-link a { display: inline-flex; align-items: center; gap: 0.4rem; }
 
 .route-loading { min-height: 60vh; }
+
+/* Sidequest photo review */
+.qs-review { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.75rem 0; border-top: 1px solid var(--line, rgba(0,0,0,0.1)); }
+.qs-review .qs-shot img { max-height: 240px; aspect-ratio: auto; }
+.qs-review input[type='text'] { width: 100%; }
+.qb-notice { margin: 0.75rem 0; padding: 0.7rem 1rem; border-radius: var(--r-md); background: var(--surface-2, rgba(0,0,0,0.05)); }
+.qb-link { background: none; border: 0; padding: 0; color: var(--accent); font-weight: 600; text-decoration: underline; cursor: pointer; }

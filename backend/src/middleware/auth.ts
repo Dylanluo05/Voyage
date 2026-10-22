@@ -36,6 +36,20 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   }
 }
 
+/** Sets req.user when a valid token is present, but never rejects the request. */
+export function optionalAuth(req: Request, _res: Response, next: NextFunction): void {
+  const header = req.headers.authorization;
+  if (header?.startsWith('Bearer ')) {
+    try {
+      const decoded = jwt.verify(header.slice('Bearer '.length).trim(), env.jwtSecret) as AuthPayload;
+      req.user = { sub: decoded.sub, email: decoded.email };
+    } catch {
+      /* treat as anonymous */
+    }
+  }
+  next();
+}
+
 /** Must run after requireAuth. */
 export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
   if (!req.user || !env.adminEmails.has(req.user.email)) {

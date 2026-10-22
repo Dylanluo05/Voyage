@@ -274,6 +274,20 @@ export interface PublicSidequest {
     photoUrl: string;
     completedAt: string;
     isPublic: boolean;
+    /** Present when the creator/admin approved it after the AI said no. */
+    reviewedBy?: { userId: string; userName: string };
+  }[];
+  /** Photos the AI rejected. Only the submitter sees their own; creator/admin also see pending ones. */
+  reviewRequests: {
+    _id: string;
+    userId: string;
+    userName: string;
+    photoUrl: string;
+    isPublic: boolean;
+    aiReason: string;
+    status: 'ai_rejected' | 'pending' | 'rejected';
+    reviewNote?: string;
+    createdAt: string;
   }[];
   comments: {
     _id: string;

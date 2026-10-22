@@ -127,3 +127,21 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
         method: 'GET',
     });
 }
+
+export function requestReview(id: string): Promise<PublicSidequest> {
+    return apiFetch<PublicSidequest>(`/api/public-sidequests/${id}/request-review`, {
+        method: 'POST',
+    });
+}
+
+export function reviewCompletion(
+    id: string,
+    requestId: string,
+    decision: 'approve' | 'reject',
+    note?: string,
+): Promise<PublicSidequest> {
+    return apiFetch<PublicSidequest>(`/api/public-sidequests/${id}/review/${requestId}`, {
+        method: 'POST',
+        body: JSON.stringify({ decision, ...(note ? { note } : {}) }),
+    });
+}

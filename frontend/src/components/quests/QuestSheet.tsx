@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import type { PublicSidequest, Trip } from '../../types';
+import { ApiError } from '../../api/client';
 import { uploadToCloudinary } from '../../utils/image';
 import { Icon } from '../Icon';
 import ReportButton from '../ReportButton';
@@ -12,6 +13,8 @@ export type QuestActions = {
   claim: (id: string) => Promise<void>;
   unclaim: (id: string) => Promise<void>;
   complete: (id: string, photoUrl: string, isPublic: boolean) => Promise<void>;
+  requestReview: (id: string) => Promise<void>;
+  review: (id: string, requestId: string, decision: 'approve' | 'reject', note?: string) => Promise<void>;
   createEvent: (id: string, date: string, max?: number) => Promise<void>;
   enroll: (id: string) => Promise<void>;
   leave: (id: string) => Promise<void>;
@@ -23,7 +26,7 @@ export type QuestActions = {
 
 type Props = {
   quest: PublicSidequest;
-  user: { id: string; name: string } | null;
+  user: { id: string; name: string; isAdmin?: boolean } | null;
   trips: Trip[];
   actions: QuestActions;
   /** Open with the proof form already showing. */
@@ -38,6 +41,11 @@ export default function QuestSheet({ quest, user, trips, actions, startProving, 
   const claimed = !!claim;
   const myCompletion = quest.completions.find((c) => c.userId === userId);
   const done = !!myCompletion;
+  const myRequest = quest.reviewRequests?.find((r) => r.userId === userId);
+  const pendingReviews = (quest.reviewRequests ?? []).filter((r) => r.status === 'pending' && r.userId !== userId);
+  const canReview = pendingReviews.length > 0 && (user?.isAdmin || quest.createdBy.userId === userId);
+  const [aiRejected, setAiRejected] = useState(false);
+  const [declineNote, setDeclineNote] = useState('');
   const linkedTrip = claim?.tripId ? trips.find((t) => t._id === claim.tripId) : undefined;
   const suit = SUITS[quest.cardSuit];
 
@@ -222,14 +230,91 @@ export default function QuestSheet({ quest, user, trips, actions, startProving, 
                 disabled={!photoUrl || uploading || busy === 'complete'}
                 onClick={() =>
                   run('complete', async () => {
-                    await actions.complete(quest._id, photoUrl, isPublic);
-                    setProving(false);
-                    setPhotoUrl('');
+                    try {
+                      await actions.complete(quest._id, photoUrl, isPublic);
+                      setProving(false);
+                      setPhotoUrl('');
+                    } catch (err) {
+                      if (err instanceof ApiError && (err.details as { canRequestReview?: boolean } | undefined)?.canRequestReview) {
+                        setAiRejected(true);
+                      }
+                      throw err;
+                    }
                   })
                 }
               >
                 <Icon name="trophy" size={17} /> {busy === 'complete' ? 'Checking your proof…' : `Complete quest, earn ${quest.xpReward} XP`}
               </button>
+            </div>
+          )}
+
+          {/* Waiting on a human: the AI couldn't verify this user's photo */}
+          {claimed && !done && (aiRejected || myRequest) && (
+            <div className="qs-block">
+              <h3>Think the judge got it wrong?</h3>
+              {(aiRejected || myRequest?.status === 'ai_rejected') && myRequest?.status !== 'pending' && myRequest?.status !== 'rejected' && (
+                <>
+                  <p className="muted">
+                    {quest.createdBy.userName} can look at your photo and approve it by hand. You earn the same XP.
+                  </p>
+                  <button
+                    type="button"
+                    className="qs-btn qs-btn--go qs-btn--wide"
+                    disabled={busy === 'review'}
+                    onClick={() => run('review', async () => { await actions.requestReview(quest._id); setAiRejected(false); })}
+                  >
+                    {busy === 'review' ? 'Sending…' : `Ask ${quest.createdBy.userName} to review`}
+                  </button>
+                </>
+              )}
+              {myRequest?.status === 'pending' && (
+                <p className="muted">Review requested. {quest.createdBy.userName} will check your photo; you'll earn the XP once it's approved.</p>
+              )}
+              {myRequest?.status === 'rejected' && (
+                <p className="muted">
+                  Your photo was reviewed and declined{myRequest.reviewNote ? `: "${myRequest.reviewNote}"` : '.'} You can submit a new photo above.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Creator / admin review queue */}
+          {canReview && (
+            <div className="qs-block">
+              <h3>Submissions to review ({pendingReviews.length})</h3>
+              {pendingReviews.map((r) => (
+                <div key={r._id} className="qs-review">
+                  <button type="button" className="qs-shot" onClick={() => onOpenPhoto(r.photoUrl)}>
+                    <img src={r.photoUrl} alt={`${r.userName}'s submission`} loading="lazy" />
+                  </button>
+                  <p><strong>{r.userName}</strong> · judge said: {r.aiReason || 'no explanation'}</p>
+                  <input
+                    type="text"
+                    placeholder="Reason, if declining (optional)"
+                    maxLength={300}
+                    value={declineNote}
+                    onChange={(e) => setDeclineNote(e.target.value)}
+                  />
+                  <div className="qs-row">
+                    <button
+                      type="button"
+                      className="qs-btn qs-btn--go"
+                      disabled={busy === `approve-${r._id}`}
+                      onClick={() => run(`approve-${r._id}`, () => actions.review(quest._id, r._id, 'approve'))}
+                    >
+                      Approve · {quest.xpReward} XP
+                    </button>
+                    <button
+                      type="button"
+                      className="qs-btn"
+                      disabled={busy === `reject-${r._id}`}
+                      onClick={() => run(`reject-${r._id}`, async () => { await actions.review(quest._id, r._id, 'reject', declineNote || undefined); setDeclineNote(''); })}
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
