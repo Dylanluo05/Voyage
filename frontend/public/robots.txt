@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /trips
+Disallow: /profile
+Disallow: /subscription
+Disallow: /admin
+Disallow: /upload/
+Disallow: /share/
+Disallow: /reset-password
+
+Sitemap: https://voyagetravel.app/sitemap.xml

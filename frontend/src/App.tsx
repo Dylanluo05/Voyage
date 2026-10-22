@@ -5,6 +5,7 @@ import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import { IconProvider } from './components/Icon';
 import { GoogleMapsProvider } from './context/GoogleMapsContext';
+import usePageMeta from './hooks/usePageMeta';
 import ProtectedRoute from './components/ProtectedRoute';
 import SmoothScroll from './components/SmoothScroll';
 import RouteTransition from './components/RouteTransition';
@@ -52,6 +53,8 @@ function routeFamily(pathname: string): string {
 
 function Shell() {
   const { pathname } = useLocation();
+
+  usePageMeta();
 
   useEffect(() => {
     document.body.dataset.route = routeFamily(pathname);

@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+import { track } from '../utils/analytics';
 import { useEffect, useState } from 'react';
 import { getBillingStatus, startCheckout, openPortal, BillingStatus, Plan } from '../api/billing';
 import Reveal from '../components/Reveal';
@@ -77,6 +79,7 @@ export default function SubscriptionPage() {
     setCheckoutLoading(tier);
     setError('');
     try {
+      track('Checkout Started', { plan: tier });
       await startCheckout(tier as Exclude<Plan, 'free'>);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.');
@@ -178,6 +181,12 @@ export default function SubscriptionPage() {
               );
             })}
           </Reveal>
+
+          <p className="muted small" style={{ marginTop: 16, textAlign: 'center' }}>
+            Paid plans renew automatically every month at the price shown until you cancel. Cancel
+            anytime from "Manage billing"; you keep paid features until the end of the period you
+            paid for. Payments are processed by Stripe. See our <Link to="/terms">Terms</Link>.
+          </p>
 
           {status?.hasSubscription && (
             <div className="sub-manage-row">

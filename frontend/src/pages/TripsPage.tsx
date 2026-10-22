@@ -1,3 +1,4 @@
+import { track } from '../utils/analytics';
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as tripsApi from '../api/trips';
@@ -77,6 +78,7 @@ export default function TripsPage() {
         endDate,
         description: description || undefined,
       });
+      track('Trip Created');
       setTitle(''); setDestination(''); setDestinationCoords(null); setStartDate(''); setEndDate(''); setDescription('');
       setShowForm(false);
       await refresh();

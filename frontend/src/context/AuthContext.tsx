@@ -9,6 +9,7 @@ import {
 import type { User, OtpPurpose } from '../types';
 import * as authApi from '../api/auth';
 import { getToken, setToken } from '../api/client';
+import { track } from '../utils/analytics';
 
 interface AuthContextValue {
   user: User | null;
@@ -61,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await authApi.googleAuth(credential);
     setToken(res.token);
     setUser(res.user);
+    track('Google Auth');
   }, []);
 
   const register = useCallback(
@@ -69,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if ('token' in res) {
         setToken(res.token);
         setUser(res.user);
+        track('Signup');
         return false;
       }
       return true;
@@ -80,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await authApi.verifyOtp(email, code, purpose);
     setToken(res.token);
     setUser(res.user);
+    if (purpose === 'register') track('Signup');
   }, []);
 
   const resendOtp = useCallback(async (email: string, purpose: OtpPurpose) => {
