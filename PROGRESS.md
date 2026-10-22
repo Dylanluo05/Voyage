@@ -8,6 +8,28 @@ architecture overview — this file is the narrative of how it got that way.
 
 ## 2026-10-22
 
+### Pre-launch audit: security fixes, legal pages, SEO, analytics
+Ran a full release-readiness audit and fixed what could be fixed in code.
+Blockers: the Stripe webhook never verified (it was mounted after
+`express.json()`), the SSE endpoint could crash the process on a bad trip id,
+unverified email signups could be hijacked via Google sign-in or inherit
+pending trip invites (now tracked with `User.emailVerified`), the public share
+link and `/api/public-sidequests` leaked expenses, bookings, emails and
+private photos (now allow-listed views), photos were stored as base64 inside
+trip documents (now Cloudinary-only, with caps), and the Mongo URI was logged
+at boot. Also: chat and sidequest AI cost caps, per-trip badge once, request
+body error handling, `npm audit fix`. Added updated Terms/Privacy (safety and
+assumption of risk, DMCA, auto-renewal, new processors), meta/Open Graph tags,
+`robots.txt`/sitemap, per-route titles, security headers, opt-in Plausible
+analytics, and a Vercel function (`frontend/api/share-meta.js`) that serves
+link previews to crawlers. `LAUNCH_CHECKLIST.md` lists the owner-only steps
+(env vars, live Stripe, Google OAuth publishing, Spotify quota, DMCA agent,
+lawyer review) and the open items. **Known gaps:** existing trips still hold
+base64 photos (needs a migration), account deletion leaves Cloudinary files,
+7-day JWTs aren't revoked on password reset, guest uploads still depend on the
+public share token, no automated tests, and none of this has been exercised
+against live Stripe/Anthropic/Cloudinary yet.
+
 ### Human review for AI-rejected sidequest photos
 When the vision model says no to a sidequest photo, the photo is no longer
 just discarded. It's saved as a private `reviewRequests` entry on the quest
