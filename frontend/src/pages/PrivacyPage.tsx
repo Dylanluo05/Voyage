@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-const LAST_UPDATED = 'October 4, 2026';
+const LAST_UPDATED = 'October 22, 2026';
 const CONTACT_EMAIL = 'team.voyageapp@gmail.com';
 
 export default function PrivacyPage() {
@@ -51,8 +51,12 @@ export default function PrivacyPage() {
           the case of a share link, to anyone with the link.
         </li>
         <li>
-          <strong>AI chat messages:</strong> messages you send to the in-app trip-planning
-          assistant, which are processed by our AI provider, Anthropic, to generate a response.
+          <strong>Content sent to AI:</strong> messages you send to the in-app trip-planning
+          assistant (along with a summary of the trip you are chatting about), booking
+          confirmation text you paste into the hotel and flight importer, music "vibe" keywords,
+          and the photos you submit to verify a sidequest. These are sent to our AI provider,
+          Anthropic, to generate a response. Pasted confirmations may contain names and booking
+          numbers, so only paste what you are comfortable sharing.
         </li>
         <li>
           <strong>Payment information:</strong> if you subscribe to a paid plan, payment is
@@ -61,7 +65,9 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Technical data:</strong> standard information inherent to web requests, such as
-          your IP address and browser user agent, generated as you use the app.
+          your IP address and browser user agent, generated as you use the app. We also keep server
+          logs and automated error reports (see Sentry below) that may include your IP address,
+          browser details, and the page or request that failed.
         </li>
       </ul>
 
@@ -83,10 +89,15 @@ export default function PrivacyPage() {
       </p>
       <ul>
         <li><strong>Google</strong> — for sign-in, and for maps, places, and geocoding features.</li>
-        <li><strong>Anthropic</strong> — processes messages you send to the AI trip assistant.</li>
+        <li><strong>Anthropic</strong> — processes the content described under "Content sent to AI" above. Under Anthropic's commercial terms, this content is not used to train its models.</li>
         <li><strong>Stripe</strong> — processes payments for paid plans.</li>
         <li><strong>Cloudinary</strong> — hosts photos you upload.</li>
         <li><strong>Spotify</strong> — if you choose to export a trip playlist, we use a temporary authorization to create it in your own Spotify account.</li>
+        <li><strong>Plausible Analytics</strong> — a privacy-focused analytics service that counts page views and a few key actions (such as signing up or starting checkout). It uses no cookies, does not track you across sites, and does not collect personal data such as your name or email.</li>
+        <li><strong>Sentry</strong> — receives automated error and performance reports, which may include your IP address, browser details, and technical context about what you were doing when an error occurred.</li>
+        <li><strong>Pexels</strong> — we send destination and place names to look up stock photos. Your account details are not sent.</li>
+        <li><strong>Open-Meteo and transit data providers</strong> — receive the coordinates of places in your trip to show weather and nearby transit.</li>
+        <li><strong>Font providers (Fontshare, Google Fonts)</strong> — your browser fetches fonts directly from them, which reveals your IP address to those providers.</li>
         <li><strong>Resend</strong> — delivers transactional emails (verification codes, invites) on our behalf.</li>
         <li><strong>MongoDB Atlas, Render, and Vercel</strong> — host our database, server, and web app.</li>
       </ul>
@@ -98,17 +109,29 @@ export default function PrivacyPage() {
       <h2>4. Public and shared content</h2>
       <p>
         Trips you mark public, and public sidequest activity (claims, completions, photos,
-        comments), are visible to other Voyage users on the Discover feed and leaderboards. Trip
+        comments), are visible to other Voyage users on the Discover feed and leaderboards. Your
+        display name and XP appear on the leaderboard for every signed-in user, and sidequest
+        completion photos are only shown to others if you choose to mark them public. Anyone with
+        the share link to a public trip can also add photos to that trip's log. Trip
         share links grant read-only access to anyone who has the link, whether or not they have
         a Voyage account. Think about what you make public or share.
       </p>
 
       <h2>5. Data retention</h2>
       <p>
-        We keep your account and trip data for as long as your account is active. If you delete
-        your account, we delete your personal data and trip content within a reasonable period,
-        except where we are required to retain limited records (for example, payment records) for
-        legal or accounting purposes.
+        We keep your account and trip data for as long as your account is active. When you delete
+        your account from your profile page, we immediately delete your profile, the trips you
+        own, your sidequest claims, completions, comments and event enrollments, and cancel any
+        active subscription. You are removed from trips you only collaborated on, which continue
+        for their owners.
+      </p>
+      <p>
+        Some things are not removed automatically: photos you uploaded are hosted by Cloudinary
+        and the files may remain there (without being linked to your account) until we remove them
+        — email us to have specific photos deleted; sidequests you created may remain, showing the
+        name you had at the time, unless you ask us to remove them; and we may retain limited
+        records (for example, payment records held by Stripe, and backups or logs that expire on
+        their own schedule) for legal, accounting, or security purposes.
       </p>
 
       <h2>6. Your rights and choices</h2>
@@ -129,16 +152,26 @@ export default function PrivacyPage() {
       </p>
       <p>
         <strong>If you are a California resident (CCPA/CPRA):</strong> you have the right to know
-        what personal information we collect and how it's used, to request deletion, and to
-        non-discrimination for exercising these rights. We do not sell or "share" personal
-        information as those terms are defined under California law.
+        what personal information we collect and how it's used, to request deletion, to correct
+        inaccurate information, and to non-discrimination for exercising these rights. We do not
+        sell or "share" personal information as those terms are defined under California law, and
+        we do not use it for targeted advertising. To exercise a right, email us; we will verify
+        your request using your account email and respond within 45 days.
+      </p>
+      <p>
+        We do not respond to "Do Not Track" browser signals, because we do not track you across
+        other sites. Voyage stores your sign-in token and theme preference in your browser's local
+        storage, which is strictly necessary for the app to work; some embedded services (such as
+        Google Maps) may set their own cookies.
       </p>
 
       <h2>7. Security</h2>
       <p>
         We use industry-standard measures to protect your data, including password hashing,
         encrypted connections (HTTPS), and signed authentication tokens. No system is perfectly
-        secure, and we cannot guarantee absolute security of information you transmit to us.
+        secure, and we cannot guarantee absolute security of information you transmit to us. If we
+        learn of a breach affecting your personal data, we will notify you and the relevant
+        authorities as required by law.
       </p>
 
       <h2>8. Children's privacy</h2>
