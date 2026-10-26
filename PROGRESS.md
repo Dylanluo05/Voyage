@@ -6,6 +6,19 @@ architecture overview — this file is the narrative of how it got that way.
 
 ---
 
+## 2026-10-26
+
+### Expense "Settle up" for netted payments
+Per-share Settle was all-or-nothing and ignored netting: when a pair paid each
+other only the difference (e.g. $9), settling one side's shares recorded far
+more as paid and left the other side's debt unoffset, so a balance went *up*.
+Added a **Settle up** button on each balance row involving the current user,
+backed by `POST /api/trips/:id/expenses/settle-up` (`{ withUserId }`), which
+marks every unsettled share between the two people as settled in both
+directions, after a confirm showing the net amount. Per-share Settle/Undo are
+unchanged. **Known gap:** the app still doesn't store how much was actually
+paid, so partial payments can't be recorded.
+
 ## 2026-10-22
 
 ### Pre-launch audit: security fixes, legal pages, SEO, analytics

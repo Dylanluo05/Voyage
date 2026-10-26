@@ -4222,6 +4222,12 @@ fieldset legend {
   border-bottom: none;
 }
 
+.balance-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .balance-name {
   font-weight: 600;
 }
@@ -8299,3 +8305,9 @@ main:has(> .au) { max-width: 1240px; padding-top: clamp(1rem, 3vw, 2rem); }
 .qs-review input[type='text'] { width: 100%; }
 .qb-notice { margin: 0.75rem 0; padding: 0.7rem 1rem; border-radius: var(--r-md); background: var(--surface-2, rgba(0,0,0,0.05)); }
 .qb-link { background: none; border: 0; padding: 0; color: var(--accent); font-weight: 600; text-decoration: underline; cursor: pointer; }
+
+/* Illustrated quest covers */
+.qc-art--scene { display: block; }
+.qc-art--scene .qc-illus { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--sc2); }
+.qs-cover-edit { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.qs-cover-edit input[type='file'] { display: none; }

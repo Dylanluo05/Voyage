@@ -966,6 +966,34 @@ export async function settleSplit(req: Request, res: Response, next: NextFunctio
   }
 }
 
+// Settle everything between the current user and one other member, in both directions.
+// Used when a pair pays each other the net difference instead of settling share by share.
+export async function settleUp(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    ensureValidObjectId(req.params.id, 'trip id');
+    const { withUserId } = z.object({ withUserId: z.string() }).parse(req.body);
+    ensureValidObjectId(withUserId, 'user id');
+    const trip = await Trip.findOne(accessFilter(req, req.params.id));
+    if (!trip) throw new HttpError(404, 'Trip not found');
+    const me = ownerId(req).toString();
+    if (withUserId === me) throw new HttpError(400, 'Cannot settle up with yourself');
+    for (const expense of trip.expenses) {
+      const payerId = expense.paidBy.userId.toString();
+      for (const split of expense.splits) {
+        const debtorId = split.userId.toString();
+        const betweenUs =
+          (debtorId === me && payerId === withUserId) || (debtorId === withUserId && payerId === me);
+        if (betweenUs) split.settled = true;
+      }
+    }
+    await trip.save();
+    await trip.populate(COLLAB_POPULATE);
+    res.json(trip);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function issueSseToken(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     ensureValidObjectId(req.params.id, 'trip id');

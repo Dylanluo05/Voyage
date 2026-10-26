@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { Trip, Expense } from "../types";
-import { addExpense, updateExpense, removeExpense, settleSplit } from "../api/trips";
+import { addExpense, updateExpense, removeExpense, settleSplit, settleUp } from "../api/trips";
 import { Icon } from "./Icon";
 import Reveal from "./Reveal";
 
@@ -167,6 +167,23 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
         setError('');
         try {
             const updated = await settleSplit(trip._id, expenseId, userId, settled);
+            onUpdate(updated);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setSettlingId(null);
+        }
+    }
+
+    async function handleSettleUp(otherId: string, otherName: string, amount: number, iOwe: boolean) {
+        const msg = iOwe
+            ? `Mark everything between you and ${otherName} as settled? You pay them $${amount.toFixed(2)} in total.`
+            : `Mark everything between you and ${otherName} as settled? They pay you $${amount.toFixed(2)} in total.`;
+        if (!window.confirm(msg)) return;
+        setSettlingId(`up-${otherId}`);
+        setError('');
+        try {
+            const updated = await settleUp(trip._id, otherId);
             onUpdate(updated);
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
@@ -543,7 +560,21 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                         {debts.map(d => (
                             <div key={`${d.fromId}-${d.toId}`} className="balance-row balance-owes">
                                 <span className="balance-name">{d.fromName}</span>
-                                <span className="balance-amount">owes {d.toName} ${d.amount.toFixed(2)}</span>
+                                <span className="balance-right">
+                                    <span className="balance-amount">owes {d.toName} ${d.amount.toFixed(2)}</span>
+                                    {(currentUserId === d.fromId || currentUserId === d.toId) && (
+                                        <button
+                                            type="button"
+                                            className="ghost small-btn"
+                                            disabled={settlingId === `up-${currentUserId === d.fromId ? d.toId : d.fromId}`}
+                                            onClick={() => currentUserId === d.fromId
+                                                ? handleSettleUp(d.toId, d.toName, d.amount, true)
+                                                : handleSettleUp(d.fromId, d.fromName, d.amount, false)}
+                                        >
+                                            Settle up
+                                        </button>
+                                    )}
+                                </span>
                             </div>
                         ))}
                     </div>
