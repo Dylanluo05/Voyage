@@ -4222,6 +4222,27 @@ fieldset legend {
   border-bottom: none;
 }
 
+.balance-block + .balance-block { border-top: 1px solid var(--border); }
+.balance-block .balance-row { border-bottom: none; }
+
+.payment-form {
+  padding: 4px 0 12px;
+}
+.payment-form-text { margin: 0 0 8px; font-size: 14px; color: var(--ink-soft); }
+.payment-form-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.payment-form-row > button { padding: 0.55rem 1.1rem; font-size: 0.88rem; }
+
+.payment-history { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+.payment-history summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.payment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
 .balance-right {
   display: inline-flex;
   align-items: center;

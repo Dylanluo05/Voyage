@@ -903,20 +903,15 @@ export async function updateExpense(req: Request, res: Response, next: NextFunct
       throw new HttpError(403, 'Only the payer or trip owner can edit this expense');
     }
     validateExpenseBody(trip, body);
-    // A split that is unchanged (same person, same amount) keeps its settled state.
-    const previous = new Map(expense.splits.map(s => [s.userId.toString(), s]));
     expense.title = body.title;
     expense.amount = body.amount;
     expense.paidBy = { userId: new Types.ObjectId(body.paidBy.userId), userName: body.paidBy.userName };
-    expense.splits = body.splits.map(s => {
-      const old = previous.get(s.userId);
-      return {
-        userId: new Types.ObjectId(s.userId),
-        userName: s.userName,
-        amount: s.amount,
-        settled: !!old && old.settled && Math.abs(old.amount - s.amount) < 0.005,
-      };
-    }) as typeof expense.splits;
+    expense.splits = body.splits.map(s => ({
+      userId: new Types.ObjectId(s.userId),
+      userName: s.userName,
+      amount: s.amount,
+      settled: false,
+    })) as typeof expense.splits;
     await trip.save();
     await trip.populate(COLLAB_POPULATE);
     res.json(trip);
@@ -943,49 +938,58 @@ export async function removeExpense(req: Request, res: Response, next: NextFunct
   }
 }
 
-export async function settleSplit(req: Request, res: Response, next: NextFunction): Promise<void> {
+const paymentBodySchema = z.object({
+  fromUserId: z.string(),
+  toUserId: z.string(),
+  amount: z.number().positive().max(1_000_000),
+  note: z.string().trim().max(120).optional(),
+});
+
+export async function addPayment(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     ensureValidObjectId(req.params.id, 'trip id');
+    const body = paymentBodySchema.parse(req.body);
+    ensureValidObjectId(body.fromUserId, 'user id');
+    ensureValidObjectId(body.toUserId, 'user id');
+    const amount = Math.round(body.amount * 100) / 100;
+    if (amount <= 0) throw new HttpError(400, 'Amount must be at least $0.01');
+    if (body.fromUserId === body.toUserId) throw new HttpError(400, 'A payment needs two different people');
     const trip = await Trip.findOne(accessFilter(req, req.params.id));
     if (!trip) throw new HttpError(404, 'Trip not found');
-    const expense = trip.expenses.find((e) => e._id?.toString() === req.params.expenseId);
-    if (!expense) throw new HttpError(404, 'Expense not found');
-    const split = expense.splits.find((s) => s.userId.toString() === req.params.userId);
-    if (!split) throw new HttpError(404, 'Split not found');
-    const currentUid = ownerId(req).toString();
-    const isDebtor = currentUid === req.params.userId;
-    const isCreditor = currentUid === expense.paidBy.userId.toString();
-    if (!isDebtor && !isCreditor) throw new HttpError(403, 'Not authorized to settle this split');
-    const { settled } = z.object({ settled: z.boolean().default(true) }).parse(req.body ?? {});
-    split.settled = settled;
+    const memberIds = new Set([trip.owner.toString(), ...trip.collaborators.map(c => c.toString())]);
+    if (!memberIds.has(body.fromUserId) || !memberIds.has(body.toUserId)) {
+      throw new HttpError(400, 'Both people must be trip members');
+    }
+    const me = ownerId(req).toString();
+    if (me !== body.fromUserId && me !== body.toUserId) {
+      throw new HttpError(403, 'You can only record payments you sent or received');
+    }
+    trip.payments.push({
+      fromUserId: new Types.ObjectId(body.fromUserId),
+      toUserId: new Types.ObjectId(body.toUserId),
+      amount,
+      note: body.note || undefined,
+      createdBy: ownerId(req),
+    });
     await trip.save();
     await trip.populate(COLLAB_POPULATE);
-    res.json(trip);
+    res.status(201).json(trip);
   } catch (err) {
     next(err);
   }
 }
 
-// Settle everything between the current user and one other member, in both directions.
-// Used when a pair pays each other the net difference instead of settling share by share.
-export async function settleUp(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function removePayment(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     ensureValidObjectId(req.params.id, 'trip id');
-    const { withUserId } = z.object({ withUserId: z.string() }).parse(req.body);
-    ensureValidObjectId(withUserId, 'user id');
     const trip = await Trip.findOne(accessFilter(req, req.params.id));
     if (!trip) throw new HttpError(404, 'Trip not found');
+    const payment = trip.payments.find(p => p._id?.toString() === req.params.paymentId);
+    if (!payment) throw new HttpError(404, 'Payment not found');
     const me = ownerId(req).toString();
-    if (withUserId === me) throw new HttpError(400, 'Cannot settle up with yourself');
-    for (const expense of trip.expenses) {
-      const payerId = expense.paidBy.userId.toString();
-      for (const split of expense.splits) {
-        const debtorId = split.userId.toString();
-        const betweenUs =
-          (debtorId === me && payerId === withUserId) || (debtorId === withUserId && payerId === me);
-        if (betweenUs) split.settled = true;
-      }
-    }
+    const allowed = [payment.fromUserId, payment.toUserId, payment.createdBy].some(id => id.toString() === me);
+    if (!allowed) throw new HttpError(403, 'Only people involved in a payment can delete it');
+    trip.payments = trip.payments.filter(p => p._id?.toString() !== req.params.paymentId) as typeof trip.payments;
     await trip.save();
     await trip.populate(COLLAB_POPULATE);
     res.json(trip);

@@ -226,17 +226,16 @@ export function removeExpense(tripId: string, expenseId: string): Promise<Trip> 
   });
 }
 
-export function settleUp(tripId: string, withUserId: string): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/expenses/settle-up`, {
+export function addPayment(tripId: string, payment: { fromUserId: string; toUserId: string; amount: number; note?: string }): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/payments`, {
     method: 'POST',
-    body: JSON.stringify({ withUserId }),
+    body: JSON.stringify(payment),
   });
 }
 
-export function settleSplit(tripId: string, expenseId: string, userId: string, settled = true): Promise<Trip> {
-  return apiFetch<Trip>(`/api/trips/${tripId}/expenses/${expenseId}/splits/${userId}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ settled }),
+export function removePayment(tripId: string, paymentId: string): Promise<Trip> {
+  return apiFetch<Trip>(`/api/trips/${tripId}/payments/${paymentId}`, {
+    method: 'DELETE',
   });
 }
 

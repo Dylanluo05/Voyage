@@ -133,6 +133,7 @@ export interface Trip {
   hotels: HotelBooking[];
   flights: FlightBooking[];
   expenses: Expense[];
+  payments: Payment[];
   dayAnchors: DayAnchor[] | undefined;
   isPublic: boolean;
 }
@@ -207,7 +208,19 @@ export interface ExpenseSplit {
   userId: string;
   userName: string;
   amount: number;
-  settled: boolean;
+  /** Legacy flag from before payments existed; no longer used for balances. */
+  settled?: boolean;
+}
+
+/** A real transfer of money between two trip members. Balances are shares minus payments. */
+export interface Payment {
+  _id: string;
+  fromUserId: string;
+  toUserId: string;
+  amount: number;
+  note?: string;
+  createdBy: string;
+  createdAt: string;
 }
 
 export interface Expense {
@@ -257,6 +270,9 @@ export interface PublicSidequest {
   title: string;
   description?: string;
   location?: string;
+  /** Creator-chosen cover photo. Voyage-made (`official`) quests use illustrations instead. */
+  coverImageUrl?: string;
+  official?: boolean;
   createdBy: {
     userId: string;
     userName: string;

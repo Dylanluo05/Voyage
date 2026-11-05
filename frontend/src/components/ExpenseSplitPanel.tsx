@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { Trip, Expense } from "../types";
-import { addExpense, updateExpense, removeExpense, settleSplit, settleUp } from "../api/trips";
+import { addExpense, updateExpense, removeExpense, addPayment, removePayment } from "../api/trips";
 import { Icon } from "./Icon";
 import Reveal from "./Reveal";
 
@@ -20,7 +20,10 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
         tip: 0,
     });
     const [saving, setSaving] = useState(false);
-    const [settlingId, setSettlingId] = useState<string | null>(null);
+    const [payingKey, setPayingKey] = useState<string | null>(null);
+    const [payAmount, setPayAmount] = useState('');
+    const [paymentBusy, setPaymentBusy] = useState(false);
+    const [removingPaymentId, setRemovingPaymentId] = useState<string | null>(null);
     const [removingId, setRemovingId] = useState<string | null>(null);
     const [error, setError] = useState('');
     const [showForm, setShowForm] = useState(false);
@@ -147,7 +150,7 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                 title: form.title.trim(),
                 amount: total,
                 paidBy: { userId: payer.userId, userName: realName(payer.userId, payer.userName) },
-                splits: activeSplits.map(({ userId, userName, amount }) => ({ userId, userName: realName(userId, userName), amount, settled: false })),
+                splits: activeSplits.map(({ userId, userName, amount }) => ({ userId, userName: realName(userId, userName), amount })),
             };
             const updated = editingId
                 ? await updateExpense(trip._id, editingId, payload)
@@ -161,34 +164,43 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
         }
     }
 
-    async function handleSettle(expenseId: string, userId: string, settled = true) {
-        const key = `${expenseId}-${userId}`;
-        setSettlingId(key);
+    function openPayment(d: { fromId: string; toId: string; amount: number }) {
+        setPayingKey(`${d.fromId}-${d.toId}`);
+        setPayAmount(d.amount.toFixed(2));
+        setError('');
+    }
+
+    async function handleSavePayment(d: { fromId: string; toId: string }) {
+        const amount = Math.round((Number(payAmount) || 0) * 100) / 100;
+        if (amount <= 0) {
+            setError('Enter the amount that was paid.');
+            return;
+        }
+        setPaymentBusy(true);
         setError('');
         try {
-            const updated = await settleSplit(trip._id, expenseId, userId, settled);
+            const updated = await addPayment(trip._id, { fromUserId: d.fromId, toUserId: d.toId, amount });
             onUpdate(updated);
+            setPayingKey(null);
+            setPayAmount('');
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
         } finally {
-            setSettlingId(null);
+            setPaymentBusy(false);
         }
     }
 
-    async function handleSettleUp(otherId: string, otherName: string, amount: number, iOwe: boolean) {
-        const msg = iOwe
-            ? `Mark everything between you and ${otherName} as settled? You pay them $${amount.toFixed(2)} in total.`
-            : `Mark everything between you and ${otherName} as settled? They pay you $${amount.toFixed(2)} in total.`;
-        if (!window.confirm(msg)) return;
-        setSettlingId(`up-${otherId}`);
+    async function handleRemovePayment(paymentId: string) {
+        if (!window.confirm('Delete this payment? Balances will go back to what they were before it.')) return;
+        setRemovingPaymentId(paymentId);
         setError('');
         try {
-            const updated = await settleUp(trip._id, otherId);
+            const updated = await removePayment(trip._id, paymentId);
             onUpdate(updated);
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
         } finally {
-            setSettlingId(null);
+            setRemovingPaymentId(null);
         }
     }
 
@@ -206,42 +218,50 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
         }
     }
 
-    const debts = useMemo(() => {
-        const acc: Record<string, Record<string, number>> = {};
+    const nameOf = useMemo(() => {
         const userMap = Object.fromEntries(members.map(m => [m.userId, m.userName]));
+        return (id: string) => userMap[id] ?? 'Former member';
+    }, [members]);
+
+    // Balance between two people = what their shares say they owe each other (netted)
+    // minus the payments that have actually moved between them.
+    const debts = useMemo(() => {
+        // owes[a][b] = amount a owes b (can go negative once payments exceed shares)
+        const owes: Record<string, Record<string, number>> = {};
+        const add = (a: string, b: string, amt: number) => {
+            if (!owes[a]) owes[a] = {};
+            owes[a][b] = (owes[a][b] ?? 0) + amt;
+        };
 
         for (const expense of trip.expenses) {
             const payerId = expense.paidBy.userId;
             for (const split of expense.splits) {
-                if (split.userId === payerId || split.settled) continue;
-                if (!acc[split.userId]) acc[split.userId] = {};
-                acc[split.userId][payerId] = (acc[split.userId][payerId] ?? 0) + split.amount;
+                if (split.userId !== payerId) add(split.userId, payerId, split.amount);
             }
+        }
+        for (const payment of trip.payments ?? []) {
+            add(payment.fromUserId, payment.toUserId, -payment.amount);
         }
 
         const result: { fromId: string; fromName: string; toId: string; toName: string; amount: number }[] = [];
         const visited = new Set<string>();
-
-        for (const fromId of Object.keys(acc)) {
-            for (const toId of Object.keys(acc[fromId])) {
-                const key = [fromId, toId].sort().join('-');
+        for (const a of Object.keys(owes)) {
+            for (const b of Object.keys(owes[a])) {
+                const key = [a, b].sort().join('-');
                 if (visited.has(key)) continue;
                 visited.add(key);
-
-                const forward = acc[fromId]?.[toId] ?? 0;
-                const backward = acc[toId]?.[fromId] ?? 0;
-                const net = forward - backward;
-
-                if (net > 0.01) {
-                    result.push({ fromId, fromName: userMap[fromId] ?? fromId, toId, toName: userMap[toId] ?? toId, amount: net });
-                } else if (net < -0.01) {
-                    result.push({ fromId: toId, fromName: userMap[toId] ?? toId, toId: fromId, toName: userMap[fromId] ?? fromId, amount: -net });
-                }
+                const net = Math.round(((owes[a]?.[b] ?? 0) - (owes[b]?.[a] ?? 0)) * 100) / 100;
+                if (net >= 0.01) result.push({ fromId: a, fromName: nameOf(a), toId: b, toName: nameOf(b), amount: net });
+                else if (net <= -0.01) result.push({ fromId: b, fromName: nameOf(b), toId: a, toName: nameOf(a), amount: -net });
             }
         }
-
         return result;
-    }, [trip.expenses, members]);
+    }, [trip.expenses, trip.payments, nameOf]);
+
+    const sortedPayments = useMemo(
+        () => [...(trip.payments ?? [])].sort((x, y) => new Date(y.createdAt).getTime() - new Date(x.createdAt).getTime()),
+        [trip.payments]
+    );
 
     const myBalance = useMemo(() => {
         let owed = 0;
@@ -520,9 +540,6 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                                         : `$${(-remaining).toFixed(2)} over`}
                             </div>
                         )}
-                        {editingId && trip.expenses.find(x => x._id === editingId)?.splits.some(sp => sp.settled) && (
-                            <p className="xf-hint" style={{ margin: '6px 0 0' }}>Settled shares are reopened if their amount changes.</p>
-                        )}
                     </div>
 
                     {error && <p className="error">{error}</p>}
@@ -540,7 +557,7 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
             )}
 
             {
-                debts.length > 0 && (
+                trip.expenses.length > 0 && (
                     <div className="expense-balances">
                         <h3 className="expense-section-title">Balances</h3>
                         {currentUserId && (myBalance.owed > 0.005 || myBalance.owe > 0.005) && (
@@ -557,26 +574,88 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                                 )}
                             </p>
                         )}
-                        {debts.map(d => (
-                            <div key={`${d.fromId}-${d.toId}`} className="balance-row balance-owes">
-                                <span className="balance-name">{d.fromName}</span>
-                                <span className="balance-right">
-                                    <span className="balance-amount">owes {d.toName} ${d.amount.toFixed(2)}</span>
-                                    {(currentUserId === d.fromId || currentUserId === d.toId) && (
-                                        <button
-                                            type="button"
-                                            className="ghost small-btn"
-                                            disabled={settlingId === `up-${currentUserId === d.fromId ? d.toId : d.fromId}`}
-                                            onClick={() => currentUserId === d.fromId
-                                                ? handleSettleUp(d.toId, d.toName, d.amount, true)
-                                                : handleSettleUp(d.fromId, d.fromName, d.amount, false)}
-                                        >
-                                            Settle up
-                                        </button>
+                        {debts.length === 0 && <p className="small muted" style={{ margin: 0 }}>Everyone is settled up.</p>}
+                        {debts.map(d => {
+                            const key = `${d.fromId}-${d.toId}`;
+                            const involvesMe = currentUserId === d.fromId || currentUserId === d.toId;
+                            const open = payingKey === key;
+                            return (
+                                <div key={key} className="balance-block">
+                                    <div className="balance-row balance-owes">
+                                        <span className="balance-name">{d.fromName}</span>
+                                        <span className="balance-right">
+                                            <span className="balance-amount">owes {d.toName} ${d.amount.toFixed(2)}</span>
+                                            {involvesMe && !open && (
+                                                <button type="button" className="ghost small-btn" onClick={() => openPayment(d)}>
+                                                    Record payment
+                                                </button>
+                                            )}
+                                        </span>
+                                    </div>
+                                    {open && (
+                                        <div className="payment-form">
+                                            <p className="payment-form-text">
+                                                {currentUserId === d.fromId
+                                                    ? `How much did you pay ${d.toName}?`
+                                                    : `How much did ${d.fromName} pay you?`}
+                                            </p>
+                                            <div className="payment-form-row">
+                                                <div className="xf-prefixed xf-prefixed-sm">
+                                                    <span>$</span>
+                                                    <input
+                                                        type="number"
+                                                        inputMode="decimal"
+                                                        min="0.01"
+                                                        step="0.01"
+                                                        autoFocus
+                                                        aria-label="Payment amount"
+                                                        value={payAmount}
+                                                        onChange={e => setPayAmount(e.target.value)}
+                                                    />
+                                                </div>
+                                                <button type="button" disabled={paymentBusy || !(Number(payAmount) > 0)} onClick={() => handleSavePayment(d)}>
+                                                    {paymentBusy ? 'Saving…' : 'Save payment'}
+                                                </button>
+                                                <button type="button" className="ghost small-btn" onClick={() => setPayingKey(null)}>Cancel</button>
+                                            </div>
+                                            <p className="xf-hint" style={{ margin: '6px 0 0' }}>
+                                                Prefilled with the full balance. Enter less if it was a partial payment.
+                                            </p>
+                                        </div>
                                     )}
-                                </span>
-                            </div>
-                        ))}
+                                </div>
+                            );
+                        })}
+                        {error && !showForm && <p className="error" style={{ margin: '8px 0 0' }}>{error}</p>}
+                        {sortedPayments.length > 0 && (
+                            <details className="payment-history">
+                                <summary>Payment history ({sortedPayments.length})</summary>
+                                {sortedPayments.map(p => {
+                                    const canDelete = [p.fromUserId, p.toUserId, p.createdBy].includes(currentUserId ?? '');
+                                    return (
+                                        <div key={p._id} className="payment-row">
+                                            <span className="payment-text">
+                                                <strong>{nameOf(p.fromUserId)}</strong> paid <strong>{nameOf(p.toUserId)}</strong>{' '}
+                                                ${p.amount.toFixed(2)}
+                                                <span className="muted small"> · {new Date(p.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                                                {p.note && <span className="muted small"> · {p.note}</span>}
+                                            </span>
+                                            {canDelete && (
+                                                <button
+                                                    type="button"
+                                                    className="ghost small-btn expense-remove-btn"
+                                                    aria-label="Delete payment"
+                                                    disabled={removingPaymentId === p._id}
+                                                    onClick={() => handleRemovePayment(p._id)}
+                                                >
+                                                    {removingPaymentId === p._id ? '…' : <Icon name="close" size={13} />}
+                                                </button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </details>
+                        )}
                     </div>
                 )
             }
@@ -615,41 +694,13 @@ export default function ExpenseSplitPanel({ trip, currentUserId, onUpdate }: Exp
                                     </div>
                                 </div>
                                 <div className="expense-splits-grid">
-                                    {expense.splits.map(split => {
-                                        const key = `${expense._id}-${split.userId}`;
-                                        return (
-                                            <div key={split.userId} className={`expense-split-row ${split.settled ? 'is-settled' : ''}`}>
-                                                <span className="split-member">{split.userName}</span>
-                                                <span className="split-amt">${split.amount.toFixed(2)}</span>
-                                                {split.settled ? (
-                                                    <>
-                                                        <span className="settled-badge">Settled</span>
-                                                        {(currentUserId === split.userId || currentUserId === expense.paidBy.userId) && (
-                                                            <button
-                                                                type="button"
-                                                                className="ghost small-btn"
-                                                                disabled={settlingId === key}
-                                                                onClick={() => handleSettle(expense._id, split.userId, false)}
-                                                            >
-                                                                {settlingId === key ? '…' : 'Undo'}
-                                                            </button>
-                                                        )}
-                                                    </>
-                                                ) : split.userId === expense.paidBy.userId ? (
-                                                    <span className="muted small">Paid</span>
-                                                ) : (currentUserId === split.userId || currentUserId === expense.paidBy.userId) ? (
-                                                    <button
-                                                        type="button"
-                                                        className="ghost small-btn"
-                                                        disabled={settlingId === key}
-                                                        onClick={() => handleSettle(expense._id, split.userId)}
-                                                    >
-                                                        {settlingId === key ? '…' : 'Settle'}
-                                                    </button>
-                                                ) : null}
-                                            </div>
-                                        );
-                                    })}
+                                    {expense.splits.map(split => (
+                                        <div key={split.userId} className="expense-split-row">
+                                            <span className="split-member">{split.userName}</span>
+                                            <span className="split-amt">${split.amount.toFixed(2)}</span>
+                                            {split.userId === expense.paidBy.userId && <span className="muted small">Paid</span>}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         ))}

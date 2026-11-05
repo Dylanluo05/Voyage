@@ -6,6 +6,28 @@ architecture overview — this file is the narrative of how it got that way.
 
 ---
 
+## 2026-11-05
+
+### Expense payments ledger (replaces per-share "settled")
+Per-share Settle/Undo and the pair-level Settle up are gone. Balances are now
+the netted shares between two people minus recorded payments, so a pair that
+pays each other only the difference records just that amount instead of
+leaving the other side's debt un-offset (the "I suddenly owe $35" bug). New
+`payments` array on `Trip` (`POST /api/trips/:id/payments`, `DELETE
+.../payments/:paymentId`; only the sender or receiver can record, and the
+sender, receiver or recorder can delete). Balance rows get a **Record
+payment** button prefilled with the full balance (editable for partial
+payments), and a collapsible payment history lists who paid whom. Payment
+names are resolved from member ids at render time rather than stored.
+Legacy `settled` flags stay on splits but are ignored; run
+`backend/src/scripts/migrateSettledToPayments.ts` (dry run by default,
+`--write` to apply, idempotent) to convert them into one netted payment per
+pair, which keeps every existing balance identical. **Deploy order:** migrate
+first, then deploy, otherwise old settled shares show as unpaid. Already run
+for the NYC Fall Break trip. **Known gaps:** no overpayment warning, payment
+notes are supported by the API but not exposed in the UI, and the new UI
+hasn't been checked visually in a browser.
+
 ## 2026-10-26
 
 ### Expense "Settle up" for netted payments

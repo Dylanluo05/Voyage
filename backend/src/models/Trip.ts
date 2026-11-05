@@ -90,6 +90,7 @@ export interface TripDoc extends Document {
   hotels: HotelBookingData[];
   flights: FlightBookingData[];
   expenses: ExpenseData[];
+  payments: PaymentData[];
   dayAnchors: DayAnchorData[];
   isPublic: boolean;
 }
@@ -147,6 +148,19 @@ export interface ExpenseSplitData {
   userName: string;
   amount: number;
   settled: boolean;
+}
+
+// A real transfer of money between two trip members. Balances are shares minus payments.
+export interface PaymentData {
+  _id?: Types.ObjectId;
+  fromUserId: Types.ObjectId;
+  toUserId: Types.ObjectId;
+  amount: number;
+  note?: string;
+  createdBy: Types.ObjectId;
+  // Set on payments created by the settled-share migration script
+  migrated?: boolean;
+  createdAt?: Date;
 }
 
 export interface ExpenseData {
@@ -306,6 +320,19 @@ const expenseSchema = new Schema<ExpenseData>(
   { _id: true }
 );
 
+const paymentSchema = new Schema<PaymentData>(
+  {
+    fromUserId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    toUserId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    amount: { type: Number, required: true, min: 0.01 },
+    note: { type: String, trim: true, maxlength: 120 },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    migrated: { type: Boolean },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { _id: true }
+);
+
 const pendingCollaboratorSchema = new Schema<PendingCollaboratorData>(
   {
     email: { type: String, required: true, lowercase: true, trim: true },
@@ -350,6 +377,7 @@ const tripSchema = new Schema<TripDoc>(
     hotels: { type: [hotelSchema], default: [] },
     flights: { type: [flightSchema], default: [] },
     expenses: { type: [expenseSchema], default: [] },
+    payments: { type: [paymentSchema], default: [] },
     dayAnchors: { type: [dayAnchorSchema], default: [] },
     isPublic: { type: Boolean, default: false },
   },
