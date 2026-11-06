@@ -3959,11 +3959,14 @@ fieldset legend {
 }
 
 .xf input[type="number"]::-webkit-outer-spin-button,
-.xf input[type="number"]::-webkit-inner-spin-button {
+.xf input[type="number"]::-webkit-inner-spin-button,
+.xf-prefixed input[type="number"]::-webkit-outer-spin-button,
+.xf-prefixed input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-.xf input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.xf input[type="number"],
+.xf-prefixed input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 .xf-head {
   display: flex;
@@ -4059,7 +4062,7 @@ fieldset legend {
 }
 .xf-prefixed:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
 .xf-prefixed > span { color: var(--ink-faint); font-size: 0.95rem; }
-.xf .xf-prefixed input {
+.xf-prefixed input {
   flex: 1;
   min-width: 0;
   width: 100%;
@@ -4069,9 +4072,9 @@ fieldset legend {
   border-radius: 0 14px 14px 0;
   padding: 0.7rem 0.95rem 0.7rem 0.3rem;
 }
-.xf .xf-prefixed input:focus { box-shadow: none; background: transparent; }
+.xf-prefixed input:focus { box-shadow: none; background: transparent; }
 .xf-prefixed-sm { padding-left: 0.7rem; border-radius: 12px; width: 112px; }
-.xf .xf-prefixed-sm input { padding: 0.5rem 0.7rem 0.5rem 0.25rem; font-size: 0.9rem; border-radius: 0 12px 12px 0; }
+.xf-prefixed-sm input { padding: 0.5rem 0.7rem 0.5rem 0.25rem; font-size: 0.9rem; border-radius: 0 12px 12px 0; }
 
 /* payer chips + segmented control */
 .xf-chips { display: flex; flex-wrap: wrap; gap: 0.45rem; }

@@ -26,7 +26,10 @@ pair, which keeps every existing balance identical. **Deploy order:** migrate
 first, then deploy, otherwise old settled shares show as unpaid. Already run
 for the NYC Fall Break trip. **Known gaps:** no overpayment warning, payment
 notes are supported by the API but not exposed in the UI, and the new UI
-hasn't been checked visually in a browser.
+hasn't been checked visually in a browser. (Follow-up: the `$` amount input
+styles were scoped to the add-expense form, so the payment form's field
+rendered as a box inside a box; the rules now apply anywhere `.xf-prefixed`
+is used.)
 
 ## 2026-10-26
 
