@@ -8,4 +8,4 @@ Disallow: /upload/
 Disallow: /share/
 Disallow: /reset-password
 
-Sitemap: https://voyagetravel.app/sitemap.xml
+Sitemap: https://www.voyagetravel.app/sitemap.xml

@@ -3,7 +3,7 @@
 // JavaScript would otherwise only see the generic site card. vercel.json routes
 // only crawler user agents here; people get the normal app.
 
-const SITE = 'https://voyagetravel.app';
+const SITE = 'https://www.voyagetravel.app';
 const DEFAULT_IMAGE = `${SITE}/og-image.jpg`;
 const API_URL = (process.env.API_URL || process.env.VITE_API_URL || '').replace(/\/$/, '');
 

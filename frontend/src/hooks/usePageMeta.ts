@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
-const SITE = 'https://voyagetravel.app';
+const SITE = 'https://www.voyagetravel.app';
 const DEFAULT_TITLE = 'Voyage — Plan trips with friends, earn XP on sidequests';
 const DEFAULT_DESC =
   'Voyage is a free trip planner for friends: build itineraries together, split expenses, get AI help, and take on photo-verified sidequests to earn XP wherever you travel.';
