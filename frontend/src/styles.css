@@ -8355,15 +8355,18 @@ main:has(> .au) { max-width: 1240px; padding-top: clamp(1rem, 3vw, 2rem); }
 .qm-canvas { position: relative; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--hairline); background: var(--surface-sunk); }
 .qm-map { width: 100%; height: clamp(22rem, 60vh, 40rem); }
 .qm-none { position: absolute; left: 50%; top: 1rem; transform: translateX(-50%); padding: 0.5rem 1rem; border-radius: var(--r-pill); background: var(--surface); box-shadow: var(--shadow-md); font-size: 0.9rem; color: var(--ink-soft); }
-.qm-card {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;
-  padding: 1.1rem 1.3rem; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--hairline);
+.qm-pop { min-width: 200px; max-width: 250px; padding: 2px 2px 0; font-family: var(--font-body); color: #151515; }
+.qm-pop-kicker { margin: 0 0 0.2rem; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em; color: #5d5d5d; }
+.qm-pop-title { margin: 0; font-size: 1rem; line-height: 1.25; letter-spacing: -0.025em; color: #151515; }
+.qm-pop-place { display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem; margin: 0.4rem 0 0; font-size: 0.8rem; color: #5d5d5d; }
+.qm-pop-actions { display: flex; gap: 0.4rem; margin-top: 0.7rem; }
+.qm .qm-pop-btn {
+  display: inline-flex; align-items: center; justify-content: center; padding: 0.4rem 0.8rem; border-radius: 999px;
+  border: 1px solid rgba(21, 21, 21, 0.2); background: #fff; color: #151515; font-size: 0.8rem; font-weight: 600; text-decoration: none; cursor: pointer;
 }
-.qm-card-kicker { margin: 0 0 0.2rem; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.02em; color: var(--ink-soft); }
-.qm-card-title { margin: 0; font-size: 1.25rem; letter-spacing: -0.035em; }
-.qm-card-place { display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem; margin: 0.35rem 0 0; color: var(--ink-soft); font-size: 0.92rem; }
-.qm-card-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
-.qm-card-actions a { text-decoration: none; }
+.qm .qm-pop-btn:hover { background: #f1f1f1; color: #151515; transform: none; }
+.qm .qm-pop-btn--solid, .qm .qm-pop-btn--solid:hover { background: #151515; color: #fff; border-color: #151515; }
+.qm .qm-pop-btn--solid:hover { background: #0b76dd; border-color: #0b76dd; }
 
 .qp { display: flex; flex-direction: column; gap: 0.5rem; }
 .qp-label { font-size: 0.85rem; font-weight: 600; color: var(--ink-soft); }

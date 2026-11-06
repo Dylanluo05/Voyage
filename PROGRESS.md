@@ -8,6 +8,27 @@ architecture overview — this file is the narrative of how it got that way.
 
 ## 2026-11-05
 
+### Map pin popups and 200 college sidequests
+Selecting a pin on the quest map now opens an info-window popup anchored to
+the pin (quest, rank/XP, place, distance, Open quest and Directions) instead
+of a card below the map. Added 200 official quests aimed at college students,
+themed on current trends (in-person and double dating, daytime "darties" and
+soft clubbing, run clubs, sober-curious socials, thrift and fit-check
+culture, nostalgia and film cameras, Dubai chocolate, tier lists, RushTok,
+study "lock-in"): 104 that work anywhere plus 96 pinned quests, 8 each near
+UC Berkeley, UCLA, UCSD, UC Davis, UC Irvine, UC Santa Barbara, UC Santa
+Cruz, UC Riverside, UC Merced, UW Seattle, NYU and Ohio State. Content lives
+in `backend/src/scripts/data/` and is loaded by `seedCollegeTrendQuests.ts`
+(dry run by default, `--write` to apply, idempotent, never deletes; it has
+been run against the production database). Places are geocoded with
+OpenStreetMap Nominatim and rejected if they land outside a per-campus radius,
+which caught several bad lookups. House rules for the content: nothing
+requires alcohol, nothing involves trespassing or risky stunts, and anything
+involving other people assumes consent. **Known gaps:** the trend research
+was thin for fall 2026 specifically, quest cover illustrations are picked by
+keyword so a few may look slightly off, and the popup hasn't been checked
+visually in a browser.
+
 ### Sidequest map, "near me", and place-specific quests
 Quests can now be pinned to real places: a new `places` array (name, address,
 lat/lng) on `PublicSidequest`, so a quest can be unpinned (works anywhere),

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { GoogleMap, MarkerClustererF, MarkerF } from '@react-google-maps/api';
+import { GoogleMap, InfoWindowF, MarkerClustererF, MarkerF } from '@react-google-maps/api';
 import type { PublicSidequest, QuestPlace } from '../../types';
 import { useGoogleMaps } from '../../context/GoogleMapsContext';
 import { directionsLink, distanceKm, formatDistance, type LatLng } from '../../utils/geo';
@@ -111,6 +111,32 @@ export default function QuestMap({ quests, userPos, onOpen }: Props) {
               </>
             )}
           </MarkerClustererF>
+          {selected && (
+            <InfoWindowF
+              position={selected.place}
+              onCloseClick={() => setSelectedKey(null)}
+              options={{ pixelOffset: new google.maps.Size(0, -14), maxWidth: 280 }}
+            >
+              <div className={`qm-pop suit-${selected.quest.cardSuit}`}>
+                <p className="qm-pop-kicker">
+                  {selected.quest.cardRank} {SUITS[selected.quest.cardSuit].pip} · {SUITS[selected.quest.cardSuit].name} · +{selected.quest.xpReward} XP
+                </p>
+                <h3 className="qm-pop-title">{selected.quest.title}</h3>
+                <p className="qm-pop-place">
+                  <Icon name="pin" size={13} /> {selected.place.name}
+                  {userPos && <span> · {formatDistance(distanceKm(userPos, selected.place))}</span>}
+                </p>
+                <div className="qm-pop-actions">
+                  <button type="button" className="qm-pop-btn qm-pop-btn--solid" onClick={() => onOpen(selected.quest)}>
+                    Open quest
+                  </button>
+                  <a className="qm-pop-btn" href={directionsLink(selected.place)} target="_blank" rel="noreferrer">
+                    Directions
+                  </a>
+                </div>
+              </div>
+            </InfoWindowF>
+          )}
           {userPos && (
             <MarkerF
               position={userPos}
@@ -130,28 +156,6 @@ export default function QuestMap({ quests, userPos, onOpen }: Props) {
         {pins.length === 0 && <div className="qm-none">No pinned quests match. Try clearing a filter.</div>}
       </div>
 
-      {selected && (
-        <div className={`qm-card suit-${selected.quest.cardSuit}`}>
-          <div className="qm-card-main">
-            <p className="qm-card-kicker">
-              {selected.quest.cardRank} {SUITS[selected.quest.cardSuit].pip} · {SUITS[selected.quest.cardSuit].name} · +{selected.quest.xpReward} XP
-            </p>
-            <h3 className="qm-card-title">{selected.quest.title}</h3>
-            <p className="qm-card-place">
-              <Icon name="pin" size={14} /> {selected.place.name}
-              {userPos && <span className="muted"> · {formatDistance(distanceKm(userPos, selected.place))}</span>}
-            </p>
-          </div>
-          <div className="qm-card-actions">
-            <button type="button" className="qb-btn qb-btn--solid" onClick={() => onOpen(selected.quest)}>
-              Open quest
-            </button>
-            <a className="qb-btn qb-btn--outline" href={directionsLink(selected.place)} target="_blank" rel="noreferrer">
-              Directions
-            </a>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
