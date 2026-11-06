@@ -8,6 +8,28 @@ architecture overview — this file is the narrative of how it got that way.
 
 ## 2026-11-05
 
+### Sidequest map, "near me", and place-specific quests
+Quests can now be pinned to real places: a new `places` array (name, address,
+lat/lng) on `PublicSidequest`, so a quest can be unpinned (works anywhere),
+pinned to one spot ("Play Pickup Soccer Under Tokyo Tower"), or pinned to
+several spots (the paper-map dare now lists seven cities instead of only
+Tokyo). The board gets a Cards/Map toggle (clustered, suit-colored pins with a
+quest card and Directions link) and a "Find quests near me" filter with a
+radius picker (miles in en-US, km elsewhere) that sorts by distance and keeps
+unpinned quests in a "Do these anywhere" group. The create-quest modal has a
+Google Places search to pin places, `PATCH /api/public-sidequests/:id/places`
+lets creators/admins edit pins, and the location search now matches place
+names. `/sidequests` is now wrapped in `GoogleMapsProvider`. Distance and the
+map filter run in the browser over the already-loaded quest list, matching how
+the board works today; add a server-side geo query if the quest count grows
+into the thousands. New `seedPlaceQuests.ts` (dry run by default, `--write` to
+apply, idempotent, never deletes) geocodes with OpenStreetMap Nominatim, pins
+11 existing seed quests and adds 19 official place-specific ones; it has been
+run against the production database. **Known gaps:** only quests made by the
+seed account were pinned (the other ~100 are location-free by design), user
+quests can only be pinned through the create modal or the API, and the map UI
+hasn't been checked visually in a browser.
+
 ### Sidequest cover photos and official quests
 Quest creators can now upload a cover photo when creating a quest, and
 creators and admins can change or remove it later from the quest sheet

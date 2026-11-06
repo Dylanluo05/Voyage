@@ -122,9 +122,11 @@ function Shell() {
             path="/sidequests"
             element={
               <ProtectedRoute>
-                <main>
-                  <SidequestsPage />
-                </main>
+                <GoogleMapsProvider>
+                  <main>
+                    <SidequestsPage />
+                  </main>
+                </GoogleMapsProvider>
               </ProtectedRoute>
             }
           />

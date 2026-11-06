@@ -2,6 +2,7 @@ import type { PublicSidequest } from '../../types';
 import { Icon } from '../Icon';
 import QuestCover from './QuestCover';
 import { SUITS } from './questMeta';
+import { formatDistance } from '../../utils/geo';
 
 type Props = {
   quest: PublicSidequest;
@@ -9,6 +10,8 @@ type Props = {
   /** Layout size in the mosaic: sets the cover height. */
   size: 'lg' | 'md' | 'sm';
   claiming: boolean;
+  /** Distance to the nearest pinned spot, when the viewer shared their location. */
+  distanceKm?: number;
   onOpen: (q: PublicSidequest) => void;
   onClaim: (q: PublicSidequest) => void;
   onProve: (q: PublicSidequest) => void;
@@ -18,7 +21,7 @@ function initial(name: string) {
   return name.trim().slice(0, 1).toUpperCase() || '?';
 }
 
-export default function QuestTile({ quest, userId, size, claiming, onOpen, onClaim, onProve }: Props) {
+export default function QuestTile({ quest, userId, size, claiming, distanceKm, onOpen, onClaim, onProve }: Props) {
   const claimed = !!userId && quest.claims.some((c) => c.userId === userId);
   const done = !!userId && quest.completions.some((c) => c.userId === userId);
   const suit = SUITS[quest.cardSuit];
@@ -61,8 +64,10 @@ export default function QuestTile({ quest, userId, size, claiming, onOpen, onCla
             {quest.location && (
               <span>
                 <Icon name="pin" size={13} /> {quest.location}
+                {(quest.places?.length ?? 0) > 1 && ` · ${quest.places!.length} spots`}
               </span>
             )}
+            {distanceKm != null && <span className="qt-dist">{formatDistance(distanceKm)}</span>}
             <span>{suit.name}: {suit.category}</span>
           </p>
         </div>

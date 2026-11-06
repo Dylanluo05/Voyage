@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { PublicSidequest } from '../../types';
+import type { PublicSidequest, QuestPlace } from '../../types';
 import type { RankInfo } from '../../utils/ranks';
 import CountUp from '../CountUp';
 import { Icon } from '../Icon';
 import { uploadPhoto } from '../../utils/image';
 import QuestCover from './QuestCover';
+import PlacePicker from './PlacePicker';
 import { RANK_ORDER, RANK_LABEL, SUIT_ORDER, SUITS, xpFor, type Rank, type Suit } from './questMeta';
 
 /* Full-screen moments: claiming, drawing a card, completing (the big one), and creating. */
@@ -298,7 +299,7 @@ export function CompleteOverlay({
 
 /* ── Create a quest ──────────────────────────────────────────────────── */
 
-export type NewQuest = { title: string; description: string; location: string; cardSuit: Suit; cardRank: Rank; coverImageUrl?: string };
+export type NewQuest = { title: string; description: string; location: string; cardSuit: Suit; cardRank: Rank; coverImageUrl?: string; places?: QuestPlace[] };
 
 export function CreateQuestModal({
   onClose,
@@ -391,6 +392,8 @@ export function CreateQuestModal({
               Where
               <input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Lisbon, Portugal" />
             </label>
+
+            <PlacePicker places={form.places ?? []} onChange={(places) => setForm({ ...form, places })} />
 
             <div className="qs-cover-edit">
               <label className="qs-btn">

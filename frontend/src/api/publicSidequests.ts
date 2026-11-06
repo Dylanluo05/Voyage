@@ -1,10 +1,10 @@
-import { LeaderboardEntry, PublicSidequest } from '../types';
+import { LeaderboardEntry, PublicSidequest, QuestPlace } from '../types';
 import { apiFetch } from './client';
 
 export function listPublicSidequests(
     location?: string,
 ): Promise<PublicSidequest[]> {
-    return apiFetch<PublicSidequest[]>(`/api/public-sidequests${location ? `?location=${location}` : ''}`, {
+    return apiFetch<PublicSidequest[]>(`/api/public-sidequests${location ? `?location=${encodeURIComponent(location)}` : ''}`, {
         method: 'GET',
     });
 }
@@ -20,6 +20,7 @@ export function createPublicSidequest(
         title: string;
         description?: string;
         location?: string;
+        places?: QuestPlace[];
         cardSuit: 'spades' | 'hearts' | 'diamonds' | 'clubs';
         cardRank: 'J' | 'Q' | 'K' | 'A';
         coverImageUrl?: string;
@@ -151,5 +152,12 @@ export function setQuestCover(id: string, coverImageUrl: string | null): Promise
     return apiFetch<PublicSidequest>(`/api/public-sidequests/${id}/cover`, {
         method: 'PATCH',
         body: JSON.stringify({ coverImageUrl }),
+    });
+}
+
+export function setQuestPlaces(id: string, places: QuestPlace[]): Promise<PublicSidequest> {
+    return apiFetch<PublicSidequest>(`/api/public-sidequests/${id}/places`, {
+        method: 'PATCH',
+        body: JSON.stringify({ places }),
     });
 }

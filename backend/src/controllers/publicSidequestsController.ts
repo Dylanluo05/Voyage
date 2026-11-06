@@ -70,6 +70,14 @@ function ownerId(req: Request): Types.ObjectId {
     return new Types.ObjectId(req.user.sub);
 }
 
+const MAX_PLACES = 12;
+const placeInput = z.object({
+    name: z.string().trim().min(1).max(120),
+    address: z.string().trim().max(200).optional(),
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+});
+
 function escapeRegex(s: string): string {
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -78,7 +86,12 @@ export async function listPublicSidequests(req: Request, res: Response, next: Ne
     try {
         const { location } = req.query;
         const publicSidequests = await PublicSidequest.find(
-            { ...(location && { location: new RegExp(escapeRegex(location as string), 'i') }) }
+            location
+                ? (() => {
+                    const rx = new RegExp(escapeRegex(location as string), 'i');
+                    return { $or: [{ location: rx }, { 'places.name': rx }, { 'places.address': rx }] };
+                })()
+                : {}
         ).lean();
         res.json(sidequestViews(publicSidequests as never[], viewerOf(req)));
     } catch (err) {
@@ -102,6 +115,7 @@ export async function createPublicSidequest(req: Request, res: Response, next: N
             title: z.string().trim().min(1).max(120),
             description: z.string().max(1000).optional(),
             location: z.string().max(200).optional(),
+            places: z.array(placeInput).max(MAX_PLACES).optional(),
             cardSuit: z.enum(['spades', 'hearts', 'diamonds', 'clubs']),
             // Accepted for client compatibility, but user-created quests are always
             // the lowest rank so they can't be used to farm XP.
@@ -121,7 +135,9 @@ export async function createPublicSidequest(req: Request, res: Response, next: N
         const publicSidequest = await PublicSidequest.create({
             title: publicSidequestSchema.title,
             description: publicSidequestSchema.description,
-            location: publicSidequestSchema.location,
+            // Shown on cards; falls back to the first pinned place so pinned quests always have a label.
+            location: publicSidequestSchema.location || publicSidequestSchema.places?.[0]?.name,
+            places: publicSidequestSchema.places ?? [],
             coverImageUrl: publicSidequestSchema.coverImageUrl,
             official: isAdmin(req),
             createdBy: { userId: uid, userName: user.name },
@@ -520,6 +536,22 @@ export async function setCover(req: Request, res: Response, next: NextFunction):
             throw new HttpError(403, 'Only the quest creator or an admin can change the cover');
         }
         sq.coverImageUrl = coverImageUrl ?? undefined;
+        await sq.save();
+        res.status(200).json(sidequestView(sq, viewerOf(req)));
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function setPlaces(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+        const { places } = z.object({ places: z.array(placeInput).max(MAX_PLACES) }).parse(req.body);
+        const sq = await PublicSidequest.findById(req.params.id);
+        if (!sq) throw new HttpError(404, 'Public sidequest not found');
+        if (!sq.createdBy.userId.equals(ownerId(req)) && !isAdmin(req)) {
+            throw new HttpError(403, 'Only the quest creator or an admin can change the pinned places');
+        }
+        sq.places = places;
         await sq.save();
         res.status(200).json(sidequestView(sq, viewerOf(req)));
     } catch (err) {

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, optionalAuth } from '../middleware/auth';
-import { listPublicSidequests, listClaimedSidequests, createPublicSidequest, claimPublicSidequest, unclaimPublicSidequest, completePublicSidequest, enrollInSidequest, leaveEvent, getLeaderboard, assignClaimToTrip, unassignClaimFromTrip, listSidequestsByTrip, addComment, removeComment, createEvent, requestReview, listReviewQueue, reviewCompletion, setCover } from '../controllers/publicSidequestsController';
+import { listPublicSidequests, listClaimedSidequests, createPublicSidequest, claimPublicSidequest, unclaimPublicSidequest, completePublicSidequest, enrollInSidequest, leaveEvent, getLeaderboard, assignClaimToTrip, unassignClaimFromTrip, listSidequestsByTrip, addComment, removeComment, createEvent, requestReview, listReviewQueue, reviewCompletion, setCover, setPlaces } from '../controllers/publicSidequestsController';
 
 const router = Router();
 
@@ -17,6 +17,7 @@ router.patch('/:id/claim', claimPublicSidequest);
 router.patch('/:id/unclaim', unclaimPublicSidequest);
 router.patch('/:id/complete', completePublicSidequest);
 router.patch('/:id/cover', setCover);
+router.patch('/:id/places', setPlaces);
 router.post('/:id/request-review', requestReview);
 router.post('/:id/review/:requestId', reviewCompletion);
 router.post('/:id/event', createEvent);

@@ -265,11 +265,21 @@ export interface SidequestHistoryData {
   completedAt: string;
 }
 
+/** A specific spot a quest can be done at. */
+export interface QuestPlace {
+  name: string;
+  address?: string;
+  lat: number;
+  lng: number;
+}
+
 export interface PublicSidequest {
   _id: string;
   title: string;
   description?: string;
   location?: string;
+  /** Pinned spots. Empty/missing means the quest can be done anywhere. */
+  places?: QuestPlace[];
   /** Creator-chosen cover photo. Voyage-made (`official`) quests use illustrations instead. */
   coverImageUrl?: string;
   official?: boolean;

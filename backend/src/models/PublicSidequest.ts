@@ -5,6 +5,8 @@ export interface PublicSidequestDoc extends Document {
     title: string,
     description?: string,
     location?: string,
+    /** Specific spots this quest can be done at. Empty means it works anywhere. Several pins = same dare, different places. */
+    places: { name: string, address?: string, lat: number, lng: number }[],
     /** Cover photo chosen by the creator (Cloudinary URL). Voyage-made quests use illustrations instead. */
     coverImageUrl?: string,
     /** Made by the Voyage team (an admin account). */
@@ -68,6 +70,12 @@ const publicSidequestSchema = new Schema({
     title: { type: String, required: true, trim: true },
     description: { type: String, trim: true },
     location: { type: String, trim: true },
+    places: { type: [new Schema({
+        name: { type: String, required: true, trim: true, maxlength: 120 },
+        address: { type: String, trim: true, maxlength: 200 },
+        lat: { type: Number, required: true, min: -90, max: 90 },
+        lng: { type: Number, required: true, min: -180, max: 180 },
+    }, { _id: false })], default: [] },
     coverImageUrl: { type: String, trim: true },
     official: { type: Boolean, default: false, index: true },
     createdBy: { userId: { type: Schema.Types.ObjectId, required: true, index: true }, userName: { type: String, required: true, trim: true } },

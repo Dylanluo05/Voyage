@@ -13,6 +13,8 @@ import { Icon } from '../components/Icon';
 import PlayerHud from '../components/quests/PlayerHud';
 import DeckFan from '../components/quests/DeckFan';
 import QuestTile from '../components/quests/QuestTile';
+import QuestMap from '../components/quests/QuestMap';
+import { hasPlaces, nearestPlace, KM_PER_UNIT, UNIT_LABEL, type LatLng } from '../utils/geo';
 import QuestSheet, { type QuestActions } from '../components/quests/QuestSheet';
 import { ClaimOverlay, CompleteOverlay, CreateQuestModal, DrawOverlay, type NewQuest } from '../components/quests/QuestOverlays';
 import { RANK_ORDER, SUIT_ORDER, SUITS, type Rank, type Suit } from '../components/quests/questMeta';
@@ -43,6 +45,11 @@ export default function SidequestsPage() {
   const [suit, setSuit] = useState<Suit | 'all'>('all');
   const [rank, setRank] = useState<Rank | 'all'>('all');
   const [query, setQuery] = useState(initialLocation);
+  const [view, setView] = useState<'cards' | 'map'>('cards');
+  const [userPos, setUserPos] = useState<LatLng | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [nearOn, setNearOn] = useState(false);
+  const [radiusUnits, setRadiusUnits] = useState(25);
 
   const [sheetId, setSheetId] = useState<string | null>(null);
   const [sheetProving, setSheetProving] = useState(false);
@@ -93,6 +100,53 @@ export default function SidequestsPage() {
   // Quests where someone is waiting on this user (creator, or any admin) to approve a photo.
   const needsReview = quests.filter((q) => (q.reviewRequests ?? []).some((r) => r.status === 'pending' && r.userId !== uid));
   const board = quests.filter((q) => (suit === 'all' || q.cardSuit === suit) && (rank === 'all' || q.cardRank === rank));
+
+  // "Near me": pinned quests within the chosen radius, closest first. Quests with no pins can be
+  // done anywhere, so they stay available in their own group instead of being dropped.
+  const near = useMemo(() => {
+    if (!nearOn || !userPos) return null;
+    const withDistance = board
+      .filter(hasPlaces)
+      .map((q) => ({ q, km: nearestPlace(q, userPos)!.km }))
+      .filter((x) => x.km <= radiusUnits * KM_PER_UNIT)
+      .sort((a, b) => a.km - b.km);
+    return { items: withDistance, anywhere: board.filter((q) => !hasPlaces(q)) };
+  }, [nearOn, userPos, board, radiusUnits]);
+  const distanceById = useMemo(() => new Map((near?.items ?? []).map((x) => [x.q._id, x.km])), [near]);
+  const pinnedCount = quests.filter(hasPlaces).length;
+
+  function toggleNearMe() {
+    if (nearOn) {
+      setNearOn(false);
+      return;
+    }
+    if (userPos) {
+      setNearOn(true);
+      return;
+    }
+    if (!navigator.geolocation) {
+      setError('Your browser can\u2019t share your location.');
+      return;
+    }
+    setLocating(true);
+    setError('');
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        setUserPos({ lat: p.coords.latitude, lng: p.coords.longitude });
+        setNearOn(true);
+        setLocating(false);
+      },
+      (err) => {
+        setLocating(false);
+        setError(
+          err.code === err.PERMISSION_DENIED
+            ? 'Location is blocked. Allow it in your browser settings to find quests near you.'
+            : 'Couldn\u2019t get your location. Try again.',
+        );
+      },
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 5 * 60_000 },
+    );
+  }
 
   // ── actions (throwing versions feed the sheet, which shows the error inline) ──
   const actions: QuestActions = {
@@ -188,7 +242,7 @@ export default function SidequestsPage() {
   };
 
   const xp = profile?.xp ?? 0;
-  const list = mode === 'mine' ? inProgress : board;
+  const list = mode === 'mine' ? inProgress : near ? near.items.map((x) => x.q) : board;
 
   const renderTiles = (items: PublicSidequest[]) =>
     items.map((q, i) => (
@@ -198,6 +252,7 @@ export default function SidequestsPage() {
         userId={uid}
         size={MOSAIC[i % MOSAIC.length]}
         claiming={claimingId === q._id}
+        distanceKm={distanceById.get(q._id)}
         onOpen={(x) => openSheet(x)}
         onClaim={(x) => quickClaim(x)}
         onProve={(x) => openSheet(x, true)}
@@ -305,6 +360,32 @@ export default function SidequestsPage() {
               </button>
             ))}
           </div>
+
+          <div className="qb-tools">
+            <div className="qb-seg" role="tablist" aria-label="Board layout">
+              <button type="button" role="tab" aria-selected={view === 'cards'} className="qb-seg-btn" onClick={() => setView('cards')}>
+                Cards
+              </button>
+              <button type="button" role="tab" aria-selected={view === 'map'} className="qb-seg-btn" onClick={() => setView('map')}>
+                <Icon name="map" size={15} /> Map {pinnedCount > 0 && <span className="qb-seg-n">{pinnedCount}</span>}
+              </button>
+            </div>
+            <button type="button" className={`qb-chip${nearOn ? ' is-on' : ''}`} onClick={toggleNearMe} disabled={locating} aria-pressed={nearOn}>
+              <Icon name="pin" size={15} /> {locating ? 'Locating…' : nearOn ? 'Near me: on' : 'Find quests near me'}
+            </button>
+            {nearOn && (
+              <label className="qb-radius">
+                Within
+                <select value={radiusUnits} onChange={(e) => setRadiusUnits(Number(e.target.value))}>
+                  {[5, 10, 25, 50, 100, 250].map((n) => (
+                    <option key={n} value={n}>
+                      {n} {UNIT_LABEL}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
         </>
       )}
 
@@ -334,10 +415,25 @@ export default function SidequestsPage() {
             </div>
           )}
 
-          {list.length > 0 ? (
+          {mode === 'board' && view === 'map' ? (
+            <>
+              <QuestMap quests={near ? near.items.map((x) => x.q) : board.filter(hasPlaces)} userPos={nearOn ? userPos : null} onOpen={(q) => openSheet(q)} />
+              {pinnedCount < quests.length && (
+                <p className="muted small qb-maphint">
+                  {quests.length - pinnedCount} quests aren’t tied to a spot and can be done anywhere. Switch to Cards to see them.
+                </p>
+              )}
+            </>
+          ) : list.length > 0 ? (
             <Reveal as="div" className="qb-mosaic" variant="up" stagger threshold={0}>
               {renderTiles(list)}
             </Reveal>
+          ) : near ? (
+            <div className="qb-emptycard">
+              <Icon name="pin" size={34} />
+              <h3>No pinned quests within {radiusUnits} {UNIT_LABEL}</h3>
+              <p>Try a wider radius, or check the quests you can do anywhere below.</p>
+            </div>
           ) : mode === 'mine' && finished.length > 0 ? (
             <div className="qb-emptyrow">
               <p>Nothing in progress. Ready for the next dare?</p>
@@ -354,6 +450,19 @@ export default function SidequestsPage() {
                 <Icon name="cards" size={16} /> Draw a card
               </button>
             </div>
+          )}
+
+          {/* ── Near me: quests with no pin work wherever you are ── */}
+          {mode === 'board' && view === 'cards' && near && near.anywhere.length > 0 && (
+            <section className="qb-anywhere">
+              <div className="qb-section-head">
+                <h2>Do these anywhere</h2>
+                <span>{near.anywhere.length} not tied to a spot</span>
+              </div>
+              <Reveal as="div" className="qb-mosaic" variant="up" stagger threshold={0}>
+                {renderTiles(near.anywhere)}
+              </Reveal>
+            </section>
           )}
 
           {/* ── Trophy wall ── */}

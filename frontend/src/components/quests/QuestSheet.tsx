@@ -8,6 +8,7 @@ import { Icon } from '../Icon';
 import ReportButton from '../ReportButton';
 import QuestCover from './QuestCover';
 import { RANK_LABEL, SUITS } from './questMeta';
+import { directionsLink } from '../../utils/geo';
 
 export type QuestActions = {
   claim: (id: string) => Promise<void>;
@@ -146,6 +147,25 @@ export default function QuestSheet({ quest, user, trips, actions, startProving, 
           </p>
           <h2 className="qs-title">{quest.title}</h2>
           {quest.description && <p className="qs-desc">{quest.description}</p>}
+
+          {(quest.places?.length ?? 0) > 0 && (
+            <div className="qs-block qs-where">
+              <h3>{quest.places!.length === 1 ? 'Where' : 'Pick a spot'}</h3>
+              <ul>
+                {quest.places!.map((p) => (
+                  <li key={`${p.lat},${p.lng}`}>
+                    <span>
+                      <Icon name="pin" size={14} /> <b>{p.name}</b>
+                      {p.address && <em className="muted small"> · {p.address}</em>}
+                    </span>
+                    <a href={directionsLink(p)} target="_blank" rel="noreferrer">
+                      Directions
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <ul className="qs-facts">
             <li className="qs-fact qs-fact--xp">
