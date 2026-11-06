@@ -1,7 +1,7 @@
 import type { PublicSidequest } from '../../types';
 import { Icon } from '../Icon';
 import QuestCover from './QuestCover';
-import { SUITS } from './questMeta';
+import { SUITS, interestLabel } from './questMeta';
 import { formatDistance } from '../../utils/geo';
 
 type Props = {
@@ -12,6 +12,10 @@ type Props = {
   claiming: boolean;
   /** Distance to the nearest pinned spot, when the viewer shared their location. */
   distanceKm?: number;
+  /** Interests currently filtering the board; matching chips on the tile are highlighted. */
+  activeInterests?: string[];
+  /** Clicking a chip on the tile toggles that interest filter. */
+  onInterest?: (key: string) => void;
   onOpen: (q: PublicSidequest) => void;
   onClaim: (q: PublicSidequest) => void;
   onProve: (q: PublicSidequest) => void;
@@ -21,7 +25,7 @@ function initial(name: string) {
   return name.trim().slice(0, 1).toUpperCase() || '?';
 }
 
-export default function QuestTile({ quest, userId, size, claiming, distanceKm, onOpen, onClaim, onProve }: Props) {
+export default function QuestTile({ quest, userId, size, claiming, distanceKm, activeInterests = [], onInterest, onOpen, onClaim, onProve }: Props) {
   const claimed = !!userId && quest.claims.some((c) => c.userId === userId);
   const done = !!userId && quest.completions.some((c) => c.userId === userId);
   const suit = SUITS[quest.cardSuit];
@@ -70,6 +74,21 @@ export default function QuestTile({ quest, userId, size, claiming, distanceKm, o
             {distanceKm != null && <span className="qt-dist">{formatDistance(distanceKm)}</span>}
             <span>{suit.name}: {suit.category}</span>
           </p>
+          {(quest.interests?.length ?? 0) > 0 && (
+            <ul className="qt-tags" aria-label="Interests">
+              {quest.interests!.map((k) => (
+                <li key={k}>
+                  {onInterest ? (
+                    <button type="button" className={`qt-tag${activeInterests.includes(k) ? ' is-on' : ''}`} aria-pressed={activeInterests.includes(k)} onClick={() => onInterest(k)}>
+                      {interestLabel(k)}
+                    </button>
+                  ) : (
+                    <span className="qt-tag">{interestLabel(k)}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="qt-foot">

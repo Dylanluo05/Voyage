@@ -17,7 +17,7 @@ import QuestMap from '../components/quests/QuestMap';
 import { hasPlaces, nearestPlace, KM_PER_UNIT, UNIT_LABEL, type LatLng } from '../utils/geo';
 import QuestSheet, { type QuestActions } from '../components/quests/QuestSheet';
 import { ClaimOverlay, CompleteOverlay, CreateQuestModal, DrawOverlay, type NewQuest } from '../components/quests/QuestOverlays';
-import { RANK_ORDER, SUIT_ORDER, SUITS, type Rank, type Suit } from '../components/quests/questMeta';
+import { RANK_ORDER, SUIT_ORDER, SUITS, INTERESTS, isInterest, type InterestKey, type Rank, type Suit } from '../components/quests/questMeta';
 
 type Mode = 'board' | 'mine';
 type Complete = { quest: PublicSidequest; photoUrl: string; xpGain: number; before: number; after: number };
@@ -32,7 +32,7 @@ function msg(err: unknown, fallback: string) {
 export default function SidequestsPage() {
   const { user } = useAuth();
   const uid = user?.id;
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const initialLocation = searchParams.get('location') ?? '';
 
   const [quests, setQuests] = useState<PublicSidequest[]>([]);
@@ -45,6 +45,9 @@ export default function SidequestsPage() {
   const [suit, setSuit] = useState<Suit | 'all'>('all');
   const [rank, setRank] = useState<Rank | 'all'>('all');
   const [query, setQuery] = useState(initialLocation);
+  // Interest chips: several can be active at once. They live in the URL so a filtered view can be shared.
+  const [interests, setInterests] = useState<InterestKey[]>(() => (searchParams.get('interests') ?? '').split(',').filter(isInterest));
+  const [matchAll, setMatchAll] = useState(() => searchParams.get('match') === 'all');
   const [view, setView] = useState<'cards' | 'map'>('cards');
   const [userPos, setUserPos] = useState<LatLng | null>(null);
   const [locating, setLocating] = useState(false);
@@ -82,6 +85,20 @@ export default function SidequestsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (interests.length > 0) next.set('interests', interests.join(','));
+        else next.delete('interests');
+        if (matchAll && interests.length > 1) next.set('match', 'all');
+        else next.delete('match');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [interests, matchAll, setSearchParams]);
+
   const replace = (updated: PublicSidequest) => setQuests((prev) => prev.map((q) => (q._id === updated._id ? updated : q)));
 
   const isClaimed = (q: PublicSidequest) => !!uid && q.claims.some((c) => c.userId === uid);
@@ -99,7 +116,26 @@ export default function SidequestsPage() {
 
   // Quests where someone is waiting on this user (creator, or any admin) to approve a photo.
   const needsReview = quests.filter((q) => (q.reviewRequests ?? []).some((r) => r.status === 'pending' && r.userId !== uid));
-  const board = quests.filter((q) => (suit === 'all' || q.cardSuit === suit) && (rank === 'all' || q.cardRank === rank));
+  const inSuitAndRank = (q: PublicSidequest) => (suit === 'all' || q.cardSuit === suit) && (rank === 'all' || q.cardRank === rank);
+  const matchesInterests = (q: PublicSidequest) => {
+    if (interests.length === 0) return true;
+    const have = q.interests ?? [];
+    return matchAll ? interests.every((k) => have.includes(k)) : interests.some((k) => have.includes(k));
+  };
+  const board = quests.filter((q) => inSuitAndRank(q) && matchesInterests(q));
+
+  // How many quests each chip would show, given the suit and difficulty already chosen.
+  const interestCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    quests.filter(inSuitAndRank).forEach((q) => (q.interests ?? []).forEach((k) => (counts[k] = (counts[k] ?? 0) + 1)));
+    return counts;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quests, suit, rank]);
+
+  const toggleInterest = (key: string) => {
+    if (!isInterest(key)) return;
+    setInterests((cur) => (cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]));
+  };
 
   // "Near me": pinned quests within the chosen radius, closest first. Quests with no pins can be
   // done anywhere, so they stay available in their own group instead of being dropped.
@@ -113,7 +149,7 @@ export default function SidequestsPage() {
     return { items: withDistance, anywhere: board.filter((q) => !hasPlaces(q)) };
   }, [nearOn, userPos, board, radiusUnits]);
   const distanceById = useMemo(() => new Map((near?.items ?? []).map((x) => [x.q._id, x.km])), [near]);
-  const pinnedCount = quests.filter(hasPlaces).length;
+  const pinnedCount = board.filter(hasPlaces).length;
 
   function toggleNearMe() {
     if (nearOn) {
@@ -253,6 +289,8 @@ export default function SidequestsPage() {
         size={MOSAIC[i % MOSAIC.length]}
         claiming={claimingId === q._id}
         distanceKm={distanceById.get(q._id)}
+        activeInterests={interests}
+        onInterest={toggleInterest}
         onOpen={(x) => openSheet(x)}
         onClaim={(x) => quickClaim(x)}
         onProve={(x) => openSheet(x, true)}
@@ -361,6 +399,34 @@ export default function SidequestsPage() {
             ))}
           </div>
 
+          <div className="qb-interests" role="group" aria-label="Filter by interest">
+            <span>Interests</span>
+            {INTERESTS.map((i) => {
+              const on = interests.includes(i.key);
+              return (
+                <button key={i.key} type="button" className={`qb-chip qb-chip--sm${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => toggleInterest(i.key)}>
+                  {i.label} <em>{interestCounts[i.key] ?? 0}</em>
+                </button>
+              );
+            })}
+            {interests.length > 0 && (
+              <button type="button" className="qb-link" onClick={() => { setInterests([]); setMatchAll(false); }}>
+                Clear
+              </button>
+            )}
+            {interests.length > 1 && (
+              <label className="qb-matchall">
+                <input type="checkbox" checked={matchAll} onChange={(e) => setMatchAll(e.target.checked)} /> Match all
+              </label>
+            )}
+          </div>
+          {interests.length > 0 && (
+            <p className="muted small qb-matchcount" role="status">
+              {board.length} {board.length === 1 ? 'quest matches' : 'quests match'}{' '}
+              {interests.length === 1 ? 'this interest' : `${matchAll ? 'all' : 'any'} of your ${interests.length} interests`}.
+            </p>
+          )}
+
           <div className="qb-tools">
             <div className="qb-seg" role="tablist" aria-label="Board layout">
               <button type="button" role="tab" aria-selected={view === 'cards'} className="qb-seg-btn" onClick={() => setView('cards')}>
@@ -418,9 +484,9 @@ export default function SidequestsPage() {
           {mode === 'board' && view === 'map' ? (
             <>
               <QuestMap quests={near ? near.items.map((x) => x.q) : board.filter(hasPlaces)} userPos={nearOn ? userPos : null} onOpen={(q) => openSheet(q)} />
-              {pinnedCount < quests.length && (
+              {pinnedCount < board.length && (
                 <p className="muted small qb-maphint">
-                  {quests.length - pinnedCount} quests aren’t tied to a spot and can be done anywhere. Switch to Cards to see them.
+                  {board.length - pinnedCount} quests aren’t tied to a spot and can be done anywhere. Switch to Cards to see them.
                 </p>
               )}
             </>

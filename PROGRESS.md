@@ -8,6 +8,30 @@ architecture overview — this file is the narrative of how it got that way.
 
 ## 2026-11-05
 
+### Interest chips, and a fix for the empty quest map in dev
+Quests now carry 1 to 4 interest chips from a fixed list of 15 (outdoors, food,
+dating, friends, parties, fitness, music, arts, fashion, travel, learning,
+nostalgia, wellness, giving, campus), defined in `backend/src/lib/interests.ts`
+and mirrored in `questMeta.ts`. The board has a multi-select chip row with live
+counts; a quest matches if it has any selected interest, with a "Match all"
+toggle for two or more, and the filter combines with suit, difficulty, the map
+and near-me. The selection lives in the URL (`?interests=...&match=all`) so a
+filtered view is shareable. Tiles show their chips (clicking one toggles that
+filter), the quest sheet lists them, and the create modal has a picker that
+falls back to inferring chips from the text when left blank. New endpoint:
+`PATCH /api/public-sidequests/:id/interests` for creators and admins (no UI yet).
+Interests are inferred by keyword rules (`inferInterests`); the backfill script
+`tagQuestInterests.ts` (dry run by default, `--write`, only touches untagged
+quests unless `--retag`) has been run against production for all 332 quests, and
+the new seed script tags what it inserts. The rules are approximate, so expect
+some off tags. Separately, the quest map lost every pin under React StrictMode
+(dev) because the clusterer library dropped its markers; `QuestMap` now owns its
+markers and `@googlemaps/markerclusterer` directly (added as a dependency),
+rebuilds them only when the pin set really changes, and tears them down
+properly. Verified in a browser against real quest data in both dev and
+production builds. **Known gaps:** no UI yet to edit a quest's interests after
+creation, and cluster badges now use the library's default colors.
+
 ### Map pin popups and 200 college sidequests
 Selecting a pin on the quest map now opens an info-window popup anchored to
 the pin (quest, rank/XP, place, distance, Open quest and Directions) instead

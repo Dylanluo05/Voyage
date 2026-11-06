@@ -7,7 +7,7 @@ import { Icon } from '../Icon';
 import { uploadPhoto } from '../../utils/image';
 import QuestCover from './QuestCover';
 import PlacePicker from './PlacePicker';
-import { RANK_ORDER, RANK_LABEL, SUIT_ORDER, SUITS, xpFor, type Rank, type Suit } from './questMeta';
+import { RANK_ORDER, RANK_LABEL, SUIT_ORDER, SUITS, INTERESTS, MAX_INTERESTS, xpFor, type Rank, type Suit } from './questMeta';
 
 /* Full-screen moments: claiming, drawing a card, completing (the big one), and creating. */
 
@@ -299,7 +299,7 @@ export function CompleteOverlay({
 
 /* ── Create a quest ──────────────────────────────────────────────────── */
 
-export type NewQuest = { title: string; description: string; location: string; cardSuit: Suit; cardRank: Rank; coverImageUrl?: string; places?: QuestPlace[] };
+export type NewQuest = { title: string; description: string; location: string; cardSuit: Suit; cardRank: Rank; coverImageUrl?: string; places?: QuestPlace[]; interests?: string[] };
 
 export function CreateQuestModal({
   onClose,
@@ -394,6 +394,32 @@ export function CreateQuestModal({
             </label>
 
             <PlacePicker places={form.places ?? []} onChange={(places) => setForm({ ...form, places })} />
+
+            <fieldset className="qs-interests">
+              <legend>
+                Interests <span className="muted small">(pick up to {MAX_INTERESTS}, or leave blank and we will tag it)</span>
+              </legend>
+              <div className="qs-interest-chips">
+                {INTERESTS.map((i) => {
+                  const on = (form.interests ?? []).includes(i.key);
+                  const full = !on && (form.interests ?? []).length >= MAX_INTERESTS;
+                  return (
+                    <button
+                      key={i.key}
+                      type="button"
+                      className={`qs-interest${on ? ' is-on' : ''}`}
+                      aria-pressed={on}
+                      disabled={full}
+                      onClick={() =>
+                        setForm({ ...form, interests: on ? (form.interests ?? []).filter((k) => k !== i.key) : [...(form.interests ?? []), i.key] })
+                      }
+                    >
+                      {i.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
 
             <div className="qs-cover-edit">
               <label className="qs-btn">

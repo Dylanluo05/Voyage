@@ -7,7 +7,7 @@ import { uploadPhoto, uploadToCloudinary } from '../../utils/image';
 import { Icon } from '../Icon';
 import ReportButton from '../ReportButton';
 import QuestCover from './QuestCover';
-import { RANK_LABEL, SUITS } from './questMeta';
+import { RANK_LABEL, SUITS, interestLabel } from './questMeta';
 import { directionsLink } from '../../utils/geo';
 
 export type QuestActions = {
@@ -148,6 +148,14 @@ export default function QuestSheet({ quest, user, trips, actions, startProving, 
           <h2 className="qs-title">{quest.title}</h2>
           {quest.description && <p className="qs-desc">{quest.description}</p>}
 
+          {(quest.interests?.length ?? 0) > 0 && (
+            <ul className="qs-tags" aria-label="Interests">
+              {quest.interests!.map((k) => (
+                <li key={k}>{interestLabel(k)}</li>
+              ))}
+            </ul>
+          )}
+
           {(quest.places?.length ?? 0) > 0 && (
             <div className="qs-block qs-where">
               <h3>{quest.places!.length === 1 ? 'Where' : 'Pick a spot'}</h3>
@@ -156,7 +164,7 @@ export default function QuestSheet({ quest, user, trips, actions, startProving, 
                   <li key={`${p.lat},${p.lng}`}>
                     <span>
                       <Icon name="pin" size={14} /> <b>{p.name}</b>
-                      {p.address && <em className="muted small"> · {p.address}</em>}
+                      {p.address && <em className="qs-where-addr">{p.address}</em>}
                     </span>
                     <a href={directionsLink(p)} target="_blank" rel="noreferrer">
                       Directions

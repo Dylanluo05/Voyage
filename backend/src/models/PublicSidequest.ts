@@ -1,10 +1,13 @@
 import { Document, model, Schema, Types } from "mongoose"
+import { INTEREST_KEYS } from "../lib/interests"
 
 export interface PublicSidequestDoc extends Document {
     _id: Types.ObjectId,
     title: string,
     description?: string,
     location?: string,
+    /** Interest chips players filter by (see lib/interests.ts). 1 to 4 per quest. */
+    interests: string[],
     /** Specific spots this quest can be done at. Empty means it works anywhere. Several pins = same dare, different places. */
     places: { name: string, address?: string, lat: number, lng: number }[],
     /** Cover photo chosen by the creator (Cloudinary URL). Voyage-made quests use illustrations instead. */
@@ -70,6 +73,7 @@ const publicSidequestSchema = new Schema({
     title: { type: String, required: true, trim: true },
     description: { type: String, trim: true },
     location: { type: String, trim: true },
+    interests: { type: [{ type: String, enum: INTEREST_KEYS }], default: [] },
     places: { type: [new Schema({
         name: { type: String, required: true, trim: true, maxlength: 120 },
         address: { type: String, trim: true, maxlength: 200 },

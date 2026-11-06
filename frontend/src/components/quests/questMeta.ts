@@ -28,3 +28,29 @@ const SUIT_MULT: Record<Suit, number> = { spades: 1.5, hearts: 1.0, diamonds: 1.
 export function xpFor(suit: Suit, rank: Rank): number {
   return Math.round((BASE_XP[rank] * SUIT_MULT[suit]) / 5) * 5;
 }
+
+/** Interest chips. Keep in sync with INTEREST_KEYS in backend/src/lib/interests.ts. */
+export const INTERESTS = [
+  { key: 'outdoors', label: 'Outdoors' },
+  { key: 'food', label: 'Food & Drink' },
+  { key: 'dating', label: 'Dating' },
+  { key: 'friends', label: 'Friends' },
+  { key: 'parties', label: 'Parties' },
+  { key: 'fitness', label: 'Fitness' },
+  { key: 'music', label: 'Music & Dance' },
+  { key: 'arts', label: 'Arts & Creative' },
+  { key: 'fashion', label: 'Fashion & Thrift' },
+  { key: 'travel', label: 'Travel' },
+  { key: 'learning', label: 'Learning' },
+  { key: 'nostalgia', label: 'Nostalgia' },
+  { key: 'wellness', label: 'Wellness' },
+  { key: 'giving', label: 'Giving Back' },
+  { key: 'campus', label: 'Campus Life' },
+] as const;
+
+export type InterestKey = (typeof INTERESTS)[number]['key'];
+export const MAX_INTERESTS = 4;
+
+const INTEREST_LABELS: Record<string, string> = Object.fromEntries(INTERESTS.map((i) => [i.key, i.label]));
+export const interestLabel = (key: string): string => INTEREST_LABELS[key] ?? key;
+export const isInterest = (key: string): key is InterestKey => key in INTEREST_LABELS;

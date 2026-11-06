@@ -8388,3 +8388,33 @@ main:has(> .au) { max-width: 1240px; padding-top: clamp(1rem, 3vw, 2rem); }
   .qb-tools { gap: 0.5rem; }
   .qm-map { height: 55vh; }
 }
+
+/* ── Interest chips ──────────────────────────────────────────── */
+.qb-interests { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; margin: 0.9rem 0 0.25rem; }
+.qb-interests > span { margin-right: 0.4rem; font-size: 0.9rem; color: var(--ink-faint); }
+.qb .qb-chip--sm { padding: 0.4rem 0.85rem; font-size: 0.85rem; gap: 0.4rem; }
+.qb .qb-chip--sm em { font-style: normal; font-size: 0.75rem; opacity: 0.6; }
+.qb .qb-chip--sm.is-on em { opacity: 0.85; }
+.qb-matchall { display: inline-flex; align-items: center; gap: 0.4rem; margin-left: 0.4rem; font-size: 0.85rem; color: var(--ink-soft); cursor: pointer; }
+.qb-matchall input { width: auto; margin: 0; padding: 0; }
+.qb-matchcount { margin: 0.4rem 0 0; }
+.qb .qb-link { padding: 0.3rem 0.5rem; background: transparent; color: var(--accent-ink); font-size: 0.85rem; font-weight: 600; text-decoration: underline; }
+.qb .qb-link:hover { background: transparent; color: var(--accent); transform: none; }
+
+.qt-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.6rem 0 0; padding: 0; list-style: none; }
+.qt-tag { display: inline-flex; padding: 0.15rem 0.6rem; border-radius: var(--r-pill); background: var(--surface-sunk); color: var(--ink-soft); font-size: 0.75rem; font-weight: 500; }
+.qb .qt-tag { border: 0; cursor: pointer; }
+.qb .qt-tag:hover { background: var(--hairline-strong); color: var(--ink); transform: none; }
+.qb .qt-tag.is-on, .qb .qt-tag.is-on:hover { background: var(--accent-wash); color: var(--accent-ink); }
+
+.qs-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.qs-tags li { padding: 0.2rem 0.7rem; border-radius: var(--r-pill); background: var(--surface-sunk); color: var(--ink-soft); font-size: 0.8rem; font-weight: 500; }
+
+.qs-interests { border: 0; margin: 0; padding: 0; min-width: 0; }
+.qs-interests legend { padding: 0; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--ink-soft); }
+.qs-interest-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.qs-create .qs-interest, .qs-interest { padding: 0.35rem 0.8rem; border-radius: var(--r-pill); background: transparent; color: var(--ink); border: 1px solid var(--hairline-strong); font-size: 0.82rem; font-weight: 500; }
+.qs-interest:hover { background: var(--hover-bg); color: var(--ink); transform: none; }
+.qs-interest.is-on, .qs-interest.is-on:hover { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+
+.qs-where-addr { flex-basis: 100%; margin-left: 1.3rem; font-style: normal; font-size: 0.8rem; color: var(--ink-faint); }

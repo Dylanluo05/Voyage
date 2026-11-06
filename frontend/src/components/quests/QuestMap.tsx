@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { GoogleMap, InfoWindowF, MarkerClustererF, MarkerF } from '@react-google-maps/api';
+import { GoogleMap, InfoWindowF, MarkerF } from '@react-google-maps/api';
+import { MarkerClusterer, SuperClusterAlgorithm } from '@googlemaps/markerclusterer';
 import type { PublicSidequest, QuestPlace } from '../../types';
 import { useGoogleMaps } from '../../context/GoogleMapsContext';
 import { directionsLink, distanceKm, formatDistance, type LatLng } from '../../utils/geo';
@@ -30,19 +31,34 @@ const MAP_OPTIONS: google.maps.MapOptions = {
   gestureHandling: 'cooperative',
 };
 
+const pinIcon = (suit: PublicSidequest['cardSuit'], active: boolean): google.maps.Symbol => ({
+  path: google.maps.SymbolPath.CIRCLE,
+  scale: active ? 12 : 9,
+  fillColor: SUIT_COLOR[suit],
+  fillOpacity: 1,
+  strokeColor: '#ffffff',
+  strokeWeight: active ? 3 : 2,
+});
+
 export default function QuestMap({ quests, userPos, onOpen }: Props) {
   const { isLoaded, loadError } = useGoogleMaps();
-  const mapRef = useRef<google.maps.Map | null>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
 
-  const pins = useMemo<Pin[]>(
+  const allPins = useMemo<Pin[]>(
     () => quests.flatMap((quest) => (quest.places ?? []).map((place, i) => ({ key: `${quest._id}:${i}`, quest, place }))),
     [quests],
   );
-  const selected = pins.find((p) => p.key === selectedKey) ?? null;
+
+  // The page hands over a new array on every render. Markers are only rebuilt when the set of pins
+  // really changes, so a parent re-render never makes the map flicker or lose its popup.
+  const pinSignature = allPins.map((p) => `${p.key}@${p.place.lat},${p.place.lng}:${p.quest.cardSuit}`).join('|');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const pins = useMemo(() => allPins, [pinSignature]);
+  const selected = allPins.find((p) => p.key === selectedKey) ?? null;
 
   const fit = useCallback(() => {
-    const map = mapRef.current;
     if (!map || !window.google) return;
     const points: LatLng[] = pins.map((p) => p.place);
     if (userPos) points.push(userPos);
@@ -55,25 +71,43 @@ export default function QuestMap({ quests, userPos, onOpen }: Props) {
     const bounds = new google.maps.LatLngBounds();
     points.forEach((p) => bounds.extend(p));
     map.fitBounds(bounds, 48);
-  }, [pins, userPos]);
+  }, [map, pins, userPos]);
 
   useEffect(() => {
     fit();
-    // A filter change can remove the selected pin.
-    setSelectedKey((k) => (k && pins.some((p) => p.key === k) ? k : null));
-  }, [fit, pins]);
+  }, [fit]);
 
-  const icon = useCallback(
-    (quest: PublicSidequest, active: boolean): google.maps.Symbol => ({
-      path: google.maps.SymbolPath.CIRCLE,
-      scale: active ? 12 : 9,
-      fillColor: SUIT_COLOR[quest.cardSuit],
-      fillOpacity: 1,
-      strokeColor: '#ffffff',
-      strokeWeight: active ? 3 : 2,
-    }),
-    [],
-  );
+  // A filter change can remove the pin that is currently open.
+  useEffect(() => {
+    setSelectedKey((k) => (k && pins.some((p) => p.key === k) ? k : null));
+  }, [pins]);
+
+  // Own the markers and the clusterer directly and tear both down on cleanup, so React StrictMode's
+  // mount/unmount/mount cycle (dev) can never leave the map without pins.
+  useEffect(() => {
+    if (!map) return;
+    const markers = pins.map((p) => {
+      const marker = new google.maps.Marker({ position: p.place, title: p.quest.title, icon: pinIcon(p.quest.cardSuit, false) });
+      marker.addListener('click', () => setSelectedKey(p.key));
+      markersRef.current.set(p.key, marker);
+      return marker;
+    });
+    const clusterer = new MarkerClusterer({ map, markers, algorithm: new SuperClusterAlgorithm({ maxZoom: 13, radius: 80 }) });
+    return () => {
+      clusterer.clearMarkers();
+      clusterer.setMap(null);
+      markers.forEach((m) => {
+        google.maps.event.clearInstanceListeners(m);
+        m.setMap(null);
+      });
+      markersRef.current.clear();
+    };
+  }, [map, pins]);
+
+  // Highlight the open pin.
+  useEffect(() => {
+    pins.forEach((p) => markersRef.current.get(p.key)?.setIcon(pinIcon(p.quest.cardSuit, p.key === selectedKey)));
+  }, [pins, selectedKey]);
 
   if (loadError) return <div className="qm qm--empty">The map couldn't load. Check your connection and try again.</div>;
   if (!isLoaded) return <div className="qm qm--empty">Loading map…</div>;
@@ -86,31 +120,10 @@ export default function QuestMap({ quests, userPos, onOpen }: Props) {
           center={userPos ?? pins[0]?.place ?? { lat: 20, lng: 0 }}
           zoom={userPos || pins.length ? 4 : 2}
           options={MAP_OPTIONS}
-          onLoad={(map) => {
-            mapRef.current = map;
-            fit();
-          }}
-          onUnmount={() => {
-            mapRef.current = null;
-          }}
+          onLoad={setMap}
+          onUnmount={() => setMap(null)}
           onClick={() => setSelectedKey(null)}
         >
-          <MarkerClustererF options={{ maxZoom: 13 }}>
-            {(clusterer) => (
-              <>
-                {pins.map((p) => (
-                  <MarkerF
-                    key={p.key}
-                    position={p.place}
-                    clusterer={clusterer}
-                    title={p.quest.title}
-                    icon={icon(p.quest, p.key === selectedKey)}
-                    onClick={() => setSelectedKey(p.key)}
-                  />
-                ))}
-              </>
-            )}
-          </MarkerClustererF>
           {selected && (
             <InfoWindowF
               position={selected.place}
@@ -155,7 +168,6 @@ export default function QuestMap({ quests, userPos, onOpen }: Props) {
         </GoogleMap>
         {pins.length === 0 && <div className="qm-none">No pinned quests match. Try clearing a filter.</div>}
       </div>
-
     </div>
   );
 }

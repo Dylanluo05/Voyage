@@ -14,6 +14,7 @@ import { User } from '../models/User';
 import { PublicSidequest } from '../models/PublicSidequest';
 import { TREND_QUESTS, type RankCode, type SuitCode } from './data/collegeTrendQuests';
 import { CAMPUSES, PLACES, PLACE_QUESTS } from './data/collegeCampusQuests';
+import { inferInterests } from '../lib/interests';
 
 const CREATOR_EMAIL = 'dylan.luo.777@gmail.com';
 const write = process.argv.includes('--write');
@@ -128,7 +129,7 @@ async function main() {
   console.log('\n== Anywhere quests ==');
   for (const [suit, rank, title, description, location] of TREND_QUESTS) {
     if (existing.has(title.toLowerCase())) { console.log(`  skip "${title}": already exists`); skippedExisting++; continue; }
-    await insert({ title, description, location, places: [], ...base(suit, rank) }, suit, rank);
+    await insert({ title, description, location, places: [], interests: inferInterests({ title, description, location, cardSuit: SUIT[suit] }), ...base(suit, rank) }, suit, rank);
   }
   console.log(`  ${write ? 'wrote' : 'would write'} ${created}`);
 
@@ -145,7 +146,7 @@ async function main() {
     if (places.length !== list.length) { console.log(`  skip "${title}"`); skippedPlaces++; continue; }
     const campus = CAMPUSES[PLACES[list[0]].campus].name;
     placeByCampus[campus] = (placeByCampus[campus] ?? 0) + 1;
-    await insert({ title, description, location: places[0].name, places, ...base(suit, rank) }, suit, rank);
+    await insert({ title, description, location: places[0].name, places, interests: inferInterests({ title, description, location: places[0].name, cardSuit: SUIT[suit] }), ...base(suit, rank) }, suit, rank);
   }
 
   console.log('\nPlace quests per campus:', placeByCampus);

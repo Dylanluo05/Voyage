@@ -280,6 +280,8 @@ export interface PublicSidequest {
   location?: string;
   /** Pinned spots. Empty/missing means the quest can be done anywhere. */
   places?: QuestPlace[];
+  /** Interest chips players filter by (1 to 4). */
+  interests?: string[];
   /** Creator-chosen cover photo. Voyage-made (`official`) quests use illustrations instead. */
   coverImageUrl?: string;
   official?: boolean;

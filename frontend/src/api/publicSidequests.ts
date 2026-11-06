@@ -21,6 +21,7 @@ export function createPublicSidequest(
         description?: string;
         location?: string;
         places?: QuestPlace[];
+        interests?: string[];
         cardSuit: 'spades' | 'hearts' | 'diamonds' | 'clubs';
         cardRank: 'J' | 'Q' | 'K' | 'A';
         coverImageUrl?: string;
@@ -159,5 +160,12 @@ export function setQuestPlaces(id: string, places: QuestPlace[]): Promise<Public
     return apiFetch<PublicSidequest>(`/api/public-sidequests/${id}/places`, {
         method: 'PATCH',
         body: JSON.stringify({ places }),
+    });
+}
+
+export function setQuestInterests(id: string, interests: string[]): Promise<PublicSidequest> {
+    return apiFetch<PublicSidequest>(`/api/public-sidequests/${id}/interests`, {
+        method: 'PATCH',
+        body: JSON.stringify({ interests }),
     });
 }

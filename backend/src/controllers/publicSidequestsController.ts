@@ -11,6 +11,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { recordAiCost } from '../lib/aiCost';
 import { uploadedPhotoUrl } from '../lib/urls';
 import { sidequestView, sidequestViews } from '../lib/sidequestView';
+import { INTEREST_KEYS, MAX_INTERESTS, inferInterests } from '../lib/interests';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MODEL = 'claude-haiku-4-5-20251001';
@@ -116,6 +117,7 @@ export async function createPublicSidequest(req: Request, res: Response, next: N
             description: z.string().max(1000).optional(),
             location: z.string().max(200).optional(),
             places: z.array(placeInput).max(MAX_PLACES).optional(),
+            interests: z.array(z.enum(INTEREST_KEYS)).max(MAX_INTERESTS).optional(),
             cardSuit: z.enum(['spades', 'hearts', 'diamonds', 'clubs']),
             // Accepted for client compatibility, but user-created quests are always
             // the lowest rank so they can't be used to farm XP.
@@ -138,6 +140,10 @@ export async function createPublicSidequest(req: Request, res: Response, next: N
             // Shown on cards; falls back to the first pinned place so pinned quests always have a label.
             location: publicSidequestSchema.location || publicSidequestSchema.places?.[0]?.name,
             places: publicSidequestSchema.places ?? [],
+            // Use what the creator picked, otherwise infer chips from the text so every quest is filterable.
+            interests: publicSidequestSchema.interests?.length
+                ? [...new Set(publicSidequestSchema.interests)]
+                : inferInterests({ title: publicSidequestSchema.title, description: publicSidequestSchema.description, location: publicSidequestSchema.location, cardSuit: publicSidequestSchema.cardSuit }),
             coverImageUrl: publicSidequestSchema.coverImageUrl,
             official: isAdmin(req),
             createdBy: { userId: uid, userName: user.name },
@@ -552,6 +558,22 @@ export async function setPlaces(req: Request, res: Response, next: NextFunction)
             throw new HttpError(403, 'Only the quest creator or an admin can change the pinned places');
         }
         sq.places = places;
+        await sq.save();
+        res.status(200).json(sidequestView(sq, viewerOf(req)));
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function setInterests(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+        const { interests } = z.object({ interests: z.array(z.enum(INTEREST_KEYS)).min(1).max(MAX_INTERESTS) }).parse(req.body);
+        const sq = await PublicSidequest.findById(req.params.id);
+        if (!sq) throw new HttpError(404, 'Public sidequest not found');
+        if (!sq.createdBy.userId.equals(ownerId(req)) && !isAdmin(req)) {
+            throw new HttpError(403, 'Only the quest creator or an admin can change the interests');
+        }
+        sq.interests = [...new Set(interests)];
         await sq.save();
         res.status(200).json(sidequestView(sq, viewerOf(req)));
     } catch (err) {
