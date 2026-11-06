@@ -3,23 +3,27 @@
 Things only the owner can do before opening Voyage to the public and advertising it.
 Created 2026-10-22 after the pre-release audit; the code-side fixes from that audit
 (blockers, high-priority list, legal pages, SEO, analytics, share-preview function)
-are done but **not yet committed** as of this writing. Tick items off as you go.
+are done and merged to `main` (2026-10-22, plus a `www` canonical-URL fix on 2026-11-06).
+Tick items off as you go. Status notes below were last updated 2026-11-06.
 
 ## 1. Before deploying the audit changes
 
-- [ ] Commit and review the diff (~25 files; ask Claude to split into logical commits + PROGRESS.md entry)
-- [ ] `npm run typecheck` in `backend/` and `frontend/`
+- [x] Commit and review the diff (done: merged to `main`)
+- [x] `npm run typecheck` in `backend/` and `frontend/` (passed before merge)
 - [ ] Take an Atlas snapshot/backup before deploying
 
 ## 2. Backend environment (Render)
 
-- [ ] `NODE_ENV=production`
-- [ ] `CLIENT_ORIGIN=https://voyagetravel.app` (add `https://www.voyagetravel.app` if used, comma-separated)
+- [x] `NODE_ENV=production`
+- [~] `CLIENT_ORIGIN`: the site is served from **`https://www.voyagetravel.app`** (the apex redirects there). Verified 2026-11-06 that the API accepts both origins. Still to do: make sure the **first** value in the list is the `www` one, since email links use the first entry
 - [ ] `JWT_SECRET` is 32+ random characters (rotating signs everyone out; fine pre-launch)
-- [ ] **`REQUIRE_EMAIL_OTP=true`** (Resend domain is already verified; test a real sign-up from a non-owner email first, since OTP send failures are only logged)
-- [ ] `ADMIN_EMAILS` set, lowercase, every address already a registered account
-- [ ] `ANTHROPIC_API_KEY` set + **monthly spend limit in the Anthropic console**
-- [ ] `SENTRY_DSN` set (boot log says whether it's enabled)
+- [ ] **`REQUIRE_EMAIL_OTP=true`: DELIBERATELY DEFERRED (decided 2026-11-06).** We're in the outreach phase and don't want new users to hit a 2FA step when signing up. Revisit before paid ads or wider launch. While it's off:
+  - Email sign-ups are marked `emailVerified: false`. If that address later signs in with Google, Google's proof of ownership wins and the unverified account's password is removed.
+  - **People invited to a trip by email who then sign up with email/password are NOT auto-added to the trip** (pending invites only attach once the address is proven). Google sign-in does attach them. Possible fix that keeps sign-up frictionless: a non-blocking "verify your email" link sent after sign-up that marks the account verified and attaches pending invites.
+  - When turning it on: test a real sign-up from a non-owner email first (the Resend domain is verified; OTP send failures are only logged, and the app still says "code sent").
+- [x] `ADMIN_EMAILS` set, lowercase, every address already a registered account
+- [~] `ANTHROPIC_API_KEY` set (done). **Monthly spend limit in the Anthropic console: still to do.** Console -> Settings -> Limits (org or workspace spend limit; menu names change, look for "spend limit"/"usage limits"). Suggested: set a hard monthly cap you'd be comfortable losing, and alert thresholds at 50% and 80%. Use a dedicated workspace/key for production if available. Rough sizing: a chat request costs about $0.01-0.03 typically (up to ~$0.15-0.20 worst case); a sidequest photo check costs a fraction of a cent. When the cap is hit, AI features return errors until the next period, so also watch the admin dashboard's AI cost chart.
+- [x] `SENTRY_DSN` set (boot log says whether it's enabled)
 - [ ] `PEXELS_API_KEY`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `RESEND_API_KEY` set
 - [ ] Hardcoded model IDs (`claude-sonnet-4-6`, `claude-haiku-4-5-20251001`) still resolve with your key
 - [ ] Atlas network access + backup schedule configured
@@ -28,7 +32,7 @@ are done but **not yet committed** as of this writing. Tick items off as you go.
 ## 3. Frontend environment (Vercel)
 
 - [ ] `VITE_API_URL` -> Render backend
-- [ ] `API_URL` -> same value (needed by the share-preview function `frontend/api/share-meta.js`)
+- [x] `API_URL` -> same value (set; backend is `https://api.voyagetravel.app`, verified healthy 2026-11-06)
 - [ ] `VITE_GOOGLE_CLIENT_ID`, `VITE_GOOGLE_MAPS_API_KEY`, `VITE_SENTRY_DSN` set
 - [ ] `VITE_PLAUSIBLE_DOMAIN=voyagetravel.app` (once the Plausible site exists)
 
