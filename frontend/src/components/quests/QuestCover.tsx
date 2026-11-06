@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { PublicSidequest } from '../../types';
 import { SUITS } from './questMeta';
 import { useQuestCover } from './useQuestCover';
+import QuestIllustration from './QuestIllustration';
 
 type Props = {
   quest: PublicSidequest;
@@ -18,6 +19,8 @@ export default function QuestCover({ quest, userId, className = '', children }: 
     <div className={`qc suit-${quest.cardSuit} ${className}`}>
       {url ? (
         <img className="qc-img" src={url} alt="" loading="lazy" draggable={false} />
+      ) : quest.official ? (
+        <QuestIllustration quest={quest} />
       ) : (
         <div className="qc-art" aria-hidden="true">
           <span className="qc-art-pip">{SUITS[quest.cardSuit].pip}</span>

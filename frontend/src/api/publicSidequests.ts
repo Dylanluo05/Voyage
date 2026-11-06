@@ -22,6 +22,7 @@ export function createPublicSidequest(
         location?: string;
         cardSuit: 'spades' | 'hearts' | 'diamonds' | 'clubs';
         cardRank: 'J' | 'Q' | 'K' | 'A';
+        coverImageUrl?: string;
     }
 ): Promise<PublicSidequest> {
     return apiFetch<PublicSidequest>(`/api/public-sidequests/`, {
@@ -143,5 +144,12 @@ export function reviewCompletion(
     return apiFetch<PublicSidequest>(`/api/public-sidequests/${id}/review/${requestId}`, {
         method: 'POST',
         body: JSON.stringify({ decision, ...(note ? { note } : {}) }),
+    });
+}
+
+export function setQuestCover(id: string, coverImageUrl: string | null): Promise<PublicSidequest> {
+    return apiFetch<PublicSidequest>(`/api/public-sidequests/${id}/cover`, {
+        method: 'PATCH',
+        body: JSON.stringify({ coverImageUrl }),
     });
 }

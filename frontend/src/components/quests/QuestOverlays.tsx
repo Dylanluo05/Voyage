@@ -4,6 +4,7 @@ import type { PublicSidequest } from '../../types';
 import type { RankInfo } from '../../utils/ranks';
 import CountUp from '../CountUp';
 import { Icon } from '../Icon';
+import { uploadPhoto } from '../../utils/image';
 import QuestCover from './QuestCover';
 import { RANK_ORDER, RANK_LABEL, SUIT_ORDER, SUITS, xpFor, type Rank, type Suit } from './questMeta';
 
@@ -297,7 +298,7 @@ export function CompleteOverlay({
 
 /* ── Create a quest ──────────────────────────────────────────────────── */
 
-export type NewQuest = { title: string; description: string; location: string; cardSuit: Suit; cardRank: Rank };
+export type NewQuest = { title: string; description: string; location: string; cardSuit: Suit; cardRank: Rank; coverImageUrl?: string };
 
 export function CreateQuestModal({
   onClose,
@@ -310,8 +311,26 @@ export function CreateQuestModal({
   useEscape(onClose);
   const [form, setForm] = useState<NewQuest>({ title: '', description: '', location: '', cardSuit: 'spades', cardRank: 'J' });
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const suit = SUITS[form.cardSuit];
+
+  async function pickCover(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    try {
+      setForm((f) => ({ ...f, coverImageUrl: undefined }));
+      const url = await uploadPhoto(file);
+      setForm((f) => ({ ...f, coverImageUrl: url }));
+    } catch {
+      setError('Cover upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  }
   const xp = xpFor(form.cardSuit, form.cardRank);
 
   async function submit(e: React.FormEvent) {
@@ -335,10 +354,14 @@ export function CreateQuestModal({
 
         <div className="qs-media">
           <div className={`qc suit-${form.cardSuit} qs-cover`}>
-            <div className="qc-art" aria-hidden="true">
-              <span className="qc-art-pip">{suit.pip}</span>
-              <span className="qc-art-rank">{form.cardRank}</span>
-            </div>
+            {form.coverImageUrl ? (
+              <img className="qc-img" src={form.coverImageUrl} alt="" />
+            ) : (
+              <div className="qc-art" aria-hidden="true">
+                <span className="qc-art-pip">{suit.pip}</span>
+                <span className="qc-art-rank">{form.cardRank}</span>
+              </div>
+            )}
             <div className="qc-shade" aria-hidden="true" />
             <span className="qt-corner qt-corner--lg">
               <b>{form.cardRank}</b>
@@ -369,6 +392,19 @@ export function CreateQuestModal({
               <input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Lisbon, Portugal" />
             </label>
 
+            <div className="qs-cover-edit">
+              <label className="qs-btn">
+                <input type="file" accept="image/*" onChange={pickCover} />
+                {uploading ? 'Uploading…' : form.coverImageUrl ? 'Change cover photo' : 'Add a cover photo'}
+              </label>
+              {form.coverImageUrl && (
+                <button type="button" className="qs-btn" onClick={() => setForm({ ...form, coverImageUrl: undefined })}>
+                  Remove
+                </button>
+              )}
+              <span className="muted small">Use a real photo of the place or activity.</span>
+            </div>
+
             <fieldset className="qs-picker">
               <legend>Suit</legend>
               {SUIT_ORDER.map((s) => (
@@ -397,7 +433,7 @@ export function CreateQuestModal({
             </fieldset>
 
             {error && <p className="error">{error}</p>}
-            <button type="submit" className="qs-btn qs-btn--go qs-btn--wide" disabled={saving || !form.title.trim()}>
+            <button type="submit" className="qs-btn qs-btn--go qs-btn--wide" disabled={saving || uploading || !form.title.trim()}>
               {saving ? 'Creating…' : `Create quest, worth ${xp} XP`}
             </button>
           </div>

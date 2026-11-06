@@ -129,6 +129,7 @@ async function main() {
     cardSuit: sq.cardSuit,
     cardRank: sq.cardRank,
     xpReward: computeXp(sq.cardSuit, sq.cardRank),
+    official: true,
     createdBy: { userId: creator._id, userName: creator.name },
     claims: [],
     completions: [],

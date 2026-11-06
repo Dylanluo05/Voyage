@@ -53,11 +53,11 @@ async function resolvePreview(report: ReportDoc): Promise<ReportPreview> {
     return { exists: true, summary: `"${trip.title}" (${trip.destination})${ownerName ? ` by ${ownerName}` : ''}` };
   }
 
-  const quest = await PublicSidequest.findById(report.targetId).select('title completions comments');
+  const quest = await PublicSidequest.findById(report.targetId).select('title coverImageUrl completions comments');
   if (!quest) return { exists: false };
 
   if (report.targetType === 'sidequest') {
-    return { exists: true, summary: quest.title };
+    return { exists: true, summary: quest.title, imageUrl: quest.coverImageUrl };
   }
 
   if (report.targetType === 'sidequestCompletion') {

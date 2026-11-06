@@ -5,6 +5,10 @@ export interface PublicSidequestDoc extends Document {
     title: string,
     description?: string,
     location?: string,
+    /** Cover photo chosen by the creator (Cloudinary URL). Voyage-made quests use illustrations instead. */
+    coverImageUrl?: string,
+    /** Made by the Voyage team (an admin account). */
+    official: boolean,
     createdBy: {
         userId: Types.ObjectId,
         userName: string,
@@ -64,6 +68,8 @@ const publicSidequestSchema = new Schema({
     title: { type: String, required: true, trim: true },
     description: { type: String, trim: true },
     location: { type: String, trim: true },
+    coverImageUrl: { type: String, trim: true },
+    official: { type: Boolean, default: false, index: true },
     createdBy: { userId: { type: Schema.Types.ObjectId, required: true, index: true }, userName: { type: String, required: true, trim: true } },
     claims: [{ userId: { type: Schema.Types.ObjectId, required: true, index: true }, userName: { type: String, required: true, trim: true }, claimedAt: { type: Date }, tripId: { type: Schema.Types.ObjectId, default: undefined } }],
     completions: [{ userId: { type: Schema.Types.ObjectId, required: true, index: true }, userName: { type: String, required: true, trim: true }, photoUrl: { type: String, required: true, trim: true }, completedAt: { type: Date }, isPublic: { type: Boolean, default: false }, reviewedBy: { type: new Schema({ userId: { type: Schema.Types.ObjectId, required: true }, userName: { type: String, required: true } }, { _id: false }), default: undefined } }],

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import type { PublicSidequest, Trip } from '../../types';
 import { ApiError } from '../../api/client';
-import { uploadToCloudinary } from '../../utils/image';
+import { uploadPhoto, uploadToCloudinary } from '../../utils/image';
 import { Icon } from '../Icon';
 import ReportButton from '../ReportButton';
 import QuestCover from './QuestCover';
@@ -20,6 +20,7 @@ export type QuestActions = {
   leave: (id: string) => Promise<void>;
   addComment: (id: string, text: string) => Promise<void>;
   removeComment: (id: string, commentId: string) => Promise<void>;
+  setCover: (id: string, url: string | null) => Promise<void>;
   addToTrip: (id: string, tripId: string) => Promise<void>;
   unlinkTrip: (id: string) => Promise<void>;
 };
@@ -44,6 +45,8 @@ export default function QuestSheet({ quest, user, trips, actions, startProving, 
   const myRequest = quest.reviewRequests?.find((r) => r.userId === userId);
   const pendingReviews = (quest.reviewRequests ?? []).filter((r) => r.status === 'pending' && r.userId !== userId);
   const canReview = pendingReviews.length > 0 && (user?.isAdmin || quest.createdBy.userId === userId);
+  const canEditCover = !!user && (user.isAdmin || quest.createdBy.userId === userId);
+  const coverRef = useRef<HTMLInputElement>(null);
   const [aiRejected, setAiRejected] = useState(false);
   const [declineNote, setDeclineNote] = useState('');
   const linkedTrip = claim?.tripId ? trips.find((t) => t._id === claim.tripId) : undefined;
@@ -245,6 +248,29 @@ export default function QuestSheet({ quest, user, trips, actions, startProving, 
               >
                 <Icon name="trophy" size={17} /> {busy === 'complete' ? 'Checking your proof…' : `Complete quest, earn ${quest.xpReward} XP`}
               </button>
+            </div>
+          )}
+
+          {canEditCover && (
+            <div className="qs-block qs-cover-edit">
+              <input
+                ref={coverRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (file) run('cover', async () => actions.setCover(quest._id, await uploadPhoto(file)));
+                }}
+              />
+              <button type="button" className="qs-btn" disabled={busy === 'cover'} onClick={() => coverRef.current?.click()}>
+                {busy === 'cover' ? 'Uploading…' : quest.coverImageUrl ? 'Change cover photo' : 'Add a cover photo'}
+              </button>
+              {quest.coverImageUrl && (
+                <button type="button" className="qs-btn" disabled={busy === 'cover'} onClick={() => run('cover', () => actions.setCover(quest._id, null))}>
+                  Remove cover
+                </button>
+              )}
             </div>
           )}
 

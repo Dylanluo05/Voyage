@@ -117,6 +117,7 @@ export default function SidequestsPage() {
     review: async (id, requestId, decision, note) => {
       replace(await sidequestsApi.reviewCompletion(id, requestId, decision, note));
     },
+    setCover: async (id, url) => replace(await sidequestsApi.setQuestCover(id, url)),
     createEvent: async (id, date, max) =>
       replace(await sidequestsApi.createEvent(id, { date, ...(max ? { maxParticipants: max } : {}) })),
     enroll: async (id) => replace(await sidequestsApi.enrollInSidequest(id)),

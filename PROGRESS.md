@@ -8,6 +8,23 @@ architecture overview — this file is the narrative of how it got that way.
 
 ## 2026-11-05
 
+### Sidequest cover photos and official quests
+Quest creators can now upload a cover photo when creating a quest, and
+creators and admins can change or remove it later from the quest sheet
+(`PATCH /api/public-sidequests/:id/cover`). Quests made by the Voyage team
+carry a new `official` flag and get an illustrated cover
+(`QuestIllustration`) instead of suit art; only admins can choose a card rank
+above the lowest when creating a quest. Quest covers no longer fall back to a
+guessed Pexels stock photo, since a generic photo that doesn't match the
+quest looked worse than none. The cover order is now the viewer's own proof
+photo, the creator's cover, a public completion photo, then illustration or
+suit art. The report queue preview for a quest now includes its cover.
+**Deploy note:** run `backend/src/scripts/markOfficialSidequests.ts` once
+after the backend deploys to flag the existing seeded quests as official
+(non-destructive, only sets `official: true`); until then they show suit art.
+The `coverImageUrl`/`official` type additions were already pushed earlier,
+inside the payments ledger commit.
+
 ### Expense payments ledger (replaces per-share "settled")
 Per-share Settle/Undo and the pair-level Settle up are gone. Balances are now
 the netted shares between two people minus recorded payments, so a pair that

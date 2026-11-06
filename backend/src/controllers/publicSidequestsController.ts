@@ -106,8 +106,11 @@ export async function createPublicSidequest(req: Request, res: Response, next: N
             // Accepted for client compatibility, but user-created quests are always
             // the lowest rank so they can't be used to farm XP.
             cardRank: z.enum(['J', 'Q', 'K', 'A']).optional(),
+            coverImageUrl: uploadedPhotoUrl.optional(),
         }).parse(req.body);
         const uid = ownerId(req);
+        // Only the Voyage team may pick a higher rank.
+        const cardRank = isAdmin(req) ? publicSidequestSchema.cardRank ?? USER_QUEST_RANK : USER_QUEST_RANK;
         const createdToday = await PublicSidequest.countDocuments({
             'createdBy.userId': uid,
             createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
@@ -119,12 +122,14 @@ export async function createPublicSidequest(req: Request, res: Response, next: N
             title: publicSidequestSchema.title,
             description: publicSidequestSchema.description,
             location: publicSidequestSchema.location,
+            coverImageUrl: publicSidequestSchema.coverImageUrl,
+            official: isAdmin(req),
             createdBy: { userId: uid, userName: user.name },
             claims: [],
             completions: [],
             cardSuit: publicSidequestSchema.cardSuit,
-            cardRank: USER_QUEST_RANK,
-            xpReward: computeXp(publicSidequestSchema.cardSuit, USER_QUEST_RANK),
+            cardRank,
+            xpReward: computeXp(publicSidequestSchema.cardSuit, cardRank),
         });
         res.status(201).json(sidequestView(publicSidequest, viewerOf(req)));
     } catch (err) {
@@ -501,6 +506,22 @@ export async function createEvent(req: Request, res: Response, next: NextFunctio
         sq.event = { date: new Date(date), enrollments: [], ...(maxParticipants && { maxParticipants }) };
         await sq.save();
         res.status(201).json(sidequestView(sq, viewerOf(req)));
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function setCover(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+        const { coverImageUrl } = z.object({ coverImageUrl: uploadedPhotoUrl.nullable() }).parse(req.body);
+        const sq = await PublicSidequest.findById(req.params.id);
+        if (!sq) throw new HttpError(404, 'Public sidequest not found');
+        if (!sq.createdBy.userId.equals(ownerId(req)) && !isAdmin(req)) {
+            throw new HttpError(403, 'Only the quest creator or an admin can change the cover');
+        }
+        sq.coverImageUrl = coverImageUrl ?? undefined;
+        await sq.save();
+        res.status(200).json(sidequestView(sq, viewerOf(req)));
     } catch (err) {
         next(err);
     }
