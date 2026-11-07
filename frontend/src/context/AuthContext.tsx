@@ -8,7 +8,7 @@ import {
 } from 'react';
 import type { User, OtpPurpose } from '../types';
 import * as authApi from '../api/auth';
-import { getToken, setToken } from '../api/client';
+import { ApiError, getToken, setToken } from '../api/client';
 import { track } from '../utils/analytics';
 
 interface AuthContextValue {
@@ -28,9 +28,38 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+// The last known profile, so a launch with no signal (common on a phone) still opens the app signed in
+// instead of treating "couldn't reach the server" as "signed out".
+const USER_CACHE_KEY = 'trip_planner_user';
+
+function readCachedUser(): User | null {
+  try {
+    const raw = localStorage.getItem(USER_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedUser(user: User | null): void {
+  try {
+    if (user) localStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
+    else localStorage.removeItem(USER_CACHE_KEY);
+  } catch {
+    /* storage unavailable: the cache is only a convenience */
+  }
+}
+
+/** The server said this token/account is no longer valid (as opposed to being unreachable). */
+function isAuthRejection(err: unknown): boolean {
+  return err instanceof ApiError && (err.status === 401 || err.status === 403 || err.status === 404);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  // True when the profile came from the cache because the server couldn't be reached at startup.
+  const [unverified, setUnverified] = useState(false);
 
   useEffect(() => {
     const token = getToken();
@@ -41,12 +70,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authApi
       .fetchMe()
       .then(setUser)
-      .catch(() => {
-        setToken(null);
-        setUser(null);
+      .catch((err: unknown) => {
+        if (isAuthRejection(err)) {
+          setToken(null);
+          setUser(null);
+        } else {
+          // Offline or the server is down: keep the session and use the last known profile.
+          setUser(readCachedUser());
+          setUnverified(true);
+        }
       })
       .finally(() => setLoading(false));
   }, []);
+
+  // Keep the cache in step with who's signed in.
+  useEffect(() => {
+    if (!loading && !unverified) writeCachedUser(user);
+  }, [user, loading, unverified]);
+
+  // Once the connection is back, confirm the cached session (and drop it if the server rejects it).
+  useEffect(() => {
+    if (!unverified) return;
+    const verify = () => {
+      authApi
+        .fetchMe()
+        .then((u) => {
+          setUser(u);
+          setUnverified(false);
+        })
+        .catch((err: unknown) => {
+          if (isAuthRejection(err)) {
+            setToken(null);
+            setUser(null);
+            setUnverified(false);
+          }
+        });
+    };
+    const onVisible = () => {
+      if (!document.hidden) verify();
+    };
+    window.addEventListener('online', verify);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('online', verify);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [unverified]);
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await authApi.login({ email, password });

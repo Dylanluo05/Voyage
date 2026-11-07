@@ -20,6 +20,7 @@ import {
 import * as tripsApi from '../api/trips';
 import type { Trip, ItineraryItem, ItemCategory, NewItemInput, Group } from '../types';
 import { ApiError, API_URL, getToken } from '../api/client';
+import { useTripLiveUpdates } from '../hooks/useTripLiveUpdates';
 import SortableItineraryItem from '../components/SortableItineraryItem';
 import SortableGroupBlock from '../components/SortableGroupBlock';
 import DayColumn from '../components/DayColumn';
@@ -210,33 +211,11 @@ export default function TripDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  useEffect(() => {
-    if (!id) return;
-    const token = getToken();
-    if (!token) return;
-    let es: EventSource | null = null;
-    let cancelled = false;
-
-    fetch(`${API_URL}/api/trips/${id}/sse-token`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(({ token: sseToken }: { token: string }) => {
-        if (cancelled) return;
-        es = new EventSource(`${API_URL}/api/trips/${id}/events?token=${encodeURIComponent(sseToken)}`);
-        es.addEventListener('updated', () => {
-          tripsApi.getTrip(id).then(setTrip).catch(() => { });
-        });
-      })
-      .catch(() => { });
-
-    return () => {
-      cancelled = true;
-      es?.close();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  // Live updates from collaborators. Reconnects (with a fresh token) after backgrounding or
+  // network drops, and refetches on reconnect to catch up on anything missed.
+  useTripLiveUpdates(id, () => {
+    if (id) tripsApi.getTrip(id).then(setTrip).catch(() => { });
+  });
 
 
   const totalDays = useMemo(

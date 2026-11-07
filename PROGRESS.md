@@ -8,6 +8,25 @@ architecture overview — this file is the narrative of how it got that way.
 
 ## 2026-11-06
 
+### Live-update reconnect and offline-safe sign-in
+The trip page's SSE connection used to open once and never come back: each connection needs a
+one-time token (EventSource can't send auth headers), so the browser's own auto-reconnect would
+replay a spent token and fail, leaving live updates dead after any drop or backgrounding.
+`hooks/useTripLiveUpdates.ts` now owns the connection: it fetches a fresh token per connect,
+retries with exponential backoff plus jitter (1s to 30s), disconnects when the page/app is
+backgrounded (`visibilitychange`, plus Capacitor `appStateChange` in the app) and reconnects on
+return or when the network comes back, and refetches the trip once on every reconnect to catch
+up on missed changes. It stops retrying on 401/403/404. Verified locally by killing and
+restarting the backend with a trip open; no backend change was needed (it already sends
+heartbeats). Still single-instance only.
+
+Found while testing that `AuthContext` treated any `/api/auth/me` failure, including a plain
+network error, as "signed out" and deleted the token, which on a phone means launching offline
+logs you out. It now clears the session only on 401/403/404; otherwise it keeps the token, uses
+a cached copy of the last profile (`trip_planner_user` in localStorage), and re-verifies when
+the connection returns or the app is foregrounded. Tradeoff: while offline the profile may be
+slightly stale. Not yet exercised on a device.
+
 ### Spotify and Stripe redirects in the native app
 In the Capacitor app, Spotify playlist export and Stripe checkout/billing portal now open in the
 system in-app browser (`openExternal` in `utils/native.ts`) instead of navigating the webview
