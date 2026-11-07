@@ -2,7 +2,7 @@ import { FormEvent, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../api/client';
-import { useGoogleLogin } from '@react-oauth/google';
+import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import AuthShell from '../components/AuthShell';
 import OtpStep from '../components/OtpStep';
 
@@ -17,8 +17,8 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const loginWithGoogle = useGoogleLogin({
-    onSuccess: async ({ access_token }) => {
+  const loginWithGoogle = useGoogleSignIn({
+    onToken: async access_token => {
       try {
         await authWithGoogle(access_token);
         navigate('/');

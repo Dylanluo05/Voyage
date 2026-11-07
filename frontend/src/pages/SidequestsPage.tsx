@@ -24,6 +24,7 @@ type Complete = { quest: PublicSidequest; photoUrl: string; xpGain: number; befo
 
 /** Mosaic rhythm: each row fills 12 columns (7+5, 5+7, 4+4+4), like an editorial grid. */
 const MOSAIC: ('lg' | 'md' | 'sm')[] = ['lg', 'md', 'md', 'lg', 'sm', 'sm', 'sm'];
+const QUEST_PAGE_SIZE = 21; // a multiple of MOSAIC.length so the layout pattern stays whole per page
 
 function msg(err: unknown, fallback: string) {
   return err instanceof ApiError ? err.message : fallback;
@@ -53,6 +54,11 @@ export default function SidequestsPage() {
   const [locating, setLocating] = useState(false);
   const [nearOn, setNearOn] = useState(false);
   const [radiusUnits, setRadiusUnits] = useState(25);
+  // Render the board in pages: ~110 tiles at once is tens of thousands of px on a phone.
+  const [shown, setShown] = useState(QUEST_PAGE_SIZE);
+  useEffect(() => {
+    setShown(QUEST_PAGE_SIZE);
+  }, [mode, suit, rank, query, interests, matchAll, nearOn, radiusUnits]);
 
   const [sheetId, setSheetId] = useState<string | null>(null);
   const [sheetProving, setSheetProving] = useState(false);
@@ -491,9 +497,18 @@ export default function SidequestsPage() {
               )}
             </>
           ) : list.length > 0 ? (
-            <Reveal as="div" className="qb-mosaic" variant="up" stagger threshold={0}>
-              {renderTiles(list)}
-            </Reveal>
+            <>
+              <Reveal as="div" className="qb-mosaic" variant="up" stagger threshold={0}>
+                {renderTiles(list.slice(0, shown))}
+              </Reveal>
+              {list.length > shown && (
+                <div className="qb-more">
+                  <button type="button" className="qb-btn" onClick={() => setShown((n) => n + QUEST_PAGE_SIZE)}>
+                    Show more <span className="qb-more-count">{list.length - shown} left</span>
+                  </button>
+                </div>
+              )}
+            </>
           ) : near ? (
             <div className="qb-emptycard">
               <Icon name="pin" size={34} />

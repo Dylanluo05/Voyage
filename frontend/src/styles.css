@@ -511,6 +511,35 @@ main {
   padding: 36px 20px 96px;
 }
 
+/* ── Native app shell (Capacitor) ────────────────────────────── */
+html.is-native body {
+  /* Keep content clear of the home indicator / sides now that the webview is edge-to-edge.
+     The top inset is handled by the sticky navbar and full-screen overlays below, since a
+     body padding-top would not move an element that is stuck to the viewport edge. */
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+html.is-native { -webkit-touch-callout: none; }
+html.is-native .navbar {
+  top: calc(env(safe-area-inset-top) + 0.5rem);
+  margin-top: calc(env(safe-area-inset-top) + 0.5rem);
+}
+html.is-native body[data-route="home"] .navbar { top: calc(env(safe-area-inset-top) + 0.5rem); margin: 0; }
+/* Full-screen overlays must also clear the notch. */
+html.is-native .nav-mobile-drawer { padding-top: calc(env(safe-area-inset-top) + 4.5rem); }
+html.is-native .qs-backdrop,
+html.is-native .qo,
+html.is-native .claim-overlay,
+html.is-native .lightbox-overlay,
+html.is-native .sq-lightbox-overlay,
+html.is-native .report-modal-backdrop {
+  padding-top: calc(env(safe-area-inset-top) + 1rem);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+}
+
 /* ── Navbar ──────────────────────────────────────────────────── */
 .navbar {
   position: sticky;
@@ -8418,3 +8447,102 @@ main:has(> .au) { max-width: 1240px; padding-top: clamp(1rem, 3vw, 2rem); }
 .qs-interest.is-on, .qs-interest.is-on:hover { background: var(--ink); color: var(--surface); border-color: var(--ink); }
 
 .qs-where-addr { flex-basis: 100%; margin-left: 1.3rem; font-style: normal; font-size: 0.8rem; color: var(--ink-faint); }
+
+/* Kept at the end of the file so these win over same-specificity rules above. */
+/* ── Touch polish (any touch device, web or native) ──────────── */
+@media (pointer: coarse) {
+  /* iOS zooms the page on focus of any input under 16px. */
+  input,
+  select,
+  textarea { font-size: 16px; }
+
+  /* Drag handles: a real tap target, and no page-scroll takeover once a drag starts. */
+  .drag-handle {
+    min-width: 44px;
+    min-height: 44px;
+    touch-action: none;
+    cursor: default;
+  }
+}
+
+/* Dynamic viewport units track the iOS/Android toolbars; fall back to vh where unsupported. */
+@supports (height: 100dvh) {
+  .lightbox-img { max-height: calc(100dvh - 96px); }
+  .chat-panel { max-height: 80dvh; }
+  .sq-lightbox-content,
+  .sq-lightbox-img { max-height: 90dvh; }
+  .route-loading { min-height: 60dvh; }
+}
+
+/* ── Bottom tab bar (phones, signed-in) ──────────────────────── */
+.tab-bar { display: none; }
+@media (max-width: 768px) {
+  .tab-bar {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 90;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--hairline);
+  }
+  .tab-bar-item {
+    flex: 1;
+    min-height: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: var(--ink-faint);
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    font-weight: 500;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab-bar-item.active { color: var(--accent); }
+  /* Keep page content and the footer clear of the fixed bar. */
+  body:has(.tab-bar) { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  html.is-native body:has(.tab-bar) { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+}
+
+/* Decorative rotated elements (e.g. the quest card fan) may bleed past the viewport edge;
+   clip rather than let the whole page scroll sideways. `clip` (unlike `hidden`) keeps sticky working. */
+@media (max-width: 768px) {
+  html, body { overflow-x: clip; }
+}
+
+/* Quest board: "Show more" pager under the tile mosaic. */
+.qb-more { display: flex; justify-content: center; margin: 1.5rem 0 0.5rem; }
+.qb-more .qb-more-count { margin-left: 0.5rem; opacity: 0.6; font-weight: 500; }
+
+/* Phones: filter chip rows scroll sideways in one line instead of stacking five rows deep. */
+@media (max-width: 768px) {
+  .qb-interests,
+  .qb-ranks {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-inline: -14px;
+    padding-inline: 14px;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .qb-interests::-webkit-scrollbar,
+  .qb-ranks::-webkit-scrollbar { display: none; }
+  .qb-interests > *,
+  .qb-ranks > * { flex-shrink: 0; white-space: nowrap; }
+}
+
+/* Itinerary cards on phones: reactions get a full row (no orphaned emoji), actions sit below it. */
+@media (max-width: 480px) {
+  .item-card-actions { flex-wrap: wrap; }
+  .item-card-actions .reaction-row { flex: 1 1 100%; flex-wrap: nowrap; }
+  .item-card-actions .small-btn { flex: 1 1 0; min-height: 40px; }
+}
+@media (pointer: coarse) {
+  .reaction-btn { min-height: 36px; padding-inline: 10px; }
+}

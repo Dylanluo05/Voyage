@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
+import TabBar from './components/TabBar';
 import { IconProvider } from './components/Icon';
 import { GoogleMapsProvider } from './context/GoogleMapsContext';
 import usePageMeta from './hooks/usePageMeta';
@@ -165,6 +166,7 @@ function Shell() {
         </Suspense>
       </RouteTransition>
       <Footer />
+      <TabBar />
     </>
   );
 }

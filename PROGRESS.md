@@ -6,6 +6,35 @@ architecture overview — this file is the narrative of how it got that way.
 
 ---
 
+## 2026-11-06
+
+### Mobile app shell (Capacitor) and a phone-layout pass
+The web app is now also packaged as an iOS and Android app with Capacitor, which wraps the
+existing Vite build (`frontend/ios/`, `frontend/android/`, config in `capacitor.config.ts`,
+app ID `app.voyagetravel.voyage`). The web build is untouched; `src/utils/native.ts` exposes
+`isNative` and sets up the status bar, splash screen and Android back button only inside the
+shell. `npm run cap:sync|cap:ios|cap:android` build and open the native projects. The native
+build needs `VITE_API_URL=https://api.voyagetravel.app` and the origins
+`capacitor://localhost,http://localhost` added to the backend's `CLIENT_ORIGIN`.
+
+Google sign-in uses a new `useGoogleSignIn` hook: the existing popup on web, the native
+account sheet (`@capgo/capacitor-social-login`) in the app. Both end in the same access token,
+so `/api/auth/google` is unchanged. It needs an iOS and an Android OAuth client in Google
+Cloud (`VITE_GOOGLE_IOS_CLIENT_ID`, plus the reversed iOS client ID as a URL scheme in
+`Info.plist`). Known gap: on Android the plugin can return no access token; accepting the ID
+token in the backend would be the fix if that shows up.
+
+Layout: signed-in users get a bottom tab bar on screens up to 768px (Trips, Quests, Discover,
+Ranks, Profile). Other fixes from a 390px visual pass: 16px inputs on touch devices (stops iOS
+zooming on focus), a 44px drag handle with `touch-action: none`, notch-safe navbar and
+overlays in the native shell, `dvh` heights, no sideways page scroll from the quest card fan,
+filter chip rows that scroll horizontally, and itinerary reaction buttons on one row. The
+quest board now renders 21 quests at a time with "Show more" (it was ~50,000px tall with all
+112). Not yet checked on a real device or simulator; the drag handle size and notch spacing
+only apply there.
+
+---
+
 ## 2026-11-05
 
 ### Interest chips, and a fix for the empty quest map in dev

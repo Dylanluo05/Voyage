@@ -7,8 +7,10 @@ import './styles.css';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import ErrorBoundary from './components/ErrorBoundary';
 import { initAnalytics } from './utils/analytics';
+import { initNative } from './utils/native';
 
 initAnalytics();
+void initNative();
 
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
