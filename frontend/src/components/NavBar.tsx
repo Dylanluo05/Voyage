@@ -4,6 +4,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 import { Icon } from './Icon';
+import { canPurchaseHere } from '../utils/native';
 
 export default function NavBar() {
   const { user, logout } = useAuth();
@@ -114,7 +115,9 @@ export default function NavBar() {
                 {userOpen && (
                   <div className="nav-dropdown-menu nav-dropdown-menu--right">
                     <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>Profile</NavLink>
-                    <NavLink to="/subscription" className={({ isActive }) => isActive ? 'active' : ''}>Upgrade</NavLink>
+                    {canPurchaseHere && (
+                      <NavLink to="/subscription" className={({ isActive }) => isActive ? 'active' : ''}>Upgrade</NavLink>
+                    )}
                     <div className="nav-dropdown-divider" />
                     <button
                       type="button"
@@ -173,7 +176,7 @@ export default function NavBar() {
               <NavLink to="/how-to-play" style={stagger()}>How to Play</NavLink>
               <div className="nav-mobile-divider" style={stagger()} />
               <NavLink to="/profile" style={stagger()}>Profile</NavLink>
-              <NavLink to="/subscription" style={stagger()}>Upgrade</NavLink>
+              {canPurchaseHere && <NavLink to="/subscription" style={stagger()}>Upgrade</NavLink>}
               {user.isAdmin && (
                 <>
                   <div className="nav-mobile-section-label nav-mobile-section-label--admin" style={stagger()}>Admin</div>

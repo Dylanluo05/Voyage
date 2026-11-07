@@ -8,6 +8,27 @@ architecture overview — this file is the narrative of how it got that way.
 
 ## 2026-11-06
 
+### Spotify and Stripe redirects in the native app
+In the Capacitor app, Spotify playlist export and Stripe checkout/billing portal now open in the
+system in-app browser (`openExternal` in `utils/native.ts`) instead of navigating the webview
+away. Return trips use a `voyage://open?path=<in-app path>` deep link, registered in
+`Info.plist` and as an Android intent filter, and handled by `NativeLinkHandler`, which closes
+the browser and navigates (only to paths starting with a single `/`). Spotify's callback
+redirects straight to the deep link when the export was started natively (a `native` flag in the
+signed state JWT). Stripe requires https return URLs, so native checkouts return to a new
+`/app-return` page that hands off to the app. `backend/src/lib/appLinks.ts` builds these URLs and
+picks the web origin from `CLIENT_ORIGIN` while skipping `capacitor://localhost` and
+`http://localhost`. The Subscription and playlist screens read the router's search params so a
+deep link into an already-open page works, and the Subscription page refreshes the plan when the
+in-app browser closes.
+
+Tradeoff: buying a plan is hidden in the app by default (`canPurchaseHere`), because the app
+stores generally require their own billing for digital subscriptions. Plans, the current plan
+and "Manage billing" stay visible; `VITE_ENABLE_NATIVE_PURCHASES=true` re-enables Stripe
+checkout in the app. Not yet run end to end on a device; the deep-link return from Safari View
+Controller / Custom Tabs needs confirming on a real phone, and the backend must be deployed
+first.
+
 ### Native camera and location for quests
 In the Capacitor app, quest proof now uses the system "Take Photo / Choose from Library" sheet
 (`@capacitor/camera`, via `utils/camera.ts`); the photo is downscaled to 1600px and orientation

@@ -38,3 +38,31 @@ export async function initNative(): Promise<void> {
 
   await SplashScreen.hide().catch(() => undefined);
 }
+
+/**
+ * Open an external page (Stripe, Spotify). In the app this is the system in-app browser
+ * (SFSafariViewController / Chrome Custom Tabs), which the user can dismiss to come back;
+ * on the web it's a normal redirect.
+ */
+export async function openExternal(url: string): Promise<void> {
+  if (!isNative) {
+    window.location.href = url;
+    return;
+  }
+  const { Browser } = await import('@capacitor/browser');
+  await Browser.open({ url });
+}
+
+/** Close the in-app browser if it's open (no-op on the web and on Android, where it can't be closed from JS). */
+export async function closeExternal(): Promise<void> {
+  if (!isNative) return;
+  const { Browser } = await import('@capacitor/browser');
+  await Browser.close().catch(() => undefined);
+}
+
+/**
+ * App Store and Play Store rules generally require their own billing for digital subscriptions, so
+ * buying a plan is web-only by default. Set VITE_ENABLE_NATIVE_PURCHASES=true to allow Stripe
+ * checkout inside the app (for testing, or where external-purchase links are permitted).
+ */
+export const canPurchaseHere = !isNative || import.meta.env.VITE_ENABLE_NATIVE_PURCHASES === 'true';

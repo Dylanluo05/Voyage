@@ -10,6 +10,7 @@ import usePageMeta from './hooks/usePageMeta';
 import ProtectedRoute from './components/ProtectedRoute';
 import SmoothScroll from './components/SmoothScroll';
 import RouteTransition from './components/RouteTransition';
+import NativeLinkHandler from './components/NativeLinkHandler';
 import HomePage from './pages/HomePage';
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
@@ -27,6 +28,7 @@ const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const AppReturnPage = lazy(() => import('./pages/AppReturnPage'));
 const AdminReportsPage = lazy(() => import('./pages/AdminReportsPage'));
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));
 
@@ -64,6 +66,7 @@ function Shell() {
   return (
     <>
       <NavBar />
+      <NativeLinkHandler />
       <RouteTransition>
         <Suspense fallback={<div className="route-loading" aria-busy="true" />}>
         <Routes>
@@ -143,6 +146,7 @@ function Shell() {
               </ProtectedRoute>
             }
           />
+          <Route path="/app-return" element={<AppReturnPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route

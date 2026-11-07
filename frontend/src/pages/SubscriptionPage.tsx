@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { isNative, canPurchaseHere } from '../utils/native';
 import { track } from '../utils/analytics';
 import { useEffect, useState } from 'react';
 import { getBillingStatus, startCheckout, openPortal, BillingStatus, Plan } from '../api/billing';
@@ -64,7 +65,9 @@ export default function SubscriptionPage() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const searchParams = new URLSearchParams(window.location.search);
+  // Read from the router (not window.location) so a deep link back from Stripe, which navigates
+  // within the already-open page, shows the banner and refreshes the plan.
+  const [searchParams] = useSearchParams();
   const justUpgraded = searchParams.get('success') === '1';
 
   useEffect(() => {
@@ -72,6 +75,27 @@ export default function SubscriptionPage() {
       .then(setStatus)
       .catch(() => setError('Failed to load subscription info.'))
       .finally(() => setLoading(false));
+  }, [justUpgraded]);
+
+  // In the app, the user may dismiss Stripe's in-app browser without a deep link firing
+  // (e.g. closing the portal after cancelling); refresh the plan when it closes.
+  useEffect(() => {
+    if (!isNative) return;
+    let remove: (() => void) | undefined;
+    let cancelled = false;
+    void import('@capacitor/browser').then(async ({ Browser }) => {
+      const handle = await Browser.addListener('browserFinished', () => {
+        setCheckoutLoading(null);
+        setPortalLoading(false);
+        getBillingStatus().then(setStatus).catch(() => undefined);
+      });
+      if (cancelled) void handle.remove();
+      else remove = () => void handle.remove();
+    });
+    return () => {
+      cancelled = true;
+      remove?.();
+    };
   }, []);
 
   const handleUpgrade = async (tier: Plan) => {
@@ -166,7 +190,7 @@ export default function SubscriptionPage() {
                           ? 'Manage via billing portal'
                           : 'Your current plan'}
                       </div>
-                    ) : (
+                    ) : !canPurchaseHere ? null : (
                       <button
                         className="sub-cta-btn"
                         style={tier === 'pro' ? { background: 'var(--accent)', color: '#fff' } : undefined}

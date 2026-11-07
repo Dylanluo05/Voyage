@@ -295,8 +295,8 @@ export function getPublicTrips(destination?: string): Promise<Trip[]> {
 }
 
 
-export function getPlaylistExportUrl(tripId: string): Promise<{ url: string }> {
-  return apiFetch<{ url: string }>(`/api/trips/${tripId}/playlist/export`, {
+export function getPlaylistExportUrl(tripId: string, native = false): Promise<{ url: string }> {
+  return apiFetch<{ url: string }>(`/api/trips/${tripId}/playlist/export${native ? '?native=1' : ''}`, {
     method: 'GET',
   });
 }

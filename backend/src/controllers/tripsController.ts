@@ -1085,7 +1085,7 @@ export async function exportPlaylist(req: Request, res: Response, next: NextFunc
     // Signed so the callback (a plain browser redirect, no Authorization header)
     // can trust who requested the export without a forgeable raw JSON state param.
     const state = jwt.sign(
-      { tripId: trip._id.toString(), userId: ownerId(req).toString() },
+      { tripId: trip._id.toString(), userId: ownerId(req).toString(), native: req.query.native === '1' },
       env.jwtSecret,
       { expiresIn: '10m' }
     );

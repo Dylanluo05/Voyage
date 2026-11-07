@@ -4,6 +4,7 @@ import { Icon } from './Icon';
 import { API_URL, getToken } from '../api/client';
 import { getBillingStatus, BillingStatus } from '../api/billing';
 import { useNavigate } from 'react-router-dom';
+import { canPurchaseHere } from '../utils/native';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -161,7 +162,7 @@ export default function TripChatPanel({ trip, onTripRefresh }: Props) {
               {quota.remaining}/{quota.aiRequestsPerDay} requests today
             </span>
           ) : null}
-          {!isPro && (
+          {!isPro && canPurchaseHere && (
             <button className="chat-upgrade-btn" onClick={() => navigate('/subscription')}>Upgrade</button>
           )}
         </div>
@@ -191,8 +192,14 @@ export default function TripChatPanel({ trip, onTripRefresh }: Props) {
       {outOfQuota && (
         <div className="chat-quota-banner">
           You've used all {quota?.aiRequestsPerDay} AI requests for today.{' '}
-          <button className="chat-upgrade-inline" onClick={() => navigate('/subscription')}>Upgrade your plan</button>{' '}
-          for unlimited access.
+          {canPurchaseHere ? (
+            <>
+              <button className="chat-upgrade-inline" onClick={() => navigate('/subscription')}>Upgrade your plan</button>{' '}
+              for unlimited access.
+            </>
+          ) : (
+            <>Your limit resets tomorrow.</>
+          )}
         </div>
       )}
 

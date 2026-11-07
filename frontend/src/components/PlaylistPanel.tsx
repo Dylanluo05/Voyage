@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import * as tripsApi from '../api/trips';
 import type { Trip, PlaylistTrack, SpotifySearchResult } from '../types';
 import { Icon } from './Icon';
 import Reveal from './Reveal';
+import { isNative, openExternal } from '../utils/native';
 
 interface Props {
   trip: Trip;
@@ -11,6 +13,8 @@ interface Props {
 }
 
 export default function PlaylistPanel({ trip, currentUserId, onUpdate }: Props) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SpotifySearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -26,20 +30,21 @@ export default function PlaylistPanel({ trip, currentUserId, onUpdate }: Props) 
   const [exporting, setExporting] = useState(false);
   const [exportedUrl, setExportedUrl] = useState<string | null>(null);
 
+  // Spotify sends the user back with ?playlist_exported=... (a full page load on the web, an in-app
+  // navigation from the native deep link), so watch the router's search string rather than mount only.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const exported = params.get('playlist_exported');
+    const exported = new URLSearchParams(location.search).get('playlist_exported');
     if (exported) {
-      setExportedUrl(decodeURIComponent(exported));
-      window.history.replaceState({}, '', window.location.pathname);
+      setExportedUrl(exported);
+      navigate(location.pathname + location.hash, { replace: true });
     }
-  }, []);
+  }, [location.search, location.pathname, location.hash, navigate]);
 
   async function handleExport() {
     setExporting(true);
     try {
-      const { url } = await tripsApi.getPlaylistExportUrl(trip._id);
-      window.location.href = url;
+      const { url } = await tripsApi.getPlaylistExportUrl(trip._id, isNative);
+      await openExternal(url);
     } finally {
       setExporting(false);
     }

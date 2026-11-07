@@ -1,4 +1,5 @@
 import { apiFetch } from './client';
+import { isNative, openExternal } from '../utils/native';
 
 export type Plan = 'free' | 'explorer' | 'pro' | 'globetrotter';
 
@@ -27,12 +28,15 @@ export function getBillingStatus(): Promise<BillingStatus> {
 export async function startCheckout(tier: Exclude<Plan, 'free'>): Promise<void> {
   const { url } = await apiFetch<{ url: string }>('/api/billing/checkout', {
     method: 'POST',
-    body: JSON.stringify({ tier }),
+    body: JSON.stringify({ tier, native: isNative }),
   });
-  if (url) window.location.href = url;
+  if (url) await openExternal(url);
 }
 
 export async function openPortal(): Promise<void> {
-  const { url } = await apiFetch<{ url: string }>('/api/billing/portal', { method: 'POST' });
-  if (url) window.location.href = url;
+  const { url } = await apiFetch<{ url: string }>('/api/billing/portal', {
+    method: 'POST',
+    body: JSON.stringify({ native: isNative }),
+  });
+  if (url) await openExternal(url);
 }

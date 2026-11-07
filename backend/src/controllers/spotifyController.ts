@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { Trip } from '../models/Trip';
 import { exchangeCodeForToken, getSpotifyUserId, createPlaylistForTrip } from '../lib/spotify';
-import { env } from '../config/env'; // used for clientOrigin redirect
+import { env } from '../config/env';
+import { returnUrl } from '../lib/appLinks';
 
 export async function spotifyCallback(req: Request, res: Response): Promise<void> {
   const { code, state, error } = req.query as Record<string, string>;
@@ -14,10 +15,12 @@ export async function spotifyCallback(req: Request, res: Response): Promise<void
 
   let tripId: string;
   let userId: string;
+  let native = false;
   try {
-    const payload = jwt.verify(state, env.jwtSecret) as { tripId: string; userId: string };
+    const payload = jwt.verify(state, env.jwtSecret) as { tripId: string; userId: string; native?: boolean };
     tripId = payload.tripId;
     userId = payload.userId;
+    native = payload.native === true;
   } catch {
     res.redirect(`${env.clientOrigin}?spotify_error=invalid_state`);
     return;
@@ -26,12 +29,12 @@ export async function spotifyCallback(req: Request, res: Response): Promise<void
   try {
     const trip = await Trip.findById(tripId);
     if (!trip) {
-      res.redirect(`${env.clientOrigin}?spotify_error=trip_not_found`);
+      res.redirect(returnUrl(native, '/?spotify_error=trip_not_found'));
       return;
     }
     const isMember = trip.owner.equals(userId) || trip.collaborators.some((c) => c.equals(userId));
     if (!isMember) {
-      res.redirect(`${env.clientOrigin}?spotify_error=forbidden`);
+      res.redirect(returnUrl(native, '/?spotify_error=forbidden'));
       return;
     }
 
@@ -41,8 +44,8 @@ export async function spotifyCallback(req: Request, res: Response): Promise<void
     const trackIds = trip.playlist.map((t) => t.spotifyId);
     const playlistUrl = await createPlaylistForTrip(accessToken, spotifyUserId, trip.title, trackIds);
 
-    res.redirect(`${env.clientOrigin}/trips/${tripId}?playlist_exported=${encodeURIComponent(playlistUrl)}`);
+    res.redirect(returnUrl(native, `/trips/${tripId}?playlist_exported=${encodeURIComponent(playlistUrl)}`));
   } catch {
-    res.redirect(`${env.clientOrigin}/trips/${tripId}?spotify_error=export_failed`);
+    res.redirect(returnUrl(native, `/trips/${tripId}?spotify_error=export_failed`));
   }
 }

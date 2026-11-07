@@ -5,6 +5,7 @@ import { HttpError } from '../middleware/error';
 import { env } from '../config/env';
 import { getQuotaStatus, TIER_CONFIG } from '../lib/aiQuota';
 import { getStripe, StripeInstance } from '../lib/stripe';
+import { httpsReturnUrl } from '../lib/appLinks';
 
 const PRICE_MAP: Record<Exclude<Plan, 'free'>, () => string> = {
   explorer:     () => env.stripePriceExplorer,
@@ -18,7 +19,9 @@ export async function createCheckoutSession(req: Request, res: Response, next: N
 
     const { tier } = z.object({
       tier: z.enum(['explorer', 'pro', 'globetrotter']),
+      native: z.boolean().optional(),
     }).parse(req.body);
+    const native = req.body?.native === true;
 
     const priceId = PRICE_MAP[tier]();
     if (!priceId) { next(new HttpError(503, `Stripe price for ${tier} not configured`)); return; }
@@ -42,8 +45,8 @@ export async function createCheckoutSession(req: Request, res: Response, next: N
       payment_method_types: ['card'],
       ...customerParam,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${env.clientOrigin}/subscription?success=1`,
-      cancel_url: `${env.clientOrigin}/subscription`,
+      success_url: httpsReturnUrl(native, '/subscription?success=1'),
+      cancel_url: httpsReturnUrl(native, '/subscription'),
       metadata: { userId: req.user.sub, tier },
     });
 
@@ -64,10 +67,11 @@ export async function createPortalSession(req: Request, res: Response, next: Nex
       return;
     }
 
+    const native = req.body?.native === true;
     const stripe = getStripe();
     const session = await stripe.billingPortal.sessions.create({
       customer: user.aiUsage.stripeCustomerId,
-      return_url: `${env.clientOrigin}/subscription`,
+      return_url: httpsReturnUrl(native, '/subscription'),
     });
 
     res.json({ url: session.url });
