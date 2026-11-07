@@ -8,6 +8,21 @@ architecture overview — this file is the narrative of how it got that way.
 
 ## 2026-11-06
 
+### Native camera and location for quests
+In the Capacitor app, quest proof now uses the system "Take Photo / Choose from Library" sheet
+(`@capacitor/camera`, via `utils/camera.ts`); the photo is downscaled to 1600px and orientation
+-corrected before the existing Cloudinary upload. The "Find quests near me" filter gets the
+device position through `utils/location.ts`, which uses `@capacitor/geolocation` in the app
+(proper OS permission prompt) and the browser API on the web, with a typed `LocationError` so
+the message can differ for denied, unavailable and unsupported. On the web both paths behave as
+before. iOS gets camera, photo library and location usage descriptions in `Info.plist`;
+Android gets coarse and fine location (no CAMERA permission, since capture goes through the
+system camera app). The trip log, avatar and cover uploads still use file inputs, which the
+native webviews already route to the camera and library. Not run on a device yet; the iOS
+simulator has no camera, so "Take Photo" needs a real phone. Quest proof is still not checked
+against where the photo was taken.
+
+### Mobile app shell (Capacitor) and a phone-layout pass
 ### Mobile app shell (Capacitor) and a phone-layout pass
 The web app is now also packaged as an iOS and Android app with Capacitor, which wraps the
 existing Vite build (`frontend/ios/`, `frontend/android/`, config in `capacitor.config.ts`,

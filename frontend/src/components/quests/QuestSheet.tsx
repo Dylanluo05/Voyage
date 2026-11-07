@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import type { PublicSidequest, Trip } from '../../types';
 import { ApiError } from '../../api/client';
 import { uploadPhoto, uploadToCloudinary } from '../../utils/image';
+import { isNative } from '../../utils/native';
+import { pickNativePhoto } from '../../utils/camera';
 import { Icon } from '../Icon';
 import ReportButton from '../ReportButton';
 import QuestCover from './QuestCover';
@@ -98,9 +100,7 @@ export default function QuestSheet({ quest, user, trips, actions, startProving, 
     }
   }
 
-  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function uploadProof(file: File) {
     setUploading(true);
     setError('');
     try {
@@ -109,6 +109,26 @@ export default function QuestSheet({ quest, user, trips, actions, startProving, 
       setError('Photo upload failed. Please try again.');
     } finally {
       setUploading(false);
+    }
+  }
+
+  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) void uploadProof(file);
+  }
+
+  /** In the app: the native camera / library sheet. On the web: the normal file picker. */
+  async function choosePhoto() {
+    if (!isNative) {
+      fileRef.current?.click();
+      return;
+    }
+    try {
+      const file = await pickNativePhoto();
+      if (file) await uploadProof(file);
+    } catch {
+      setError('Couldn’t open the camera. Check that Voyage is allowed to use it in Settings.');
     }
   }
 
@@ -238,7 +258,7 @@ export default function QuestSheet({ quest, user, trips, actions, startProving, 
             <div className="qs-block qs-prove" ref={proveRef}>
               <h3>Prove it</h3>
               <p className="muted">Upload a photo of you doing it. Our judge checks it matches the quest.</p>
-              <button type="button" className={`qs-drop${photoUrl ? ' has-photo' : ''}`} onClick={() => fileRef.current?.click()}>
+              <button type="button" className={`qs-drop${photoUrl ? ' has-photo' : ''}`} onClick={() => void choosePhoto()}>
                 <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPick} />
                 {uploading ? (
                   <span>Uploading…</span>
@@ -247,7 +267,7 @@ export default function QuestSheet({ quest, user, trips, actions, startProving, 
                 ) : (
                   <>
                     <Icon name="camera" size={28} />
-                    <span>Choose a photo</span>
+                    <span>{isNative ? 'Take or choose a photo' : 'Choose a photo'}</span>
                   </>
                 )}
               </button>

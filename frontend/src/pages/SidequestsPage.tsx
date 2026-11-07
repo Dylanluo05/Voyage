@@ -8,6 +8,8 @@ import * as sidequestsApi from '../api/publicSidequests';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { rankFor } from '../utils/ranks';
+import { isNative } from '../utils/native';
+import { getCurrentLocation, LocationError } from '../utils/location';
 import Reveal from '../components/Reveal';
 import { Icon } from '../components/Icon';
 import PlayerHud from '../components/quests/PlayerHud';
@@ -166,28 +168,26 @@ export default function SidequestsPage() {
       setNearOn(true);
       return;
     }
-    if (!navigator.geolocation) {
-      setError('Your browser can\u2019t share your location.');
-      return;
-    }
     setLocating(true);
     setError('');
-    navigator.geolocation.getCurrentPosition(
-      (p) => {
-        setUserPos({ lat: p.coords.latitude, lng: p.coords.longitude });
+    getCurrentLocation()
+      .then((pos) => {
+        setUserPos(pos);
         setNearOn(true);
-        setLocating(false);
-      },
-      (err) => {
-        setLocating(false);
+      })
+      .catch((err: unknown) => {
+        const kind = err instanceof LocationError ? err.kind : 'unavailable';
         setError(
-          err.code === err.PERMISSION_DENIED
-            ? 'Location is blocked. Allow it in your browser settings to find quests near you.'
-            : 'Couldn\u2019t get your location. Try again.',
+          kind === 'unsupported'
+            ? 'Your browser can\u2019t share your location.'
+            : kind === 'denied'
+              ? isNative
+                ? 'Location is off for Voyage. Turn it on in Settings to find quests near you.'
+                : 'Location is blocked. Allow it in your browser settings to find quests near you.'
+              : 'Couldn\u2019t get your location. Try again.',
         );
-      },
-      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 5 * 60_000 },
-    );
+      })
+      .finally(() => setLocating(false));
   }
 
   // ── actions (throwing versions feed the sheet, which shows the error inline) ──

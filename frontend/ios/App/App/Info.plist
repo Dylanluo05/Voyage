@@ -66,6 +66,14 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Voyage uses your camera so you can take photos as proof for sidequests and add them to your trip log.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Voyage lets you choose photos from your library as sidequest proof and for your trip log.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Voyage can save photos you take to your library.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Voyage uses your location to show sidequests near you.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
