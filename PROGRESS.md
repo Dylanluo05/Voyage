@@ -8,6 +8,16 @@ architecture overview — this file is the narrative of how it got that way.
 
 ## 2026-11-06
 
+### App icon and splash screen
+Generated the native icon and splash set from the existing brand mark (white "V" on `#0b76dd`,
+from `favicon.svg`) with `@capacitor/assets`. Sources live in `frontend/assets/` (SVG plus
+rendered PNG: full-bleed icon, transparent foreground and solid background for Android's
+adaptive icon, and a plain blue splash with the V centered); `npm run assets` regenerates the
+iOS and Android resources from them (it also deletes the PWA icons and web manifest the tool
+emits, since the app isn't a PWA). The iOS icon has no alpha channel, as the App Store requires,
+and the Android foreground stays inside the 66% safe zone. The dark-mode splash is the same as
+the light one. Not yet seen on a device or simulator.
+
 ### Live-update reconnect and offline-safe sign-in
 The trip page's SSE connection used to open once and never come back: each connection needs a
 one-time token (EventSource can't send auth headers), so the browser's own auto-reconnect would
@@ -62,7 +72,6 @@ native webviews already route to the camera and library. Not run on a device yet
 simulator has no camera, so "Take Photo" needs a real phone. Quest proof is still not checked
 against where the photo was taken.
 
-### Mobile app shell (Capacitor) and a phone-layout pass
 ### Mobile app shell (Capacitor) and a phone-layout pass
 The web app is now also packaged as an iOS and Android app with Capacitor, which wraps the
 existing Vite build (`frontend/ios/`, `frontend/android/`, config in `capacitor.config.ts`,
